@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>Gestão de Frota</title>
+  <!-- ===================== ESTILOS E TEMAS ===================== -->
+<style>
+  /* ===== Temas: cada tema só redefine as cores ===== */
+  body[data-tema="claro"] {
+    --fundo: #f4f6f9; --superficie: #ffffff; --texto: #1d2430; --texto-2: #5b6576;
+    --borda: #dde2ea; --primaria: #1f6feb; --primaria-texto: #ffffff;
+    --ok: #1a7f37; --alerta: #b7791f; --perigo: #c53030; --sombra: 0 1px 3px rgba(0,0,0,.08);
+  }
+  body[data-tema="escuro"] {
+    --fundo: #0f1419; --superficie: #1a2028; --texto: #e6e9ee; --texto-2: #9aa4b2;
+    --borda: #2c3440; --primaria: #4c9aff; --primaria-texto: #0f1419;
+    --ok: #3fb950; --alerta: #d29922; --perigo: #f85149; --sombra: 0 1px 3px rgba(0,0,0,.4);
+  }
+  body[data-tema="frota"] {
+    --fundo: #eef5f3; --superficie: #ffffff; --texto: #12312b; --texto-2: #4d6b64;
+    --borda: #cfe0db; --primaria: #0b7a65; --primaria-texto: #ffffff;
+    --ok: #1a7f37; --alerta: #c27c0e; --perigo: #b42318; --sombra: 0 1px 3px rgba(11,122,101,.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--fundo); color: var(--texto); font-size: 15px; line-height: 1.45;
+  }
+  .oculto { display: none !important; }
+  h1, h2, h3 { margin: 0 0 12px; line-height: 1.2; }
+  h1 { font-size: 22px; } h2 { font-size: 19px; } h3 { font-size: 16px; }
+  a { color: var(--primaria); }
+
+  /* ===== Estrutura ===== */
+  .topo {
+    position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--superficie); border-bottom: 1px solid var(--borda);
+  }
+  .marca { flex: 1; color: var(--primaria); }
+  .usuario { color: var(--texto-2); font-size: 13px; }
+  .menu {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; display: flex;
+    background: var(--superficie); border-top: 1px solid var(--borda);
+  }
+  .menu a {
+    flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px 8px;
+    font-size: 11px; color: var(--texto-2); text-decoration: none;
+  }
+  .menu a .ico { font-size: 18px; }
+  .menu a.ativo { color: var(--primaria); font-weight: 600; }
+  .conteudo { padding: 16px; padding-bottom: 84px; max-width: 1100px; margin: 0 auto; }
+
+  @media (min-width: 900px) {
+    #app { display: grid; grid-template-columns: 200px 1fr; grid-template-rows: auto 1fr; }
+    .topo { grid-column: 1 / 3; }
+    .menu {
+      position: sticky; top: 49px; flex-direction: column; height: calc(100vh - 49px);
+      border-top: 0; border-right: 1px solid var(--borda); padding-top: 8px;
+    }
+    .menu a { flex: none; flex-direction: row; gap: 10px; padding: 10px 16px; font-size: 14px; }
+    .conteudo { padding: 24px; width: 100%; }
+  }
+
+  /* ===== Componentes ===== */
+  .cartao {
+    background: var(--superficie); border: 1px solid var(--borda); border-radius: 10px;
+    padding: 16px; box-shadow: var(--sombra);
+  }
+  .grade { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .indicadores { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: 16px; }
+  .indicador .valor { font-size: 26px; font-weight: 700; }
+  .indicador .rotulo { color: var(--texto-2); font-size: 13px; }
+  .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .barra h2 { flex: 1; margin: 0; }
+  .barra input[type=search] { flex: 1 1 220px; }
+
+  .btn {
+    border: 1px solid var(--borda); background: var(--superficie); color: var(--texto);
+    padding: 9px 14px; border-radius: 8px; font: inherit; cursor: pointer; text-decoration: none;
+    display: inline-block; text-align: center;
+  }
+  .btn.primario { background: var(--primaria); color: var(--primaria-texto); border-color: var(--primaria); font-weight: 600; }
+  .btn.perigo { color: var(--perigo); border-color: var(--perigo); }
+  .btn.fantasma { background: transparent; }
+  .btn.pequeno { padding: 5px 10px; font-size: 13px; }
+  .btn:disabled { opacity: .6; cursor: default; }
+
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--texto-2); }
+  input, select, textarea {
+    font: inherit; color: var(--texto); background: var(--superficie);
+    border: 1px solid var(--borda); border-radius: 8px; padding: 9px 10px; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primaria); outline-offset: -1px; }
+  .form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .form .largo { grid-column: 1 / -1; }
+  .acoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+
+  .item { display: flex; gap: 12px; align-items: center; cursor: pointer; }
+  .item:hover { border-color: var(--primaria); }
+  .item .miniatura {
+    width: 56px; height: 56px; border-radius: 8px; background: var(--fundo); flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden;
+  }
+  .item .miniatura img { width: 100%; height: 100%; object-fit: cover; }
+  .item .info { min-width: 0; flex: 1; }
+  .item .titulo { font-weight: 600; }
+  .item .sub { color: var(--texto-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .selo { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
+  .selo.ok { color: var(--ok); } .selo.alerta { color: var(--alerta); } .selo.perigo { color: var(--perigo); } .selo.neutro { color: var(--texto-2); }
+
+  .detalhe-topo { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 16px; }
+  .foto-principal { width: 220px; max-width: 100%; aspect-ratio: 4/3; border-radius: 10px; background: var(--fundo);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 48px; }
+  .foto-principal img { width: 100%; height: 100%; object-fit: cover; }
+  .dados { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 16px; flex: 1; }
+  .dados > div > span:first-child { display: block; color: var(--texto-2); font-size: 12px; }
+  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .galeria figure { margin: 0; font-size: 12px; color: var(--texto-2); }
+  .galeria .thumb { aspect-ratio: 1; border-radius: 8px; background: var(--fundo); overflow: hidden; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .galeria .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--borda); }
+  th { color: var(--texto-2); font-weight: 600; font-size: 12px; }
+  .tabela-rolagem { overflow-x: auto; }
+  .secao { margin-top: 16px; }
+  .vazio { color: var(--texto-2); text-align: center; padding: 24px; grid-column: 1 / -1; }
+
+  .abas { display: flex; gap: 4px; border-bottom: 1px solid var(--borda); margin-bottom: 14px; overflow-x: auto; }
+  .abas a { padding: 8px 14px; text-decoration: none; color: var(--texto-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+  .abas a.ativo { color: var(--primaria); border-bottom-color: var(--primaria); font-weight: 600; }
+  .lembrete-falta { font-size: 12px; color: var(--texto-2); }
+  .temas { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tema-opcao { border: 2px solid var(--borda); border-radius: 10px; padding: 10px 14px; cursor: pointer; background: var(--superficie); color: var(--texto); font: inherit; }
+  .tema-opcao.ativo { border-color: var(--primaria); }
+
+  /* ===== Login, avisos, carregamento, modal ===== */
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .login-cartao { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+  .login-cartao h1 { color: var(--primaria); text-align: center; }
+  .erro { color: var(--perigo); min-height: 1em; margin: 0; font-size: 14px; }
+  .carregando { position: fixed; inset: 0; background: rgba(0,0,0,.15); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .spinner { width: 36px; height: 36px; border: 4px solid var(--borda); border-top-color: var(--primaria); border-radius: 50%; animation: gira 0.8s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .aviso { position: fixed; left: 16px; right: 16px; bottom: 76px; z-index: 60; max-width: 480px; margin: 0 auto;
+    padding: 12px 16px; border-radius: 10px; color: #fff; background: #2d3748; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+  .aviso.erro-aviso { background: var(--perigo); }
+  .modal { border: 0; border-radius: 12px; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+    background: var(--superficie); color: var(--texto); }
+  .modal::backdrop { background: rgba(0,0,0,.4); }
+  #modal-corpo { padding: 18px; }
+  .modal img.ampliada { width: 100%; border-radius: 8px; }
+</style>
+</head>
+<body data-tema="claro">
+  <!-- Tela de login -->
+  <section id="tela-login" class="login oculto">
+    <form id="form-login" class="cartao login-cartao" autocomplete="on">
+      <h1>Gestão de Frota</h1>
+      <label>E-mail<input type="email" name="email" required autocomplete="username"></label>
+      <label>Senha<input type="password" name="senha" required autocomplete="current-password"></label>
+      <button type="submit" class="btn primario">Entrar</button>
+      <p id="login-erro" class="erro"></p>
+    </form>
+  </section>
+
+  <!-- Aplicação -->
+  <div id="app" class="oculto">
+    <header class="topo">
+      <strong class="marca">Gestão de Frota</strong>
+      <span id="usuario-nome" class="usuario"></span>
+      <button id="btn-sair" class="btn fantasma pequeno" type="button">Sair</button>
+    </header>
+    <nav class="menu" id="menu">
+      <a href="#inicio" data-rota="inicio"><span class="ico">⌂</span>Início</a>
+      <a href="#veiculos" data-rota="veiculos"><span class="ico">🚗</span>Veículos</a>
+      <a href="#motoristas" data-rota="motoristas"><span class="ico">👤</span>Motoristas</a>
+      <a href="#manutencao" data-rota="manutencao"><span class="ico">🔧</span>Manutenção</a>
+      <a href="#usuarios" data-rota="usuarios" data-perm="usuarios"><span class="ico">🔑</span>Usuários</a>
+      <a href="#perfil" data-rota="perfil"><span class="ico">⚙</span>Perfil</a>
+    </nav>
+    <main id="conteudo" class="conteudo"></main>
+  </div>
+
+  <div id="carregando" class="carregando oculto"><div class="spinner"></div></div>
+  <div id="aviso" class="aviso oculto"></div>
+  <dialog id="modal" class="modal"><div id="modal-corpo"></div></dialog>
+
+  <!-- ===================== LÓGICA DA TELA ===================== -->
+<script>
+/* =====================================================================
+ * App.html — lógica da tela (roda no navegador).
+ * Conversa com o servidor por uma única função: api(token, acao, payload).
+ * ===================================================================== */
+
+var estado = { token: null, usuario: null, listas: {}, fotos: {} };
+
+// ---------- Utilidades ----------
+function $(sel, raiz) { return (raiz || document).querySelector(sel); }
+function $$(sel, raiz) { return Array.prototype.slice.call((raiz || document).querySelectorAll(sel)); }
+function esc(v) {
+  return String(v === undefined || v === null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function armazenar(chave, valor) {
+  try { if (valor === null) localStorage.removeItem(chave); else localStorage.setItem(chave, valor); } catch (e) {}
+}
+function lerArmazenado(chave) { try { return localStorage.getItem(chave); } catch (e) { return null; } }
+
+function hojeISO() {
+  var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+function diasAte(iso) {
+  if (!iso) return null;
+  var alvo = new Date(iso + 'T00:00:00'), hoje = new Date(hojeISO() + 'T00:00:00');
+  return Math.round((alvo - hoje) / 86400000);
+}
+function fmtData(iso) { return iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : (iso || ''); }
+function fmtKm(v) { return v ? Number(v).toLocaleString('pt-BR') + ' km' : '—'; }
+function fmtMoeda(v) { return v ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'; }
+function fmtCpf(v) { v = String(v || ''); return v.length === 11 ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : v; }
+function fmtTel(v) { v = String(v || ''); return v.length === 11 ? v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : v.length === 10 ? v.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3') : v; }
+
+var ROTULOS = {
+  disponivel: 'Disponível', locado: 'Locado', manutencao: 'Manutenção', inativo: 'Inativo',
+  ativo: 'Ativo', bloqueado: 'Bloqueado', administrador: 'Administrador', operador: 'Operador',
+  flex: 'Flex', gasolina: 'Gasolina', etanol: 'Etanol', diesel: 'Diesel', gnv: 'GNV', eletrico: 'Elétrico', hibrido: 'Híbrido',
+  cadastro: 'Cadastro', entrega: 'Entrega', devolucao: 'Devolução', motorista: 'Motorista', ajuste: 'Ajuste',
+  uber: 'Uber', '99': '99', indrive: 'inDrive', outra: 'Outra', nenhuma: 'Nenhuma',
+  foto_veiculo: 'Foto do veículo', foto_motorista: 'Foto do motorista', cnh: 'CNH',
+  comprovante_residencia: 'Comprovante de residência', documento_veiculo: 'Documento (CRLV)', outro: 'Outro',
+  nota_fiscal: 'Nota fiscal', preventiva: 'Preventiva', corretiva: 'Corretiva',
+  vencida: 'Vencida', proxima: 'Próxima', em_dia: 'Em dia', sem_historico: 'Sem histórico'
+};
+function rotulo(v) { return ROTULOS[v] || v || ''; }
+var COR_STATUS = { disponivel: 'ok', locado: 'neutro', manutencao: 'alerta', inativo: 'perigo', ativo: 'ok', bloqueado: 'perigo',
+  vencida: 'perigo', proxima: 'alerta', em_dia: 'ok', sem_historico: 'neutro' };
+function selo(v, cor) { return '<span class="selo ' + (cor || COR_STATUS[v] || 'neutro') + '">' + esc(rotulo(v)) + '</span>'; }
+
+function pode(tabela, acao) {
+  var p = (estado.usuario && estado.usuario.permissoes) || {};
+  return (p[tabela] || []).indexOf(acao) >= 0;
+}
+
+// ---------- Comunicação com o servidor ----------
+var pendentes = 0;
+function carregando(on) {
+  pendentes += on ? 1 : -1;
+  $('#carregando').classList.toggle('oculto', pendentes <= 0);
+}
+function chamar(acao, payload, silencioso) {
+  return new Promise(function (resolve, reject) {
+    if (!silencioso) carregando(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (!silencioso) carregando(false);
+        if (r && r.ok) return resolve(r.dados);
+        var erro = (r && r.erro) || 'Erro desconhecido';
+        if (erro === 'SESSAO_EXPIRADA') { sairLocal(); erro = 'Sua sessão expirou. Entre novamente.'; }
+        reject(new Error(erro));
+      })
+      .withFailureHandler(function (e) {
+        if (!silencioso) carregando(false);
+        reject(new Error('Falha de comunicação: ' + (e && e.message ? e.message : e)));
+      })
+      .api(estado.token, acao, payload || {});
+  });
+}
+
+var timerAviso;
+function aviso(msg, ehErro) {
+  var el = $('#aviso');
+  el.textContent = msg;
+  el.classList.toggle('erro-aviso', !!ehErro);
+  el.classList.remove('oculto');
+  clearTimeout(timerAviso);
+  timerAviso = setTimeout(function () { el.classList.add('oculto'); }, ehErro ? 6000 : 3000);
+}
+function falhou(e) { aviso(e.message || String(e), true); }
+
+// ---------- Modal ----------
+function abrirModal(html) {
+  // troca o elemento para descartar os "ouvintes" de cliques do modal anterior
+  var velho = $('#modal-corpo'), novo = velho.cloneNode(false);
+  novo.innerHTML = html;
+  velho.parentNode.replaceChild(novo, velho);
+  if (!$('#modal').open) $('#modal').showModal();
+}
+function fecharModal() { $('#modal').close(); $('#modal-corpo').innerHTML = ''; }
+$('#modal').addEventListener('click', function (ev) { if (ev.target === this) fecharModal(); });
+
+// ---------- Tema ----------
+function aplicarTema(t) {
+  if (['claro', 'escuro', 'frota'].indexOf(t) < 0) t = 'claro';
+  document.body.setAttribute('data-tema', t);
+  armazenar('tema', t);
+}
+
+// ---------- Login / sessão ----------
+function mostrarLogin() {
+  $('#app').classList.add('oculto');
+  $('#tela-login').classList.remove('oculto');
+}
+function sairLocal() {
+  estado.token = null; estado.usuario = null; estado.fotos = {};
+  armazenar('token', null);
+  mostrarLogin();
+}
+$('#form-login').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  var f = ev.target;
+  $('#login-erro').textContent = '';
+  chamar('login', { email: f.email.value, senha: f.senha.value })
+    .then(function (r) {
+      estado.token = r.token;
+      armazenar('token', r.token);
+      f.senha.value = '';
+      return iniciarSessao();
+    })
+    .catch(function (e) { $('#login-erro').textContent = e.message; });
+});
+$('#btn-sair').addEventListener('click', function () {
+  chamar('logout', {}, true).catch(function () {});
+  sairLocal();
+});
+
+function iniciarSessao() {
+  return chamar('sessao').then(function (r) {
+    estado.usuario = r.usuario;
+    estado.listas = r.listas;
+    aplicarTema(r.usuario.tema);
+    $('#usuario-nome').textContent = r.usuario.nome;
+    $$('#menu [data-perm]').forEach(function (a) {
+      a.classList.toggle('oculto', !pode(a.getAttribute('data-perm'), 'ler'));
+    });
+    $('#tela-login').classList.add('oculto');
+    $('#app').classList.remove('oculto');
+    rotear();
+  });
+}
+
+// ---------- Rotas ----------
+window.addEventListener('hashchange', rotear);
+function ir(hash) { if (location.hash === hash) rotear(); else location.hash = hash; }
+
+function rotear() {
+  if (!estado.usuario) return;
+  var partes = (location.hash || '#inicio').slice(1).split('/');
+  var rota = partes[0] || 'inicio';
+  $$('#menu a').forEach(function (a) { a.classList.toggle('ativo', a.getAttribute('data-rota') === rota); });
+  window.scrollTo(0, 0);
+  var tela = TELAS[rota] || TELAS.inicio;
+  try { tela(partes[1], partes[2]); } catch (e) { falhou(e); }
+}
+
+function render(html) { $('#conteudo').innerHTML = html; }
+
+// ---------- Definição dos campos dos formulários ----------
+var CAMPOS = {
+  veiculos: [
+    { n: 'placa', r: 'Placa', obr: true, ph: 'ABC1D23' },
+    { n: 'marca', r: 'Marca', obr: true },
+    { n: 'modelo', r: 'Modelo', obr: true },
+    { n: 'versao', r: 'Versão' },
+    { n: 'ano_fabricacao', r: 'Ano fabricação', tipo: 'number' },
+    { n: 'ano_modelo', r: 'Ano modelo', tipo: 'number' },
+    { n: 'cor', r: 'Cor' },
+    { n: 'combustivel', r: 'Combustível', lista: 'combustivel' },
+    { n: 'renavam', r: 'RENAVAM', modo: 'numeric' },
+    { n: 'chassi', r: 'Chassi' },
+    { n: 'codigo_fipe', r: 'Código FIPE', ph: '000000-0' },
+    { n: 'km_atual', r: 'Km atual', modo: 'numeric', soNovo: true },
+    { n: 'data_aquisicao', r: 'Data de aquisição', tipo: 'date' },
+    { n: 'valor_aquisicao', r: 'Valor de aquisição (R$)', modo: 'decimal' },
+    { n: 'status', r: 'Status', lista: 'status_veiculo', obr: true, padrao: 'disponivel' },
+    { n: 'observacoes', r: 'Observações', tipo: 'textarea' }
+  ],
+  motoristas: [
+    { n: 'nome', r: 'Nome completo', obr: true, largo: true },
+    { n: 'cpf', r: 'CPF', obr: true, modo: 'numeric' },
+    { n: 'rg', r: 'RG' },
+    { n: 'data_nascimento', r: 'Data de nascimento', tipo: 'date' },
+    { n: 'telefone', r: 'Telefone / WhatsApp', obr: true, modo: 'tel' },
+    { n: 'email', r: 'E-mail', tipo: 'email' },
+    { n: 'cep', r: 'CEP', modo: 'numeric' },
+    { n: 'endereco', r: 'Endereço', largo: true },
+    { n: 'cidade', r: 'Cidade' },
+    { n: 'uf', r: 'UF', max: 2 },
+    { n: 'cnh_numero', r: 'Nº da CNH', obr: true, modo: 'numeric' },
+    { n: 'cnh_categoria', r: 'Categoria CNH', lista: 'cnh_categoria', padrao: 'B' },
+    { n: 'cnh_validade', r: 'Validade da CNH', tipo: 'date', obr: true },
+    { n: 'plataforma', r: 'Plataforma de app', lista: 'plataforma', padrao: 'uber' },
+    { n: 'status', r: 'Status', lista: 'status_motorista', obr: true, padrao: 'ativo' },
+    { n: 'observacoes', r: 'Observações', tipo: 'textarea' }
+  ]
+};
+
+function campoHtml(c, valor, ehNovo) {
+  if (c.soNovo && !ehNovo) return '';
+  var v = valor !== undefined && valor !== '' ? valor : (ehNovo && c.padrao) || '';
+  var classe = c.largo || c.tipo === 'textarea' ? ' class="largo"' : '';
+  var req = c.obr ? ' required' : '';
+  var inner;
+  if (c.lista) {
+    inner = '<select name="' + c.n + '"' + req + '>' + (c.obr ? '' : '<option value=""></option>') +
+      (estado.listas[c.lista] || []).map(function (o) {
+        return '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc(rotulo(o)) + '</option>';
+      }).join('') + '</select>';
+  } else if (c.tipo === 'textarea') {
+    inner = '<textarea name="' + c.n + '" rows="3">' + esc(v) + '</textarea>';
+  } else {
+    inner = '<input name="' + c.n + '" type="' + (c.tipo || 'text') + '" value="' + esc(v) + '"' + req +
+      (c.ph ? ' placeholder="' + esc(c.ph) + '"' : '') + (c.modo ? ' inputmode="' + c.modo + '"' : '') +
+      (c.max ? ' maxlength="' + c.max + '"' : '') + '>';
+  }
+  return '<label' + classe + '>' + esc(c.r) + (c.obr ? ' *' : '') + inner + '</label>';
+}
+
+function lerForm(form) {
+  var d = {};
+  $$('input[name], select[name], textarea[name]', form).forEach(function (el) { d[el.name] = el.value; });
+  return d;
+}
+
+// ---------- Fotos e arquivos ----------
+function carregarFoto(arquivoId) {
+  if (!arquivoId) return Promise.resolve(null);
+  if (estado.fotos[arquivoId]) return Promise.resolve(estado.fotos[arquivoId]);
+  return chamar('verArquivo', { id: arquivoId }, true).then(function (r) {
+    estado.fotos[arquivoId] = r.dataUrl;
+    return r.dataUrl;
+  });
+}
+function preencherFotos(raiz) {
+  $$('[data-foto]', raiz).forEach(function (el) {
+    carregarFoto(el.getAttribute('data-foto')).then(function (url) {
+      if (url) el.innerHTML = '<img alt="" src="' + url + '">';
+    }).catch(function () {});
+  });
+}
+
+/** Lê o arquivo escolhido. Fotos são reduzidas para no máximo 1600px (economiza espaço e tempo). */
+function prepararArquivo(file) {
+  return new Promise(function (resolve, reject) {
+    if (file.type === 'application/pdf') {
+      if (file.size > 5 * 1024 * 1024) return reject(new Error('PDF maior que 5 MB.'));
+      var fr = new FileReader();
+      fr.onload = function () { resolve({ nome: file.name, mime: file.type, base64: fr.result.split(',')[1] }); };
+      fr.onerror = function () { reject(new Error('Não foi possível ler o arquivo.')); };
+      return fr.readAsDataURL(file);
+    }
+    if (!/^image\//.test(file.type)) return reject(new Error('Envie uma imagem ou PDF.'));
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function () {
+      var max = 1600, w = img.width, h = img.height, k = Math.min(1, max / Math.max(w, h));
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      var dataUrl = cv.toDataURL('image/jpeg', 0.82);
+      resolve({ nome: file.name.replace(/\.\w+$/, '') + '.jpg', mime: 'image/jpeg', base64: dataUrl.split(',')[1] });
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Imagem inválida.')); };
+    img.src = url;
+  });
+}
+
+function galeriaHtml(entidade, id) {
+  return '<div class="secao cartao"><div class="barra"><h3>Fotos e documentos</h3>' +
+    (pode('arquivos', 'criar') ? '<button class="btn pequeno" type="button" data-acao="enviar-arquivo">+ Adicionar</button>' : '') +
+    '</div><div class="galeria" id="galeria"><p class="vazio">Carregando…</p></div></div>';
+}
+
+function carregarGaleria(entidade, registro, aoAtualizar) {
+  chamar('listarArquivos', { entidade: entidade, entidade_id: registro.id }, true).then(function (lista) {
+    var g = $('#galeria');
+    if (!g) return;
+    if (!lista.length) { g.innerHTML = '<p class="vazio">Nenhum arquivo.</p>'; return; }
+    g.innerHTML = lista.map(function (a) {
+      var ehImg = /^image\//.test(a.mime);
+      return '<figure><div class="thumb" data-arquivo="' + esc(a.id) + '" ' + (ehImg ? 'data-foto="' + esc(a.id) + '"' : '') + '>' +
+        (ehImg ? '…' : '📄') + '</div><figcaption>' + esc(rotulo(a.tipo)) +
+        (registro.foto_id === a.id ? ' ★' : '') + '</figcaption></figure>';
+    }).join('');
+    preencherFotos(g);
+    $$('[data-arquivo]', g).forEach(function (el) {
+      el.addEventListener('click', function () {
+        var arq = lista.filter(function (x) { return x.id === el.getAttribute('data-arquivo'); })[0];
+        verArquivoModal(entidade, registro, arq, aoAtualizar);
+      });
+    });
+  }).catch(falhou);
+}
+
+function verArquivoModal(entidade, registro, arq, aoAtualizar) {
+  chamar('verArquivo', { id: arq.id }).then(function (r) {
+    var ehImg = /^image\//.test(r.mime);
+    abrirModal('<h3>' + esc(rotulo(arq.tipo)) + '</h3>' +
+      (ehImg ? '<img class="ampliada" alt="" src="' + r.dataUrl + '">'
+        : '<p><a download="' + esc(r.nome) + '" href="' + r.dataUrl + '">Baixar ' + esc(r.nome) + '</a></p>') +
+      '<div class="acoes">' +
+      (ehImg && pode(entidade, 'editar') && registro.foto_id !== arq.id ? '<button class="btn" data-a="principal">Definir como foto principal</button>' : '') +
+      (pode('arquivos', 'excluir') ? '<button class="btn perigo" data-a="excluir">Excluir</button>' : '') +
+      '<button class="btn" data-a="fechar">Fechar</button></div>');
+    $('#modal-corpo').addEventListener('click', function (ev) {
+      var a = ev.target.getAttribute('data-a');
+      if (a === 'fechar') fecharModal();
+      if (a === 'principal') {
+        chamar('salvar', { tabela: entidade, id: registro.id, dados: { foto_id: arq.id } })
+          .then(function () { fecharModal(); aviso('Foto principal atualizada.'); aoAtualizar(); }).catch(falhou);
+      }
+      if (a === 'excluir' && confirm('Excluir este arquivo?')) {
+        chamar('excluirArquivo', { id: arq.id }).then(function () { fecharModal(); aviso('Arquivo excluído.'); aoAtualizar(); }).catch(falhou);
+      }
+    });
+  }).catch(falhou);
+}
+
+function enviarArquivoModal(entidade, registro, tiposPermitidos, aoAtualizar) {
+  abrirModal('<h3>Adicionar foto ou documento</h3><form id="f-arq" class="form">' +
+    '<label class="largo">Tipo<select name="tipo">' + tiposPermitidos.map(function (t) {
+      return '<option value="' + t + '">' + esc(rotulo(t)) + '</option>'; }).join('') + '</select></label>' +
+    '<label class="largo">Arquivo (foto ou PDF)<input type="file" name="arquivo" accept="image/*,application/pdf" required></label>' +
+    '<label class="largo" style="flex-direction:row;align-items:center"><input type="checkbox" name="principal" style="width:auto"> Usar como foto principal</label>' +
+    '</form><div class="acoes"><button class="btn" type="button" data-a="cancelar">Cancelar</button>' +
+    '<button class="btn primario" type="button" data-a="enviar">Enviar</button></div>');
+  var form = $('#f-arq');
+  $('#modal-corpo').addEventListener('click', function (ev) {
+    var a = ev.target.getAttribute('data-a');
+    if (a === 'cancelar') fecharModal();
+    if (a !== 'enviar') return;
+    var file = form.arquivo.files[0];
+    if (!file) return aviso('Escolha um arquivo.', true);
+    ev.target.disabled = true;
+    carregando(true);
+    prepararArquivo(file).then(function (arq) {
+      carregando(false);
+      return chamar('enviarArquivo', {
+        entidade: entidade, entidade_id: registro.id, tipo: form.tipo.value,
+        nome: arq.nome, mime: arq.mime, base64: arq.base64,
+        definirComoFoto: form.principal.checked && arq.mime !== 'application/pdf'
+      });
+    }).then(function () {
+      fecharModal(); aviso('Arquivo enviado.'); aoAtualizar();
+    }).catch(function (e) { ev.target.disabled = false; carregando(false); falhou(e); });
+  });
+}
+
+// ---------- Telas ----------
+var TELAS = {};
+
+TELAS.inicio = function () {
+  render('<h2>Início</h2><p class="vazio">Carregando…</p>');
+  Promise.all([chamar('listar', { tabela: 'veiculos' }), chamar('listar', { tabela: 'motoristas' }), chamar('lembretes', {})])
+    .then(function (r) {
+      var veic = r[0], mot = r[1], lem = r[2];
+      var urgentes = lem.filter(function (l) { return l.situacao === 'vencida' || l.situacao === 'proxima'; });
+      var cont = function (s) { return veic.filter(function (v) { return v.status === s; }).length; };
+      var cnh = mot.filter(function (m) { return m.status !== 'inativo'; })
+        .map(function (m) { return { m: m, d: diasAte(m.cnh_validade) }; })
+        .filter(function (x) { return x.d !== null && x.d <= 30; })
+        .sort(function (a, b) { return a.d - b.d; });
+      render('<h2>Olá, ' + esc(estado.usuario.nome.split(' ')[0]) + '</h2>' +
+        '<div class="indicadores">' +
+        ind(veic.length, 'Veículos') + ind(cont('disponivel'), 'Disponíveis') + ind(cont('locado'), 'Locados') +
+        ind(cont('manutencao'), 'Em manutenção') + ind(mot.filter(function (m) { return m.status === 'ativo'; }).length, 'Motoristas ativos') +
+        ind(lem.filter(function (l) { return l.situacao === 'vencida'; }).length, 'Manutenções vencidas') +
+        ind(lem.filter(function (l) { return l.situacao === 'proxima'; }).length, 'Manutenções próximas') +
+        '</div>' +
+        '<div class="cartao"><div class="barra"><h3 style="flex:1;margin:0">Manutenções vencidas ou próximas</h3>' +
+        '<a class="btn pequeno" href="#manutencao">Ver todas</a></div>' +
+        (urgentes.length ? '<div class="tabela-rolagem" id="ini-lembretes">' + tabelaLembretes(urgentes.slice(0, 10), true) + '</div>' : '<p class="vazio">Nada vencendo.</p>') + '</div>' +
+        '<div class="cartao secao"><h3>CNH vencida ou vencendo em 30 dias</h3>' +
+        (cnh.length ? '<div class="tabela-rolagem"><table><tr><th>Motorista</th><th>Validade</th><th>Situação</th></tr>' +
+          cnh.map(function (x) {
+            return '<tr><td><a href="#motoristas/' + esc(x.m.id) + '">' + esc(x.m.nome) + '</a></td><td>' + fmtData(x.m.cnh_validade) +
+              '</td><td>' + situacaoCnh(x.m.cnh_validade) + '</td></tr>';
+          }).join('') + '</table></div>' : '<p class="vazio">Nenhuma CNH vencendo.</p>') +
+        '</div><p class="vazio">Contratos, vistoria e financeiro entram nas próximas etapas.</p>');
+      if ($('#ini-lembretes')) ligarLembretes($('#ini-lembretes'), urgentes.slice(0, 10), function () { TELAS.inicio(); });
+    }).catch(falhou);
+  function ind(v, r) { return '<div class="cartao indicador"><div class="valor">' + v + '</div><div class="rotulo">' + r + '</div></div>'; }
+};
+
+function situacaoCnh(validade) {
+  var d = diasAte(validade);
+  if (d === null) return selo('Sem data', 'neutro');
+  if (d < 0) return selo('Vencida há ' + (-d) + ' dia(s)', 'perigo');
+  if (d <= 30) return selo('Vence em ' + d + ' dia(s)', 'alerta');
+  return selo('Válida', 'ok');
+}
+
+// ----- Lista genérica (veículos e motoristas) -----
+function telaLista(cfg) {
+  render('<div class="barra"><h2>' + cfg.titulo + '</h2>' +
+    '<input type="search" id="busca" placeholder="Buscar…" value="' + esc(lerArmazenado('busca_' + cfg.tabela) || '') + '">' +
+    (pode(cfg.tabela, 'criar') ? '<a class="btn primario" href="#' + cfg.tabela + '/novo">+ Novo</a>' : '') +
+    '</div><div id="lista" class="grade"><p class="vazio">Carregando…</p></div>');
+  chamar('listar', { tabela: cfg.tabela }).then(function (itens) {
+    itens.sort(cfg.ordenar);
+    var desenhar = function () {
+      var termo = $('#busca').value.trim().toLowerCase();
+      armazenar('busca_' + cfg.tabela, termo);
+      var filtrados = itens.filter(function (i) { return !termo || cfg.textoBusca(i).toLowerCase().indexOf(termo) >= 0; });
+      $('#lista').innerHTML = filtrados.length ? filtrados.map(function (i) {
+        return '<a class="cartao item" style="text-decoration:none;color:inherit" href="#' + cfg.tabela + '/' + esc(i.id) + '">' +
+          '<div class="miniatura"' + (i.foto_id ? ' data-foto="' + esc(i.foto_id) + '"' : '') + '>' + cfg.icone + '</div>' +
+          '<div class="info"><div class="titulo">' + cfg.titulo1(i) + '</div><div class="sub">' + cfg.sub(i) + '</div></div></a>';
+      }).join('') : '<p class="vazio">' + (termo ? 'Nada encontrado.' : 'Nenhum cadastro ainda.') + '</p>';
+      preencherFotos($('#lista'));
+    };
+    $('#busca').addEventListener('input', desenhar);
+    desenhar();
+  }).catch(falhou);
+}
+
+// ----- Formulário genérico -----
+function telaForm(tabela, id, titulo) {
+  var ehNovo = !id;
+  var p = ehNovo ? Promise.resolve({}) : chamar('buscar', { tabela: tabela, id: id });
+  p.then(function (reg) {
+    render('<h2>' + (ehNovo ? 'Novo ' : 'Editar ') + titulo + '</h2><form id="f" class="cartao"><div class="form">' +
+      CAMPOS[tabela].map(function (c) { return campoHtml(c, reg[c.n], ehNovo); }).join('') +
+      '</div><div class="acoes"><a class="btn" href="#' + tabela + (ehNovo ? '' : '/' + esc(id)) + '">Cancelar</a>' +
+      '<button class="btn primario" type="submit">Salvar</button></div></form>');
+    $('#f').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var btn = $('button[type=submit]', ev.target); btn.disabled = true;
+      chamar('salvar', { tabela: tabela, id: id || null, dados: lerForm(ev.target) })
+        .then(function (r) { aviso('Salvo com sucesso.'); ir('#' + tabela + '/' + r.id); })
+        .catch(function (e) { btn.disabled = false; falhou(e); });
+    });
+  }).catch(falhou);
+}
+
+function botoesDetalhe(tabela, id) {
+  return '<div class="acoes" style="margin-top:0">' +
+    (pode(tabela, 'editar') ? '<a class="btn" href="#' + tabela + '/' + esc(id) + '/editar">Editar</a>' : '') +
+    (pode(tabela, 'excluir') ? '<button class="btn perigo" type="button" data-acao="excluir">Excluir</button>' : '') + '</div>';
+}
+
+function ligarExcluir(tabela, id, nome) {
+  var b = $('[data-acao="excluir"]');
+  if (!b) return;
+  b.addEventListener('click', function () {
+    if (!confirm('Excluir ' + nome + '? O registro fica no histórico, mas some das listas.')) return;
+    chamar('excluir', { tabela: tabela, id: id }).then(function () { aviso('Excluído.'); ir('#' + tabela); }).catch(falhou);
+  });
+}
+
+function dado(rot, valor) { return '<div><span>' + esc(rot) + '</span>' + (valor || '—') + '</div>'; }
+
+// ----- Veículos -----
+TELAS.veiculos = function (id, sub) {
+  if (id === 'novo') return telaForm('veiculos', null, 'veículo');
+  if (id && sub === 'editar') return telaForm('veiculos', id, 'veículo');
+  if (id) return detalheVeiculo(id);
+  telaLista({
+    tabela: 'veiculos', titulo: 'Veículos', icone: '🚗',
+    ordenar: function (a, b) { return a.placa.localeCompare(b.placa); },
+    textoBusca: function (v) { return [v.placa, v.marca, v.modelo, v.cor, v.status].join(' '); },
+    titulo1: function (v) { return esc(v.placa) + ' · ' + esc(v.marca) + ' ' + esc(v.modelo); },
+    sub: function (v) { return selo(v.status) + ' ' + esc(v.ano_modelo || '') + ' · ' + fmtKm(v.km_atual); }
+  });
+};
+
+function detalheVeiculo(id) {
+  chamar('buscar', { tabela: 'veiculos', id: id }).then(function (v) {
+    if (!v || v.ativo !== 'TRUE') { render('<p class="vazio">Veículo não encontrado.</p>'); return; }
+    render('<div class="barra"><h2>' + esc(v.placa) + ' · ' + esc(v.marca) + ' ' + esc(v.modelo) + '</h2>' + botoesDetalhe('veiculos', id) + '</div>' +
+      '<div class="cartao detalhe-topo"><div class="foto-principal"' + (v.foto_id ? ' data-foto="' + esc(v.foto_id) + '"' : '') + '>🚗</div>' +
+      '<div class="dados">' +
+      dado('Status', selo(v.status)) + dado('Km atual', fmtKm(v.km_atual)) +
+      dado('Ano', esc([v.ano_fabricacao, v.ano_modelo].filter(String).join('/'))) + dado('Versão', esc(v.versao)) +
+      dado('Cor', esc(v.cor)) + dado('Combustível', esc(rotulo(v.combustivel))) + dado('RENAVAM', esc(v.renavam)) +
+      dado('Chassi', esc(v.chassi)) + dado('Código FIPE', esc(v.codigo_fipe)) + dado('Aquisição', fmtData(v.data_aquisicao)) +
+      dado('Valor de aquisição', fmtMoeda(v.valor_aquisicao)) + '</div>' +
+      (v.observacoes ? '<p style="flex-basis:100%;margin:0">' + esc(v.observacoes) + '</p>' : '') + '</div>' +
+      '<div class="secao cartao"><div class="barra"><h3>Histórico de km</h3>' +
+      (pode('leituras_km', 'criar') ? '<button class="btn pequeno" type="button" data-acao="km">+ Registrar km</button>' : '') +
+      '</div><div id="hist-km" class="tabela-rolagem"><p class="vazio">Carregando…</p></div></div>' +
+      '<div class="secao cartao"><div class="barra"><h3 style="flex:1;margin:0">Manutenção</h3>' +
+      (pode('manutencoes', 'criar') ? '<button class="btn pequeno" type="button" data-acao="manut">+ Registrar manutenção</button>' : '') +
+      '</div><div id="v-lembretes" class="tabela-rolagem"><p class="vazio">Carregando…</p></div>' +
+      '<h3 class="secao">Histórico</h3><div id="v-historico" class="tabela-rolagem"></div></div>' +
+      galeriaHtml('veiculos', id));
+    preencherFotos($('#conteudo'));
+    var recarregar = function () { detalheVeiculo(id); };
+    var bMan = $('[data-acao="manut"]'); if (bMan) bMan.addEventListener('click', function () { manutencaoModal({ veiculo: v }, recarregar); });
+    Promise.all([chamar('lembretes', { veiculo_id: id }, true), chamar('listar', { tabela: 'manutencoes', filtro: { veiculo_id: id } }, true)])
+      .then(function (r) {
+        $('#v-lembretes').innerHTML = r[0].length ? tabelaLembretes(r[0], false) : '<p class="vazio">Nenhum plano cadastrado.</p>';
+        ligarLembretes($('#v-lembretes'), r[0], recarregar);
+        $('#v-historico').innerHTML = tabelaHistorico(r[1], false);
+      }).catch(falhou);
+    ligarExcluir('veiculos', id, 'o veículo ' + v.placa);
+    var bKm = $('[data-acao="km"]'); if (bKm) bKm.addEventListener('click', function () { registrarKmModal(v, recarregar); });
+    var bArq = $('[data-acao="enviar-arquivo"]');
+    if (bArq) bArq.addEventListener('click', function () {
+      enviarArquivoModal('veiculos', v, ['foto_veiculo', 'documento_veiculo', 'outro'], recarregar);
+    });
+    carregarGaleria('veiculos', v, recarregar);
+    chamar('listar', { tabela: 'leituras_km', filtro: { veiculo_id: id } }, true).then(function (ls) {
+      ls.sort(function (a, b) { return (b.data + b.criado_em).localeCompare(a.data + a.criado_em); });
+      $('#hist-km').innerHTML = ls.length ? '<table><tr><th>Data</th><th>Km</th><th>Origem</th><th>Obs.</th><th>Por</th></tr>' +
+        ls.map(function (l) {
+          return '<tr><td>' + fmtData(l.data) + '</td><td>' + fmtKm(l.km) + '</td><td>' + esc(rotulo(l.origem)) +
+            '</td><td>' + esc(l.observacao) + '</td><td>' + esc(l.criado_por) + '</td></tr>';
+        }).join('') + '</table>' : '<p class="vazio">Nenhuma leitura.</p>';
+    }).catch(falhou);
+  }).catch(falhou);
+}
+
+function registrarKmModal(v, aoAtualizar) {
+  var origens = (estado.listas.origem_km || []).filter(function (o) {
+    return o !== 'cadastro' && (o !== 'ajuste' || estado.usuario.perfil === 'administrador');
+  });
+  abrirModal('<h3>Registrar km · ' + esc(v.placa) + '</h3><p style="color:var(--texto-2)">Km atual: ' + fmtKm(v.km_atual) + '</p>' +
+    '<form id="f-km" class="form"><label>Data<input type="date" name="data" value="' + hojeISO() + '" required></label>' +
+    '<label>Km<input name="km" inputmode="numeric" required></label>' +
+    '<label class="largo">Origem<select name="origem">' + origens.map(function (o) {
+      return '<option value="' + o + '">' + esc(rotulo(o)) + '</option>'; }).join('') + '</select></label>' +
+    '<label class="largo">Observação<input name="observacao"></label></form>' +
+    '<div class="acoes"><button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
+  $('#modal-corpo').addEventListener('click', function (ev) {
+    var a = ev.target.getAttribute('data-a');
+    if (a === 'cancelar') fecharModal();
+    if (a !== 'salvar') return;
+    var d = lerForm($('#f-km')); d.veiculo_id = v.id;
+    chamar('registrarKm', d).then(function () { fecharModal(); aviso('Km registrado.'); aoAtualizar(); }).catch(falhou);
+  });
+}
+
+// ----- Motoristas -----
+TELAS.motoristas = function (id, sub) {
+  if (id === 'novo') return telaForm('motoristas', null, 'motorista');
+  if (id && sub === 'editar') return telaForm('motoristas', id, 'motorista');
+  if (id) return detalheMotorista(id);
+  telaLista({
+    tabela: 'motoristas', titulo: 'Motoristas', icone: '👤',
+    ordenar: function (a, b) { return a.nome.localeCompare(b.nome); },
+    textoBusca: function (m) { return [m.nome, m.cpf, m.telefone, m.email, m.status].join(' '); },
+    titulo1: function (m) { return esc(m.nome); },
+    sub: function (m) { return selo(m.status) + ' ' + situacaoCnh(m.cnh_validade) + ' · ' + esc(fmtTel(m.telefone)); }
+  });
+};
+
+function detalheMotorista(id) {
+  chamar('buscar', { tabela: 'motoristas', id: id }).then(function (m) {
+    if (!m || m.ativo !== 'TRUE') { render('<p class="vazio">Motorista não encontrado.</p>'); return; }
+    var tel = String(m.telefone || '');
+    render('<div class="barra"><h2>' + esc(m.nome) + '</h2>' + botoesDetalhe('motoristas', id) + '</div>' +
+      '<div class="cartao detalhe-topo"><div class="foto-principal"' + (m.foto_id ? ' data-foto="' + esc(m.foto_id) + '"' : '') + '>👤</div>' +
+      '<div class="dados">' +
+      dado('Status', selo(m.status)) + dado('CNH', situacaoCnh(m.cnh_validade)) +
+      dado('CPF', esc(fmtCpf(m.cpf))) + dado('RG', esc(m.rg)) + dado('Nascimento', fmtData(m.data_nascimento)) +
+      dado('Telefone', tel ? '<a href="https://wa.me/55' + esc(tel) + '" target="_blank" rel="noopener">' + esc(fmtTel(tel)) + '</a>' : '') +
+      dado('E-mail', esc(m.email)) + dado('Endereço', esc([m.endereco, m.cidade, m.uf].filter(String).join(', '))) +
+      dado('CEP', esc(m.cep)) + dado('Nº CNH', esc(m.cnh_numero)) + dado('Categoria', esc(m.cnh_categoria)) +
+      dado('Validade CNH', fmtData(m.cnh_validade)) + dado('Plataforma', esc(rotulo(m.plataforma))) + '</div>' +
+      (m.observacoes ? '<p style="flex-basis:100%;margin:0">' + esc(m.observacoes) + '</p>' : '') + '</div>' +
+      galeriaHtml('motoristas', id));
+    preencherFotos($('#conteudo'));
+    var recarregar = function () { detalheMotorista(id); };
+    ligarExcluir('motoristas', id, m.nome);
+    var bArq = $('[data-acao="enviar-arquivo"]');
+    if (bArq) bArq.addEventListener('click', function () {
+      enviarArquivoModal('motoristas', m, ['cnh', 'comprovante_residencia', 'foto_motorista', 'outro'], recarregar);
+    });
+    carregarGaleria('motoristas', m, recarregar);
+  }).catch(falhou);
+}
+
+// ----- Manutenção -----
+function faltaTexto(l) {
+  var p = [];
+  if (l.proxima_km) p.push(Number(l.faltam_km) <= 0 ? 'passou ' + fmtKm(-Number(l.faltam_km)) : 'faltam ' + fmtKm(l.faltam_km));
+  if (l.proxima_data) p.push(Number(l.faltam_dias) <= 0 ? 'atrasada ' + (-Number(l.faltam_dias)) + ' dia(s)' : 'faltam ' + l.faltam_dias + ' dia(s)');
+  return p.join(' · ');
+}
+
+function tabelaLembretes(lista, mostrarVeiculo) {
+  var podeReg = pode('manutencoes', 'criar');
+  return '<table><tr>' + (mostrarVeiculo ? '<th>Veículo</th>' : '') + '<th>Item</th><th>Situação</th><th>Última</th><th>Próxima</th>' +
+    (podeReg ? '<th></th>' : '') + '</tr>' +
+    lista.map(function (l, i) {
+      return '<tr>' + (mostrarVeiculo ? '<td><a href="#veiculos/' + esc(l.veiculo_id) + '">' + esc(l.placa) + '</a></td>' : '') +
+        '<td>' + esc(l.item) + '</td><td>' + selo(l.situacao) +
+        (l.situacao !== 'sem_historico' ? '<div class="lembrete-falta">' + esc(faltaTexto(l)) + '</div>' : '') + '</td>' +
+        '<td>' + (l.ultima_data ? fmtData(l.ultima_data) + (l.ultima_km ? '<br>' + fmtKm(l.ultima_km) : '') : '—') + '</td>' +
+        '<td>' + [l.proxima_data ? fmtData(l.proxima_data) : '', l.proxima_km ? fmtKm(l.proxima_km) : ''].filter(String).join('<br>') + '</td>' +
+        (podeReg ? '<td><button class="btn pequeno" type="button" data-lembrete="' + i + '">' +
+          (l.situacao === 'sem_historico' ? 'Informar última' : 'Registrar') + '</button></td>' : '') + '</tr>';
+    }).join('') + '</table>';
+}
+
+function ligarLembretes(raiz, lista, aoAtualizar) {
+  $$('[data-lembrete]', raiz).forEach(function (b) {
+    b.addEventListener('click', function () {
+      var l = lista[Number(b.getAttribute('data-lembrete'))];
+      manutencaoModal({ veiculo: { id: l.veiculo_id, placa: l.placa, km_atual: l.km_atual }, plano_id: l.plano_id,
+        semHistorico: l.situacao === 'sem_historico' }, aoAtualizar);
+    });
+  });
+}
+
+function tabelaHistorico(lista, mostrarVeiculo, veiculos) {
+  if (!lista.length) return '<p class="vazio">Nenhuma manutenção registrada.</p>';
+  var placa = {};
+  (veiculos || []).forEach(function (v) { placa[v.id] = v.placa; });
+  lista.sort(function (a, b) { return (b.data + b.criado_em).localeCompare(a.data + a.criado_em); });
+  var total = lista.reduce(function (s, m) { return s + Number(m.custo || 0); }, 0);
+  return '<table><tr><th>Data</th>' + (mostrarVeiculo ? '<th>Veículo</th>' : '') + '<th>Tipo</th><th>Item</th><th>Km</th><th>Custo</th><th>Oficina</th></tr>' +
+    lista.map(function (m) {
+      return '<tr><td>' + fmtData(m.data) + '</td>' +
+        (mostrarVeiculo ? '<td><a href="#veiculos/' + esc(m.veiculo_id) + '">' + esc(placa[m.veiculo_id] || '?') + '</a></td>' : '') +
+        '<td>' + selo(m.tipo, m.tipo === 'corretiva' ? 'alerta' : 'neutro') + '</td><td>' + esc(m.item) +
+        (m.descricao ? '<div class="lembrete-falta">' + esc(m.descricao) + '</div>' : '') + '</td><td>' + fmtKm(m.km) +
+        '</td><td>' + fmtMoeda(m.custo) + '</td><td>' + esc(m.oficina) + '</td></tr>';
+    }).join('') +
+    '<tr><th colspan="' + (mostrarVeiculo ? 5 : 4) + '">Total</th><th colspan="2">' + fmtMoeda(total) + '</th></tr></table>';
+}
+
+/** opts: { veiculo, plano_id, semHistorico } — veiculo vazio mostra a seleção de veículo. */
+function manutencaoModal(opts, aoAtualizar) {
+  Promise.all([
+    chamar('listar', { tabela: 'planos_manutencao' }),
+    opts.veiculo ? Promise.resolve(null) : chamar('listar', { tabela: 'veiculos' })
+  ]).then(function (r) {
+    var planos = r[0].sort(function (a, b) { return a.item.localeCompare(b.item); }), veiculos = r[1];
+    abrirModal('<h3>Registrar manutenção' + (opts.veiculo ? ' · ' + esc(opts.veiculo.placa) : '') + '</h3>' +
+      (opts.semHistorico ? '<p style="color:var(--texto-2);font-size:13px">Informe quando foi feita a última vez (mesmo que antiga). A partir dela o sistema calcula a próxima.</p>' : '') +
+      '<form id="f-man" class="form">' +
+      (veiculos ? '<label class="largo">Veículo *<select name="veiculo_id" required><option value=""></option>' + veiculos.map(function (v) {
+        return '<option value="' + esc(v.id) + '">' + esc(v.placa + ' · ' + v.marca + ' ' + v.modelo) + '</option>'; }).join('') + '</select></label>' : '') +
+      '<label>Tipo<select name="tipo"><option value="preventiva">Preventiva</option><option value="corretiva">Corretiva</option></select></label>' +
+      '<label data-preventiva>Item do plano *<select name="plano_id"><option value=""></option>' + planos.map(function (p) {
+        return '<option value="' + esc(p.id) + '"' + (p.id === opts.plano_id ? ' selected' : '') + '>' + esc(p.item) + '</option>'; }).join('') + '</select></label>' +
+      '<label data-corretiva class="oculto">O que foi feito *<input name="item" placeholder="Ex.: troca do amortecedor dianteiro"></label>' +
+      '<label>Data *<input type="date" name="data" required value="' + hojeISO() + '" max="' + hojeISO() + '"></label>' +
+      '<label>Km no dia<input name="km" inputmode="numeric" placeholder="' + esc(opts.veiculo && opts.veiculo.km_atual ? 'atual: ' + opts.veiculo.km_atual : '') + '"></label>' +
+      '<label>Custo (R$)<input name="custo" inputmode="decimal"></label>' +
+      '<label>Oficina / fornecedor<input name="oficina"></label>' +
+      '<label class="largo">Descrição<textarea name="descricao" rows="2"></textarea></label></form>' +
+      '<div class="acoes"><button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
+    var f = $('#f-man');
+    var alternar = function () {
+      var prev = f.tipo.value === 'preventiva';
+      $('[data-preventiva]', f).classList.toggle('oculto', !prev);
+      $('[data-corretiva]', f).classList.toggle('oculto', prev);
+    };
+    f.tipo.addEventListener('change', alternar);
+    $('#modal-corpo').addEventListener('click', function (ev) {
+      var a = ev.target.getAttribute('data-a');
+      if (a === 'cancelar') fecharModal();
+      if (a !== 'salvar') return;
+      var d = lerForm(f);
+      if (opts.veiculo) d.veiculo_id = opts.veiculo.id;
+      if (d.tipo === 'preventiva') d.item = ''; else d.plano_id = '';
+      if (d.tipo === 'preventiva' && !d.plano_id) return aviso('Escolha o item do plano.', true);
+      if (d.tipo === 'corretiva' && !d.item) return aviso('Descreva o que foi feito.', true);
+      ev.target.disabled = true;
+      chamar('registrarManutencao', { dados: d })
+        .then(function () { fecharModal(); aviso('Manutenção registrada.'); aoAtualizar(); })
+        .catch(function (e) { ev.target.disabled = false; falhou(e); });
+    });
+  }).catch(falhou);
+}
+
+TELAS.manutencao = function (aba) {
+  aba = aba || 'lembretes';
+  var abas = [['lembretes', 'Lembretes'], ['historico', 'Histórico'], ['planos', 'Planos']];
+  render('<div class="barra"><h2>Manutenção</h2>' +
+    (pode('manutencoes', 'criar') ? '<button class="btn primario" data-acao="nova-man">+ Registrar</button>' : '') + '</div>' +
+    '<nav class="abas">' + abas.map(function (a) {
+      return '<a href="#manutencao/' + a[0] + '"' + (a[0] === aba ? ' class="ativo"' : '') + '>' + a[1] + '</a>'; }).join('') + '</nav>' +
+    '<div id="man-conteudo" class="cartao tabela-rolagem"><p class="vazio">Carregando…</p></div>');
+  var recarregar = function () { TELAS.manutencao(aba); };
+  var bNova = $('[data-acao="nova-man"]'); if (bNova) bNova.addEventListener('click', function () { manutencaoModal({}, recarregar); });
+  var alvo = $('#man-conteudo');
+
+  if (aba === 'lembretes') {
+    chamar('lembretes', {}).then(function (lista) {
+      if (!lista.length) { alvo.innerHTML = '<p class="vazio">Cadastre veículos e planos para ver os lembretes.</p>'; return; }
+      var semHist = lista.filter(function (l) { return l.situacao === 'sem_historico'; }).length;
+      alvo.innerHTML = (semHist ? '<p class="lembrete-falta" style="margin-top:0">' + semHist +
+        ' item(ns) sem histórico. Use "Informar última" para registrar a última vez que foi feito.</p>' : '') + tabelaLembretes(lista, true);
+      ligarLembretes(alvo, lista, recarregar);
+    }).catch(falhou);
+  }
+
+  if (aba === 'historico') {
+    Promise.all([chamar('listar', { tabela: 'manutencoes' }), chamar('listar', { tabela: 'veiculos' })]).then(function (r) {
+      alvo.innerHTML = tabelaHistorico(r[0], true, r[1]);
+    }).catch(falhou);
+  }
+
+  if (aba === 'planos') {
+    chamar('listar', { tabela: 'planos_manutencao' }).then(function (planos) {
+      planos.sort(function (a, b) { return a.item.localeCompare(b.item); });
+      var podeEd = pode('planos_manutencao', 'editar');
+      alvo.innerHTML = '<p class="lembrete-falta" style="margin-top:0">Vence o que acontecer primeiro: km ou tempo. ' +
+        'Os intervalos são referências genéricas; ajuste conforme o manual de cada veículo.</p>' +
+        (pode('planos_manutencao', 'criar') ? '<div class="acoes" style="margin-top:0"><button class="btn pequeno" data-plano="">+ Novo item</button></div>' : '') +
+        '<table><tr><th>Item</th><th>A cada (km)</th><th>A cada (dias)</th><th>Avisar antes</th><th>Vale para</th>' + (podeEd ? '<th></th>' : '') + '</tr>' +
+        planos.map(function (p) {
+          return '<tr><td>' + esc(p.item) + (p.observacao ? '<div class="lembrete-falta">' + esc(p.observacao) + '</div>' : '') + '</td>' +
+            '<td>' + (p.intervalo_km ? Number(p.intervalo_km).toLocaleString('pt-BR') : '—') + '</td>' +
+            '<td>' + (p.intervalo_dias || '—') + '</td>' +
+            '<td>' + [p.aviso_km ? Number(p.aviso_km).toLocaleString('pt-BR') + ' km' : '', p.aviso_dias ? p.aviso_dias + ' dias' : ''].filter(String).join(' / ') + '</td>' +
+            '<td>' + (p.veiculo_id ? 'Veículo específico' : 'Todos') + '</td>' +
+            (podeEd ? '<td><button class="btn pequeno" data-plano="' + esc(p.id) + '">Editar</button></td>' : '') + '</tr>';
+        }).join('') + '</table>';
+      $$('[data-plano]', alvo).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var id = b.getAttribute('data-plano');
+          planoModal(planos.filter(function (p) { return p.id === id; })[0] || null, recarregar);
+        });
+      });
+    }).catch(falhou);
+  }
+};
+
+function planoModal(p, aoAtualizar) {
+  var novo = !p; p = p || {};
+  chamar('listar', { tabela: 'veiculos' }).then(function (veiculos) {
+    abrirModal('<h3>' + (novo ? 'Novo item do plano' : 'Editar item do plano') + '</h3><form id="f-plano" class="form">' +
+      '<label class="largo">Item *<input name="item" required value="' + esc(p.item) + '"></label>' +
+      '<label>A cada (km)<input name="intervalo_km" inputmode="numeric" value="' + esc(p.intervalo_km) + '"></label>' +
+      '<label>A cada (dias)<input name="intervalo_dias" inputmode="numeric" value="' + esc(p.intervalo_dias) + '"></label>' +
+      '<label>Avisar antes (km)<input name="aviso_km" inputmode="numeric" value="' + esc(p.aviso_km) + '"></label>' +
+      '<label>Avisar antes (dias)<input name="aviso_dias" inputmode="numeric" value="' + esc(p.aviso_dias) + '"></label>' +
+      '<label class="largo">Vale para<select name="veiculo_id"><option value="">Todos os veículos</option>' + veiculos.map(function (v) {
+        return '<option value="' + esc(v.id) + '"' + (v.id === p.veiculo_id ? ' selected' : '') + '>' + esc(v.placa + ' · ' + v.modelo) + '</option>'; }).join('') + '</select></label>' +
+      '<label class="largo">Observação<input name="observacao" value="' + esc(p.observacao) + '"></label></form>' +
+      '<div class="acoes">' + (!novo && pode('planos_manutencao', 'excluir') ? '<button class="btn perigo" data-a="excluir">Excluir</button>' : '') +
+      '<button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
+    $('#modal-corpo').addEventListener('click', function (ev) {
+      var a = ev.target.getAttribute('data-a');
+      if (a === 'cancelar') fecharModal();
+      if (a === 'excluir' && confirm('Excluir o item "' + p.item + '" do plano? O histórico já registrado continua.')) {
+        chamar('excluir', { tabela: 'planos_manutencao', id: p.id }).then(function () { fecharModal(); aviso('Item excluído.'); aoAtualizar(); }).catch(falhou);
+      }
+      if (a !== 'salvar') return;
+      chamar('salvar', { tabela: 'planos_manutencao', id: p.id || null, dados: lerForm($('#f-plano')) })
+        .then(function () { fecharModal(); aviso('Plano salvo.'); aoAtualizar(); }).catch(falhou);
+    });
+  }).catch(falhou);
+}
+
+// ----- Usuários (administrador) -----
+TELAS.usuarios = function () {
+  if (!pode('usuarios', 'ler')) { render('<p class="vazio">Sem permissão.</p>'); return; }
+  render('<div class="barra"><h2>Usuários</h2><button class="btn primario" data-acao="novo-usuario">+ Novo</button></div>' +
+    '<div class="cartao tabela-rolagem" id="lista-usuarios"><p class="vazio">Carregando…</p></div>');
+  $('[data-acao="novo-usuario"]').addEventListener('click', function () { usuarioModal(null); });
+  chamar('listarUsuarios').then(function (us) {
+    $('#lista-usuarios').innerHTML = '<table><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Último acesso</th><th></th></tr>' +
+      us.map(function (u) {
+        return '<tr><td>' + esc(u.nome) + '</td><td>' + esc(u.email) + '</td><td>' + esc(rotulo(u.perfil)) + '</td><td>' +
+          esc(fmtData(u.ultimo_acesso) + ' ' + String(u.ultimo_acesso || '').slice(11, 16)) +
+          '</td><td><button class="btn pequeno" data-editar="' + esc(u.id) + '">Editar</button></td></tr>';
+      }).join('') + '</table>';
+    $$('[data-editar]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        usuarioModal(us.filter(function (u) { return u.id === b.getAttribute('data-editar'); })[0]);
+      });
+    });
+  }).catch(falhou);
+};
+
+function usuarioModal(u) {
+  var novo = !u; u = u || {};
+  abrirModal('<h3>' + (novo ? 'Novo usuário' : 'Editar usuário') + '</h3><form id="f-u" class="form">' +
+    '<label class="largo">Nome *<input name="nome" required value="' + esc(u.nome) + '"></label>' +
+    '<label class="largo">E-mail (login) *<input name="email" type="email" required value="' + esc(u.email) + '"></label>' +
+    '<label>Perfil<select name="perfil">' + ['operador', 'administrador'].map(function (p) {
+      return '<option value="' + p + '"' + (u.perfil === p ? ' selected' : '') + '>' + rotulo(p) + '</option>'; }).join('') + '</select></label>' +
+    '<label>' + (novo ? 'Senha *' : 'Nova senha (opcional)') + '<input name="senha" type="password" autocomplete="new-password"></label>' +
+    '</form><p style="color:var(--texto-2);font-size:13px">Senha: mínimo 8 caracteres, com letras e números. Operador cadastra e edita, mas não exclui nem gerencia usuários.</p>' +
+    '<div class="acoes">' + (!novo && u.id !== estado.usuario.id ? '<button class="btn perigo" data-a="excluir">Excluir</button>' : '') +
+    '<button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
+  $('#modal-corpo').addEventListener('click', function (ev) {
+    var a = ev.target.getAttribute('data-a');
+    if (a === 'cancelar') fecharModal();
+    if (a === 'excluir' && confirm('Excluir o usuário ' + u.nome + '?')) {
+      chamar('excluirUsuario', { id: u.id }).then(function () { fecharModal(); aviso('Usuário excluído.'); TELAS.usuarios(); }).catch(falhou);
+    }
+    if (a !== 'salvar') return;
+    var d = lerForm($('#f-u')), senha = d.senha; delete d.senha;
+    chamar('salvarUsuario', { id: u.id || null, dados: d, senha: senha || null })
+      .then(function () { fecharModal(); aviso('Usuário salvo.'); TELAS.usuarios(); }).catch(falhou);
+  });
+}
+
+// ----- Perfil -----
+TELAS.perfil = function () {
+  var temas = [['claro', 'Claro'], ['escuro', 'Escuro'], ['frota', 'Verde frota']];
+  render('<h2>Meu perfil</h2><div class="cartao"><h3>Tema de cores</h3><div class="temas">' +
+    temas.map(function (t) {
+      return '<button class="tema-opcao' + (document.body.getAttribute('data-tema') === t[0] ? ' ativo' : '') +
+        '" data-tema="' + t[0] + '">' + t[1] + '</button>';
+    }).join('') + '</div></div>' +
+    '<form id="f-senha" class="cartao secao"><h3>Trocar senha</h3><div class="form">' +
+    '<label>Senha atual<input type="password" name="senhaAtual" required autocomplete="current-password"></label>' +
+    '<label>Nova senha<input type="password" name="novaSenha" required autocomplete="new-password"></label>' +
+    '</div><div class="acoes"><button class="btn primario" type="submit">Trocar senha</button></div></form>');
+  $$('.tema-opcao').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-tema');
+      aplicarTema(t);
+      $$('.tema-opcao').forEach(function (x) { x.classList.toggle('ativo', x === b); });
+      estado.usuario.tema = t;
+      chamar('salvarTema', { tema: t }, true).catch(falhou);
+    });
+  });
+  $('#f-senha').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    chamar('trocarSenha', lerForm(ev.target)).then(function () { ev.target.reset(); aviso('Senha alterada.'); }).catch(falhou);
+  });
+};
+
+// ---------- Início ----------
+(function iniciar() {
+  aplicarTema(lerArmazenado('tema') || 'claro');
+  estado.token = lerArmazenado('token');
+  if (!estado.token) return mostrarLogin();
+  iniciarSessao().catch(function () { sairLocal(); });
+})();
+</script>
+</body>
+</html>
