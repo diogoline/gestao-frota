@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>Gestão de Frota</title>
+  <?!= incluir('Styles'); ?>
+</head>
+<body data-tema="claro">
+  <!-- Tela de login -->
+  <section id="tela-login" class="login oculto">
+    <form id="form-login" class="cartao login-cartao" autocomplete="on">
+      <h1>Gestão de Frota</h1>
+      <label>E-mail<input type="email" name="email" required autocomplete="username"></label>
+      <label>Senha<input type="password" name="senha" required autocomplete="current-password"></label>
+      <button type="submit" class="btn primario">Entrar</button>
+      <p id="login-erro" class="erro"></p>
+    </form>
+  </section>
+
+  <!-- Aplicação -->
+  <div id="app" class="oculto">
+    <header class="topo">
+      <strong class="marca">Gestão de Frota</strong>
+      <span id="usuario-nome" class="usuario"></span>
+      <button id="btn-sair" class="btn fantasma pequeno" type="button">Sair</button>
+    </header>
+    <nav class="menu" id="menu">
+      <a href="#inicio" data-rota="inicio"><span class="ico">⌂</span>Início</a>
+      <a href="#veiculos" data-rota="veiculos"><span class="ico">🚗</span>Veículos</a>
+      <a href="#motoristas" data-rota="motoristas"><span class="ico">👤</span>Motoristas</a>
+      <a href="#usuarios" data-rota="usuarios" data-perm="usuarios"><span class="ico">🔑</span>Usuários</a>
+      <a href="#perfil" data-rota="perfil"><span class="ico">⚙</span>Perfil</a>
+    </nav>
+    <main id="conteudo" class="conteudo"></main>
+  </div>
+
+  <div id="carregando" class="carregando oculto"><div class="spinner"></div></div>
+  <div id="aviso" class="aviso oculto"></div>
+  <dialog id="modal" class="modal"><div id="modal-corpo"></div></dialog>
+
+  <?!= incluir('App'); ?>
+</body>
+</html>
