@@ -1,1039 +1,697 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <base target="_top">
-  <meta charset="utf-8">
-  <title>Gestão de Frota</title>
-  <!-- ===================== ESTILOS E TEMAS ===================== -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Frota</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  /* ===== CONFIGURAÇÃO: cole aqui a URL do App da Web (termina em /exec) ===== */
+  const API_URL = 'COLE_AQUI_A_URL_DO_APP_DA_WEB_/exec';
+</script>
 <style>
-  /* ===== Temas: cada tema só redefine as cores ===== */
-  body[data-tema="claro"] {
-    --fundo: #f4f6f9; --superficie: #ffffff; --texto: #1d2430; --texto-2: #5b6576;
-    --borda: #dde2ea; --primaria: #1f6feb; --primaria-texto: #ffffff;
-    --ok: #1a7f37; --alerta: #b7791f; --perigo: #c53030; --sombra: 0 1px 3px rgba(0,0,0,.08);
-  }
-  body[data-tema="escuro"] {
-    --fundo: #0f1419; --superficie: #1a2028; --texto: #e6e9ee; --texto-2: #9aa4b2;
-    --borda: #2c3440; --primaria: #4c9aff; --primaria-texto: #0f1419;
-    --ok: #3fb950; --alerta: #d29922; --perigo: #f85149; --sombra: 0 1px 3px rgba(0,0,0,.4);
-  }
-  body[data-tema="frota"] {
-    --fundo: #eef5f3; --superficie: #ffffff; --texto: #12312b; --texto-2: #4d6b64;
-    --borda: #cfe0db; --primaria: #0b7a65; --primaria-texto: #ffffff;
-    --ok: #1a7f37; --alerta: #c27c0e; --perigo: #b42318; --sombra: 0 1px 3px rgba(11,122,101,.12);
-  }
+:root{
+  --azul:#1a73e8; --azul-claro:#e8f0fe; --verde:#12b76a; --verde-claro:#e7f8ef;
+  --laranja:#f79009; --laranja-claro:#fef4e6; --vermelho:#f04438; --vermelho-claro:#feeceb;
+  --roxo:#7a5af8; --roxo-claro:#f1edff; --cinza:#667085; --borda:#e4e7ec;
+  --fundo:#f5f7fb; --texto:#1d2939; --branco:#fff; --raio:12px;
+  --sombra:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--fundo);color:var(--texto);font-size:14px}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+.oculto{display:none!important}
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: var(--fundo); color: var(--texto); font-size: 15px; line-height: 1.45;
-  }
-  .oculto { display: none !important; }
-  h1, h2, h3 { margin: 0 0 12px; line-height: 1.2; }
-  h1 { font-size: 22px; } h2 { font-size: 19px; } h3 { font-size: 16px; }
-  a { color: var(--primaria); }
+/* ---------- LOGIN ---------- */
+#telaLogin{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#e8f0fe 0%,#f1edff 50%,#e7f8ef 100%)}
+.cartao-login{background:#fff;padding:36px;border-radius:16px;box-shadow:0 10px 30px rgba(26,115,232,.12);width:360px}
+.logo-txt{font-size:22px;font-weight:700;color:var(--azul);margin-bottom:4px}
+.logo-txt span{color:var(--verde)}
+.sub{color:var(--cinza);margin-bottom:24px}
 
-  /* ===== Estrutura ===== */
-  .topo {
-    position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px;
-    padding: 10px 16px; background: var(--superficie); border-bottom: 1px solid var(--borda);
-  }
-  .marca { flex: 1; color: var(--primaria); }
-  .usuario { color: var(--texto-2); font-size: 13px; }
-  .menu {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; display: flex;
-    background: var(--superficie); border-top: 1px solid var(--borda);
-  }
-  .menu a {
-    flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px 8px;
-    font-size: 11px; color: var(--texto-2); text-decoration: none;
-  }
-  .menu a .ico { font-size: 18px; }
-  .menu a.ativo { color: var(--primaria); font-weight: 600; }
-  .conteudo { padding: 16px; padding-bottom: 84px; max-width: 1100px; margin: 0 auto; }
+/* ---------- LAYOUT ---------- */
+#app{display:flex;min-height:100vh}
+aside{width:230px;background:#fff;border-right:1px solid var(--borda);padding:20px 14px;display:flex;flex-direction:column;position:fixed;height:100vh}
+aside .logo-txt{padding:0 10px 18px}
+.menu a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--texto);text-decoration:none;font-weight:500;margin-bottom:2px;cursor:pointer}
+.menu a:hover{background:var(--fundo)}
+.menu a.ativo{background:var(--azul-claro);color:var(--azul)}
+.menu a.breve{color:#98a2b3;cursor:default}
+.menu a.breve:hover{background:none}
+.menu .tag{margin-left:auto;font-size:10px;background:var(--fundo);padding:2px 6px;border-radius:6px}
+.menu-titulo{font-size:11px;text-transform:uppercase;color:#98a2b3;font-weight:600;padding:14px 12px 6px}
+.rodape-menu{margin-top:auto;border-top:1px solid var(--borda);padding-top:12px}
+.usuario-box{display:flex;align-items:center;gap:10px;padding:6px 10px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--roxo-claro);color:var(--roxo);display:flex;align-items:center;justify-content:center;font-weight:700}
+main{margin-left:230px;flex:1;padding:24px 28px;max-width:1300px}
+.topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.topo h1{font-size:22px}
+.acoes-topo{display:flex;gap:8px;align-items:center}
 
-  @media (min-width: 900px) {
-    #app { display: grid; grid-template-columns: 200px 1fr; grid-template-rows: auto 1fr; }
-    .topo { grid-column: 1 / 3; }
-    .menu {
-      position: sticky; top: 49px; flex-direction: column; height: calc(100vh - 49px);
-      border-top: 0; border-right: 1px solid var(--borda); padding-top: 8px;
-    }
-    .menu a { flex: none; flex-direction: row; gap: 10px; padding: 10px 16px; font-size: 14px; }
-    .conteudo { padding: 24px; width: 100%; }
-  }
+/* ---------- COMPONENTES ---------- */
+.btn{border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-pri{background:var(--azul);color:#fff}.btn-pri:hover{filter:brightness(1.08)}
+.btn-sec{background:#fff;color:var(--texto);border:1px solid var(--borda)}.btn-sec:hover{background:var(--fundo)}
+.btn-ico{background:#fff;border:1px solid var(--borda);width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:17px}
+.btn:disabled{opacity:.6;cursor:wait}
+.campo{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.campo label{font-size:12px;font-weight:600;color:#475467}
+.campo input,.campo select,.campo textarea{border:1px solid var(--borda);border-radius:9px;padding:9px 11px;background:#fff;outline:none}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-claro)}
+.req::after{content:' *';color:var(--vermelho)}
+.grade{display:grid;gap:0 14px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.secao{font-size:12px;font-weight:700;color:var(--azul);text-transform:uppercase;margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--borda)}
+.painel{background:#fff;border-radius:var(--raio);box-shadow:var(--sombra);border:1px solid var(--borda)}
+.filtros{display:flex;gap:10px;padding:14px;border-bottom:1px solid var(--borda)}
+.filtros input{flex:1;border:1px solid var(--borda);border-radius:9px;padding:9px 12px}
+.filtros select{border:1px solid var(--borda);border-radius:9px;padding:9px 12px;background:#fff}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:var(--cinza);font-weight:600;padding:11px 14px;background:#fafbfc;border-bottom:1px solid var(--borda)}
+td{padding:12px 14px;border-bottom:1px solid #f2f4f7}
+tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
+.vazio{text-align:center;color:var(--cinza);padding:40px}
+.placa{font-family:monospace;font-weight:700;background:#fff;border:2px solid #1d2939;border-radius:5px;padding:2px 7px;letter-spacing:1px;font-size:13px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.b-verde{background:var(--verde-claro);color:#027a48}.b-azul{background:var(--azul-claro);color:var(--azul)}
+.b-laranja{background:var(--laranja-claro);color:#b54708}.b-vermelho{background:var(--vermelho-claro);color:#b42318}
+.b-roxo{background:var(--roxo-claro);color:var(--roxo)}.b-cinza{background:#f2f4f7;color:var(--cinza)}
 
-  /* ===== Componentes ===== */
-  .cartao {
-    background: var(--superficie); border: 1px solid var(--borda); border-radius: 10px;
-    padding: 16px; box-shadow: var(--sombra);
-  }
-  .grade { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .indicadores { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: 16px; }
-  .indicador .valor { font-size: 26px; font-weight: 700; }
-  .indicador .rotulo { color: var(--texto-2); font-size: 13px; }
-  .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
-  .barra h2 { flex: 1; margin: 0; }
-  .barra input[type=search] { flex: 1 1 220px; }
+/* cards do painel */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.card{background:#fff;border-radius:var(--raio);padding:18px;border:1px solid var(--borda);box-shadow:var(--sombra);border-top:4px solid var(--c)}
+.card .num{font-size:30px;font-weight:700;color:var(--c);margin-top:6px}
+.card .rot{color:var(--cinza);font-weight:500}
+.lista-alertas{padding:6px 0}
+.alerta{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f2f4f7}
+.alerta:last-child{border:none}
+.painel h3{font-size:15px;padding:14px 16px;border-bottom:1px solid var(--borda)}
 
-  .btn {
-    border: 1px solid var(--borda); background: var(--superficie); color: var(--texto);
-    padding: 9px 14px; border-radius: 8px; font: inherit; cursor: pointer; text-decoration: none;
-    display: inline-block; text-align: center;
-  }
-  .btn.primario { background: var(--primaria); color: var(--primaria-texto); border-color: var(--primaria); font-weight: 600; }
-  .btn.perigo { color: var(--perigo); border-color: var(--perigo); }
-  .btn.fantasma { background: transparent; }
-  .btn.pequeno { padding: 5px 10px; font-size: 13px; }
-  .btn:disabled { opacity: .6; cursor: default; }
+/* modal (telas menores, não ocupa tudo) */
+.fundo-modal{position:fixed;inset:0;background:rgba(16,24,40,.35);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow:auto}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:760px;box-shadow:0 20px 50px rgba(16,24,40,.2)}
+.modal.peq{max-width:460px}
+.modal-cab{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--borda)}
+.modal-cab h2{font-size:17px}
+.fechar{background:none;border:none;font-size:22px;cursor:pointer;color:var(--cinza)}
+.modal-corpo{padding:16px 20px;max-height:68vh;overflow:auto}
+.modal-rodape{display:flex;justify-content:space-between;gap:8px;padding:14px 20px;border-top:1px solid var(--borda)}
+.abas{display:flex;gap:4px;border-bottom:1px solid var(--borda);padding:0 20px}
+.abas button{background:none;border:none;padding:11px 12px;font-weight:600;color:var(--cinza);cursor:pointer;border-bottom:2px solid transparent}
+.abas button.ativo{color:var(--azul);border-color:var(--azul)}
+.hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
+.hist-item small{color:var(--cinza)}
 
-  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--texto-2); }
-  input, select, textarea {
-    font: inherit; color: var(--texto); background: var(--superficie);
-    border: 1px solid var(--borda); border-radius: 8px; padding: 9px 10px; width: 100%;
-  }
-  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primaria); outline-offset: -1px; }
-  .form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-  .form .largo { grid-column: 1 / -1; }
-  .acoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+/* toast e carregando */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:10px;color:#fff;font-weight:600;z-index:99;box-shadow:var(--sombra);transition:.3s;opacity:0;transform:translateY(10px)}
+#toast.show{opacity:1;transform:none}
+#carregando{position:fixed;top:0;left:0;height:3px;background:var(--azul);z-index:100;width:0;transition:width .4s}
+.erro-login{color:var(--vermelho);font-size:13px;min-height:18px;margin-bottom:8px}
 
-  .item { display: flex; gap: 12px; align-items: center; cursor: pointer; }
-  .item:hover { border-color: var(--primaria); }
-  .item .miniatura {
-    width: 56px; height: 56px; border-radius: 8px; background: var(--fundo); flex: none;
-    display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden;
-  }
-  .item .miniatura img { width: 100%; height: 100%; object-fit: cover; }
-  .item .info { min-width: 0; flex: 1; }
-  .item .titulo { font-weight: 600; }
-  .item .sub { color: var(--texto-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .selo { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
-  .selo.ok { color: var(--ok); } .selo.alerta { color: var(--alerta); } .selo.perigo { color: var(--perigo); } .selo.neutro { color: var(--texto-2); }
-
-  .detalhe-topo { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 16px; }
-  .foto-principal { width: 220px; max-width: 100%; aspect-ratio: 4/3; border-radius: 10px; background: var(--fundo);
-    display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 48px; }
-  .foto-principal img { width: 100%; height: 100%; object-fit: cover; }
-  .dados { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 16px; flex: 1; }
-  .dados > div > span:first-child { display: block; color: var(--texto-2); font-size: 12px; }
-  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-  .galeria figure { margin: 0; font-size: 12px; color: var(--texto-2); }
-  .galeria .thumb { aspect-ratio: 1; border-radius: 8px; background: var(--fundo); overflow: hidden; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 28px; }
-  .galeria .thumb img { width: 100%; height: 100%; object-fit: cover; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--borda); }
-  th { color: var(--texto-2); font-weight: 600; font-size: 12px; }
-  .tabela-rolagem { overflow-x: auto; }
-  .secao { margin-top: 16px; }
-  .vazio { color: var(--texto-2); text-align: center; padding: 24px; grid-column: 1 / -1; }
-
-  .abas { display: flex; gap: 4px; border-bottom: 1px solid var(--borda); margin-bottom: 14px; overflow-x: auto; }
-  .abas a { padding: 8px 14px; text-decoration: none; color: var(--texto-2); border-bottom: 2px solid transparent; white-space: nowrap; }
-  .abas a.ativo { color: var(--primaria); border-bottom-color: var(--primaria); font-weight: 600; }
-  .lembrete-falta { font-size: 12px; color: var(--texto-2); }
-  .temas { display: flex; gap: 10px; flex-wrap: wrap; }
-  .tema-opcao { border: 2px solid var(--borda); border-radius: 10px; padding: 10px 14px; cursor: pointer; background: var(--superficie); color: var(--texto); font: inherit; }
-  .tema-opcao.ativo { border-color: var(--primaria); }
-
-  /* ===== Login, avisos, carregamento, modal ===== */
-  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
-  .login-cartao { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
-  .login-cartao h1 { color: var(--primaria); text-align: center; }
-  .erro { color: var(--perigo); min-height: 1em; margin: 0; font-size: 14px; }
-  .carregando { position: fixed; inset: 0; background: rgba(0,0,0,.15); display: flex; align-items: center; justify-content: center; z-index: 50; }
-  .spinner { width: 36px; height: 36px; border: 4px solid var(--borda); border-top-color: var(--primaria); border-radius: 50%; animation: gira 0.8s linear infinite; }
-  @keyframes gira { to { transform: rotate(360deg); } }
-  .aviso { position: fixed; left: 16px; right: 16px; bottom: 76px; z-index: 60; max-width: 480px; margin: 0 auto;
-    padding: 12px 16px; border-radius: 10px; color: #fff; background: #2d3748; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
-  .aviso.erro-aviso { background: var(--perigo); }
-  .modal { border: 0; border-radius: 12px; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
-    background: var(--superficie); color: var(--texto); }
-  .modal::backdrop { background: rgba(0,0,0,.4); }
-  #modal-corpo { padding: 18px; }
-  .modal img.ampliada { width: 100%; border-radius: 8px; }
+@media(max-width:900px){
+  aside{position:static;width:100%;height:auto}#app{flex-direction:column}main{margin:0;padding:16px}
+  .cards{grid-template-columns:repeat(2,1fr)}.g3,.g4{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
-<body data-tema="claro">
-  <!-- Tela de login -->
-  <section id="tela-login" class="login oculto">
-    <form id="form-login" class="cartao login-cartao" autocomplete="on">
-      <h1>Gestão de Frota</h1>
-      <label>E-mail<input type="email" name="email" required autocomplete="username"></label>
-      <label>Senha<input type="password" name="senha" required autocomplete="current-password"></label>
-      <button type="submit" class="btn primario">Entrar</button>
-      <p id="login-erro" class="erro"></p>
-    </form>
-  </section>
+<body>
+<div id="carregando"></div>
+<div id="toast"></div>
 
-  <!-- Aplicação -->
-  <div id="app" class="oculto">
-    <header class="topo">
-      <strong class="marca">Gestão de Frota</strong>
-      <span id="usuario-nome" class="usuario"></span>
-      <button id="btn-sair" class="btn fantasma pequeno" type="button">Sair</button>
-    </header>
+<!-- ======================= LOGIN ======================= -->
+<section id="telaLogin">
+  <form class="cartao-login" onsubmit="entrar(event)">
+    <div class="logo-txt">Sistema <span>Frota</span></div>
+    <div class="sub">Gestão de frota e locação</div>
+    <div class="campo"><label>E-mail</label><input id="lgEmail" type="email" required autocomplete="username"></div>
+    <div class="campo"><label>Senha</label><input id="lgSenha" type="password" required autocomplete="current-password"></div>
+    <div class="erro-login" id="lgErro"></div>
+    <button class="btn btn-pri" style="width:100%;justify-content:center" id="lgBtn">Entrar</button>
+  </form>
+</section>
+
+<!-- ======================= APP ======================= -->
+<div id="app" class="oculto">
+  <aside>
+    <div class="logo-txt">Sistema <span>Frota</span></div>
     <nav class="menu" id="menu">
-      <a href="#inicio" data-rota="inicio"><span class="ico">⌂</span>Início</a>
-      <a href="#veiculos" data-rota="veiculos"><span class="ico">🚗</span>Veículos</a>
-      <a href="#motoristas" data-rota="motoristas"><span class="ico">👤</span>Motoristas</a>
-      <a href="#manutencao" data-rota="manutencao"><span class="ico">🔧</span>Manutenção</a>
-      <a href="#usuarios" data-rota="usuarios" data-perm="usuarios"><span class="ico">🔑</span>Usuários</a>
-      <a href="#perfil" data-rota="perfil"><span class="ico">⚙</span>Perfil</a>
+      <a data-tela="painel" class="ativo">📊 Painel</a>
+      <a data-tela="veiculos">🚗 Veículos</a>
+      <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
+      <div class="menu-titulo">Próximas fases</div>
+      <a class="breve">📄 Contratos <span class="tag">em breve</span></a>
+      <a class="breve">🔧 Manutenção <span class="tag">em breve</span></a>
+      <a class="breve">🚨 Infrações <span class="tag">em breve</span></a>
+      <a class="breve">💰 Financeiro <span class="tag">em breve</span></a>
     </nav>
-    <main id="conteudo" class="conteudo"></main>
-  </div>
+    <div class="rodape-menu">
+      <div class="usuario-box">
+        <div class="avatar" id="avatar">?</div>
+        <div style="flex:1;min-width:0"><div id="usNome" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <small id="usPerfil" style="color:var(--cinza)"></small></div>
+        <button class="btn-ico" title="Sair" onclick="sair()">⏻</button>
+      </div>
+    </div>
+  </aside>
 
-  <div id="carregando" class="carregando oculto"><div class="spinner"></div></div>
-  <div id="aviso" class="aviso oculto"></div>
-  <dialog id="modal" class="modal"><div id="modal-corpo"></div></dialog>
+  <main>
+    <div class="topo">
+      <h1 id="tituloTela">Painel</h1>
+      <div class="acoes-topo">
+        <button class="btn btn-pri oculto" id="btnNovo">+ Novo</button>
+        <button class="btn-ico" title="Configurações" onclick="abrirConfig()">⚙️</button>
+      </div>
+    </div>
 
-  <!-- ===================== LÓGICA DA TELA ===================== -->
+    <!-- PAINEL -->
+    <section id="tela-painel">
+      <div class="cards" id="cards"></div>
+      <div class="painel"><h3>⚠️ Vencimentos próximos</h3><div class="lista-alertas" id="alertas"></div></div>
+    </section>
+
+    <!-- VEÍCULOS -->
+    <section id="tela-veiculos" class="oculto">
+      <div class="painel">
+        <div class="filtros">
+          <input id="buscaVeic" placeholder="Buscar por placa, modelo, renavam ou chassi..." oninput="renderVeiculos()">
+          <select id="filtroStatus" onchange="renderVeiculos()"><option value="">Todos os status</option></select>
+        </div>
+        <table><thead><tr><th>Placa</th><th>Modelo</th><th>Ano</th><th>KM</th><th>Status</th><th>Licenciamento</th></tr></thead>
+          <tbody id="tbVeic"></tbody></table>
+      </div>
+    </section>
+
+    <!-- MOTORISTAS -->
+    <section id="tela-motoristas" class="oculto">
+      <div class="painel">
+        <div class="filtros">
+          <input id="buscaMot" placeholder="Buscar por nome, CPF ou telefone..." oninput="renderMotoristas()">
+          <select id="filtroMot" onchange="renderMotoristas()"><option value="">Todos</option><option value="ativo">Ativos</option><option value="bloqueado">Bloqueados</option><option value="inativo">Inativos</option></select>
+        </div>
+        <table><thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>CNH</th><th>Plataformas</th><th>Status</th></tr></thead>
+          <tbody id="tbMot"></tbody></table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modais"></div>
+
 <script>
-/* =====================================================================
- * App.html — lógica da tela (roda no navegador).
- * Conversa com o servidor por uma única função: api(token, acao, payload).
- * ===================================================================== */
+/* =========================================================
+   ESTADO
+   ========================================================= */
+const S = { token: null, usuario: null, cat: { marcas: [], modelos: [], cores: [] }, veiculos: [], motoristas: [], tela: 'painel' };
 
-var estado = { token: null, usuario: null, listas: {}, fotos: {} };
-
-// ---------- Utilidades ----------
-function $(sel, raiz) { return (raiz || document).querySelector(sel); }
-function $$(sel, raiz) { return Array.prototype.slice.call((raiz || document).querySelectorAll(sel)); }
-function esc(v) {
-  return String(v === undefined || v === null ? '' : v)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-function armazenar(chave, valor) {
-  try { if (valor === null) localStorage.removeItem(chave); else localStorage.setItem(chave, valor); } catch (e) {}
-}
-function lerArmazenado(chave) { try { return localStorage.getItem(chave); } catch (e) { return null; } }
-
-function hojeISO() {
-  var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
-}
-function diasAte(iso) {
-  if (!iso) return null;
-  var alvo = new Date(iso + 'T00:00:00'), hoje = new Date(hojeISO() + 'T00:00:00');
-  return Math.round((alvo - hoje) / 86400000);
-}
-function fmtData(iso) { return iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : (iso || ''); }
-function fmtKm(v) { return v ? Number(v).toLocaleString('pt-BR') + ' km' : '—'; }
-function fmtMoeda(v) { return v ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'; }
-function fmtCpf(v) { v = String(v || ''); return v.length === 11 ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : v; }
-function fmtTel(v) { v = String(v || ''); return v.length === 11 ? v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') : v.length === 10 ? v.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3') : v; }
-
-var ROTULOS = {
-  disponivel: 'Disponível', locado: 'Locado', manutencao: 'Manutenção', inativo: 'Inativo',
-  ativo: 'Ativo', bloqueado: 'Bloqueado', administrador: 'Administrador', operador: 'Operador',
-  flex: 'Flex', gasolina: 'Gasolina', etanol: 'Etanol', diesel: 'Diesel', gnv: 'GNV', eletrico: 'Elétrico', hibrido: 'Híbrido',
-  cadastro: 'Cadastro', entrega: 'Entrega', devolucao: 'Devolução', motorista: 'Motorista', ajuste: 'Ajuste',
-  uber: 'Uber', '99': '99', indrive: 'inDrive', outra: 'Outra', nenhuma: 'Nenhuma',
-  foto_veiculo: 'Foto do veículo', foto_motorista: 'Foto do motorista', cnh: 'CNH',
-  comprovante_residencia: 'Comprovante de residência', documento_veiculo: 'Documento (CRLV)', outro: 'Outro',
-  nota_fiscal: 'Nota fiscal', preventiva: 'Preventiva', corretiva: 'Corretiva',
-  vencida: 'Vencida', proxima: 'Próxima', em_dia: 'Em dia', sem_historico: 'Sem histórico'
+const STATUS_VEIC = {
+  disponivel: ['Disponível', 'b-verde'], locado: ['Locado', 'b-azul'], manutencao: ['Manutenção', 'b-laranja'],
+  reservado: ['Reservado', 'b-roxo'], inativo: ['Inativo', 'b-cinza'], vendido: ['Vendido', 'b-cinza']
 };
-function rotulo(v) { return ROTULOS[v] || v || ''; }
-var COR_STATUS = { disponivel: 'ok', locado: 'neutro', manutencao: 'alerta', inativo: 'perigo', ativo: 'ok', bloqueado: 'perigo',
-  vencida: 'perigo', proxima: 'alerta', em_dia: 'ok', sem_historico: 'neutro' };
-function selo(v, cor) { return '<span class="selo ' + (cor || COR_STATUS[v] || 'neutro') + '">' + esc(rotulo(v)) + '</span>'; }
+const STATUS_MOT = { ativo: ['Ativo', 'b-verde'], bloqueado: ['Bloqueado', 'b-vermelho'], inativo: ['Inativo', 'b-cinza'] };
+const PROPRIEDADE = { proprio: 'Próprio', terceiro: 'Terceiro', financiado: 'Financiado', consignado: 'Consignado' };
+const COMBUSTIVEL = ['flex', 'gasolina', 'etanol', 'diesel', 'gnv', 'eletrico', 'hibrido'];
+const PERFIS = { admin: 'Administrador', gestor: 'Gestor', operador: 'Operador', motorista: 'Motorista' };
+const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
-function pode(tabela, acao) {
-  var p = (estado.usuario && estado.usuario.permissoes) || {};
-  return (p[tabela] || []).indexOf(acao) >= 0;
-}
-
-// ---------- Comunicação com o servidor ----------
-var pendentes = 0;
-function carregando(on) {
-  pendentes += on ? 1 : -1;
-  $('#carregando').classList.toggle('oculto', pendentes <= 0);
-}
-function chamar(acao, payload, silencioso) {
-  return new Promise(function (resolve, reject) {
-    if (!silencioso) carregando(true);
-    google.script.run
-      .withSuccessHandler(function (r) {
-        if (!silencioso) carregando(false);
-        if (r && r.ok) return resolve(r.dados);
-        var erro = (r && r.erro) || 'Erro desconhecido';
-        if (erro === 'SESSAO_EXPIRADA') { sairLocal(); erro = 'Sua sessão expirou. Entre novamente.'; }
-        reject(new Error(erro));
-      })
-      .withFailureHandler(function (e) {
-        if (!silencioso) carregando(false);
-        reject(new Error('Falha de comunicação: ' + (e && e.message ? e.message : e)));
-      })
-      .api(estado.token, acao, payload || {});
-  });
-}
-
-var timerAviso;
-function aviso(msg, ehErro) {
-  var el = $('#aviso');
-  el.textContent = msg;
-  el.classList.toggle('erro-aviso', !!ehErro);
-  el.classList.remove('oculto');
-  clearTimeout(timerAviso);
-  timerAviso = setTimeout(function () { el.classList.add('oculto'); }, ehErro ? 6000 : 3000);
-}
-function falhou(e) { aviso(e.message || String(e), true); }
-
-// ---------- Modal ----------
-function abrirModal(html) {
-  // troca o elemento para descartar os "ouvintes" de cliques do modal anterior
-  var velho = $('#modal-corpo'), novo = velho.cloneNode(false);
-  novo.innerHTML = html;
-  velho.parentNode.replaceChild(novo, velho);
-  if (!$('#modal').open) $('#modal').showModal();
-}
-function fecharModal() { $('#modal').close(); $('#modal-corpo').innerHTML = ''; }
-$('#modal').addEventListener('click', function (ev) { if (ev.target === this) fecharModal(); });
-
-// ---------- Tema ----------
-function aplicarTema(t) {
-  if (['claro', 'escuro', 'frota'].indexOf(t) < 0) t = 'claro';
-  document.body.setAttribute('data-tema', t);
-  armazenar('tema', t);
-}
-
-// ---------- Login / sessão ----------
-function mostrarLogin() {
-  $('#app').classList.add('oculto');
-  $('#tela-login').classList.remove('oculto');
-}
-function sairLocal() {
-  estado.token = null; estado.usuario = null; estado.fotos = {};
-  armazenar('token', null);
-  mostrarLogin();
-}
-$('#form-login').addEventListener('submit', function (ev) {
-  ev.preventDefault();
-  var f = ev.target;
-  $('#login-erro').textContent = '';
-  chamar('login', { email: f.email.value, senha: f.senha.value })
-    .then(function (r) {
-      estado.token = r.token;
-      armazenar('token', r.token);
-      f.senha.value = '';
-      return iniciarSessao();
-    })
-    .catch(function (e) { $('#login-erro').textContent = e.message; });
-});
-$('#btn-sair').addEventListener('click', function () {
-  chamar('logout', {}, true).catch(function () {});
-  sairLocal();
-});
-
-function iniciarSessao() {
-  return chamar('sessao').then(function (r) {
-    estado.usuario = r.usuario;
-    estado.listas = r.listas;
-    aplicarTema(r.usuario.tema);
-    $('#usuario-nome').textContent = r.usuario.nome;
-    $$('#menu [data-perm]').forEach(function (a) {
-      a.classList.toggle('oculto', !pode(a.getAttribute('data-perm'), 'ler'));
-    });
-    $('#tela-login').classList.add('oculto');
-    $('#app').classList.remove('oculto');
-    rotear();
-  });
-}
-
-// ---------- Rotas ----------
-window.addEventListener('hashchange', rotear);
-function ir(hash) { if (location.hash === hash) rotear(); else location.hash = hash; }
-
-function rotear() {
-  if (!estado.usuario) return;
-  var partes = (location.hash || '#inicio').slice(1).split('/');
-  var rota = partes[0] || 'inicio';
-  $$('#menu a').forEach(function (a) { a.classList.toggle('ativo', a.getAttribute('data-rota') === rota); });
-  window.scrollTo(0, 0);
-  var tela = TELAS[rota] || TELAS.inicio;
-  try { tela(partes[1], partes[2]); } catch (e) { falhou(e); }
-}
-
-function render(html) { $('#conteudo').innerHTML = html; }
-
-// ---------- Definição dos campos dos formulários ----------
-var CAMPOS = {
-  veiculos: [
-    { n: 'placa', r: 'Placa', obr: true, ph: 'ABC1D23' },
-    { n: 'marca', r: 'Marca', obr: true },
-    { n: 'modelo', r: 'Modelo', obr: true },
-    { n: 'versao', r: 'Versão' },
-    { n: 'ano_fabricacao', r: 'Ano fabricação', tipo: 'number' },
-    { n: 'ano_modelo', r: 'Ano modelo', tipo: 'number' },
-    { n: 'cor', r: 'Cor' },
-    { n: 'combustivel', r: 'Combustível', lista: 'combustivel' },
-    { n: 'renavam', r: 'RENAVAM', modo: 'numeric' },
-    { n: 'chassi', r: 'Chassi' },
-    { n: 'codigo_fipe', r: 'Código FIPE', ph: '000000-0' },
-    { n: 'km_atual', r: 'Km atual', modo: 'numeric', soNovo: true },
-    { n: 'data_aquisicao', r: 'Data de aquisição', tipo: 'date' },
-    { n: 'valor_aquisicao', r: 'Valor de aquisição (R$)', modo: 'decimal' },
-    { n: 'status', r: 'Status', lista: 'status_veiculo', obr: true, padrao: 'disponivel' },
-    { n: 'observacoes', r: 'Observações', tipo: 'textarea' }
-  ],
-  motoristas: [
-    { n: 'nome', r: 'Nome completo', obr: true, largo: true },
-    { n: 'cpf', r: 'CPF', obr: true, modo: 'numeric' },
-    { n: 'rg', r: 'RG' },
-    { n: 'data_nascimento', r: 'Data de nascimento', tipo: 'date' },
-    { n: 'telefone', r: 'Telefone / WhatsApp', obr: true, modo: 'tel' },
-    { n: 'email', r: 'E-mail', tipo: 'email' },
-    { n: 'cep', r: 'CEP', modo: 'numeric' },
-    { n: 'endereco', r: 'Endereço', largo: true },
-    { n: 'cidade', r: 'Cidade' },
-    { n: 'uf', r: 'UF', max: 2 },
-    { n: 'cnh_numero', r: 'Nº da CNH', obr: true, modo: 'numeric' },
-    { n: 'cnh_categoria', r: 'Categoria CNH', lista: 'cnh_categoria', padrao: 'B' },
-    { n: 'cnh_validade', r: 'Validade da CNH', tipo: 'date', obr: true },
-    { n: 'plataforma', r: 'Plataforma de app', lista: 'plataforma', padrao: 'uber' },
-    { n: 'status', r: 'Status', lista: 'status_motorista', obr: true, padrao: 'ativo' },
-    { n: 'observacoes', r: 'Observações', tipo: 'textarea' }
-  ]
-};
-
-function campoHtml(c, valor, ehNovo) {
-  if (c.soNovo && !ehNovo) return '';
-  var v = valor !== undefined && valor !== '' ? valor : (ehNovo && c.padrao) || '';
-  var classe = c.largo || c.tipo === 'textarea' ? ' class="largo"' : '';
-  var req = c.obr ? ' required' : '';
-  var inner;
-  if (c.lista) {
-    inner = '<select name="' + c.n + '"' + req + '>' + (c.obr ? '' : '<option value=""></option>') +
-      (estado.listas[c.lista] || []).map(function (o) {
-        return '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc(rotulo(o)) + '</option>';
-      }).join('') + '</select>';
-  } else if (c.tipo === 'textarea') {
-    inner = '<textarea name="' + c.n + '" rows="3">' + esc(v) + '</textarea>';
-  } else {
-    inner = '<input name="' + c.n + '" type="' + (c.tipo || 'text') + '" value="' + esc(v) + '"' + req +
-      (c.ph ? ' placeholder="' + esc(c.ph) + '"' : '') + (c.modo ? ' inputmode="' + c.modo + '"' : '') +
-      (c.max ? ' maxlength="' + c.max + '"' : '') + '>';
+/* =========================================================
+   API
+   ========================================================= */
+async function api(acao, dados) {
+  const bar = document.getElementById('carregando');
+  bar.style.width = '70%';
+  try {
+    // Sem header Content-Type de propósito: evita bloqueio de CORS do Apps Script
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, token: S.token, dados }) });
+    const j = await r.json();
+    if (!j.ok) {
+      if (j.erro === 'SESSAO_EXPIRADA') { toast('Sessão expirada. Entre novamente.', 'erro'); sair(true); }
+      throw new Error(j.erro);
+    }
+    return j.dados;
+  } finally {
+    bar.style.width = '100%'; setTimeout(() => bar.style.width = '0', 300);
   }
-  return '<label' + classe + '>' + esc(c.r) + (c.obr ? ' *' : '') + inner + '</label>';
 }
 
+/* =========================================================
+   UTILITÁRIOS
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dataBR = iso => iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
+const num = n => (n === '' || n == null) ? '—' : Number(n).toLocaleString('pt-BR');
+const dinheiro = n => (n === '' || n == null) ? '' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const diasAte = iso => { if (!iso) return null; const [a, m, d] = iso.slice(0, 10).split('-'); const h = new Date(); h.setHours(0,0,0,0); return Math.round((new Date(a, m - 1, d) - h) / 864e5); };
+const fmtDoc = d => { d = String(d || '').replace(/\D/g, ''); if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); return d; };
+const badge = (map, k) => { const v = map[k] || [k, 'b-cinza']; return `<span class="badge ${v[1]}">${esc(v[0])}</span>`; };
+function badgeVenc(iso) {
+  const d = diasAte(iso); if (d === null) return '<span style="color:#98a2b3">—</span>';
+  if (d < 0) return `<span class="badge b-vermelho">Vencido ${dataBR(iso)}</span>`;
+  if (d <= 30) return `<span class="badge b-laranja">${dataBR(iso)} (${d}d)</span>`;
+  return dataBR(iso);
+}
+function toast(msg, tipo = 'ok') {
+  const t = $('toast'); t.textContent = msg;
+  t.style.background = tipo === 'erro' ? 'var(--vermelho)' : 'var(--verde)';
+  t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+function opcoes(lista, sel, vazio = 'Selecione...') {
+  return `<option value="">${vazio}</option>` + lista.map(o => `<option value="${esc(o.v)}" ${String(o.v) === String(sel ?? '') ? 'selected' : ''}>${esc(o.t)}</option>`).join('');
+}
 function lerForm(form) {
-  var d = {};
-  $$('input[name], select[name], textarea[name]', form).forEach(function (el) { d[el.name] = el.value; });
-  return d;
+  const o = {};
+  form.querySelectorAll('[name]').forEach(el => { o[el.name] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
+  return o;
+}
+const nomeModelo = id => { const m = S.cat.modelos.find(x => x.id === id); if (!m) return '—'; const mc = S.cat.marcas.find(x => x.id === m.marca_id); return (mc ? mc.nome + ' ' : '') + m.nome; };
+const pode = (...perfis) => perfis.includes(S.usuario?.perfil);
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+function abrirModal({ titulo, corpo, rodape = '', peq = false, abas = '' }) {
+  const div = document.createElement('div');
+  div.className = 'fundo-modal';
+  div.innerHTML = `<div class="modal ${peq ? 'peq' : ''}">
+      <div class="modal-cab"><h2>${titulo}</h2><button class="fechar" type="button">×</button></div>
+      ${abas}<div class="modal-corpo">${corpo}</div>${rodape ? `<div class="modal-rodape">${rodape}</div>` : ''}</div>`;
+  div.querySelector('.fechar').onclick = () => div.remove();
+  div.addEventListener('mousedown', e => { if (e.target === div) div.remove(); });
+  $('modais').appendChild(div);
+  return div;
+}
+function trocarAba(modal, nome) {
+  modal.querySelectorAll('.abas button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === nome));
+  modal.querySelectorAll('[data-painel]').forEach(p => p.classList.toggle('oculto', p.dataset.painel !== nome));
 }
 
-// ---------- Fotos e arquivos ----------
-function carregarFoto(arquivoId) {
-  if (!arquivoId) return Promise.resolve(null);
-  if (estado.fotos[arquivoId]) return Promise.resolve(estado.fotos[arquivoId]);
-  return chamar('verArquivo', { id: arquivoId }, true).then(function (r) {
-    estado.fotos[arquivoId] = r.dataUrl;
-    return r.dataUrl;
-  });
+/* =========================================================
+   LOGIN / SESSÃO
+   ========================================================= */
+async function entrar(e) {
+  e.preventDefault();
+  const btn = $('lgBtn'); btn.disabled = true; $('lgErro').textContent = '';
+  try {
+    const r = await api('login', { email: $('lgEmail').value, senha: $('lgSenha').value });
+    S.token = r.token; S.usuario = r.usuario;
+    sessionStorage.setItem('frota_token', r.token);
+    await iniciar();
+  } catch (err) { $('lgErro').textContent = err.message; }
+  finally { btn.disabled = false; }
 }
-function preencherFotos(raiz) {
-  $$('[data-foto]', raiz).forEach(function (el) {
-    carregarFoto(el.getAttribute('data-foto')).then(function (url) {
-      if (url) el.innerHTML = '<img alt="" src="' + url + '">';
-    }).catch(function () {});
-  });
+async function sair(semChamar) {
+  if (!semChamar && S.token) { try { await api('logout'); } catch (e) {} }
+  S.token = null; S.usuario = null; sessionStorage.removeItem('frota_token');
+  $('app').classList.add('oculto'); $('telaLogin').classList.remove('oculto'); $('modais').innerHTML = '';
 }
-
-/** Lê o arquivo escolhido. Fotos são reduzidas para no máximo 1600px (economiza espaço e tempo). */
-function prepararArquivo(file) {
-  return new Promise(function (resolve, reject) {
-    if (file.type === 'application/pdf') {
-      if (file.size > 5 * 1024 * 1024) return reject(new Error('PDF maior que 5 MB.'));
-      var fr = new FileReader();
-      fr.onload = function () { resolve({ nome: file.name, mime: file.type, base64: fr.result.split(',')[1] }); };
-      fr.onerror = function () { reject(new Error('Não foi possível ler o arquivo.')); };
-      return fr.readAsDataURL(file);
-    }
-    if (!/^image\//.test(file.type)) return reject(new Error('Envie uma imagem ou PDF.'));
-    var img = new Image(), url = URL.createObjectURL(file);
-    img.onload = function () {
-      var max = 1600, w = img.width, h = img.height, k = Math.min(1, max / Math.max(w, h));
-      var cv = document.createElement('canvas');
-      cv.width = Math.round(w * k); cv.height = Math.round(h * k);
-      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      URL.revokeObjectURL(url);
-      var dataUrl = cv.toDataURL('image/jpeg', 0.82);
-      resolve({ nome: file.name.replace(/\.\w+$/, '') + '.jpg', mime: 'image/jpeg', base64: dataUrl.split(',')[1] });
-    };
-    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Imagem inválida.')); };
-    img.src = url;
-  });
+async function iniciar() {
+  $('telaLogin').classList.add('oculto'); $('app').classList.remove('oculto');
+  $('usNome').textContent = S.usuario.nome; $('usPerfil').textContent = PERFIS[S.usuario.perfil];
+  $('avatar').textContent = S.usuario.nome.trim()[0].toUpperCase();
+  $('filtroStatus').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_VEIC).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
+  S.cat = await api('listarCatalogos');
+  irPara('painel');
 }
-
-function galeriaHtml(entidade, id) {
-  return '<div class="secao cartao"><div class="barra"><h3>Fotos e documentos</h3>' +
-    (pode('arquivos', 'criar') ? '<button class="btn pequeno" type="button" data-acao="enviar-arquivo">+ Adicionar</button>' : '') +
-    '</div><div class="galeria" id="galeria"><p class="vazio">Carregando…</p></div></div>';
-}
-
-function carregarGaleria(entidade, registro, aoAtualizar) {
-  chamar('listarArquivos', { entidade: entidade, entidade_id: registro.id }, true).then(function (lista) {
-    var g = $('#galeria');
-    if (!g) return;
-    if (!lista.length) { g.innerHTML = '<p class="vazio">Nenhum arquivo.</p>'; return; }
-    g.innerHTML = lista.map(function (a) {
-      var ehImg = /^image\//.test(a.mime);
-      return '<figure><div class="thumb" data-arquivo="' + esc(a.id) + '" ' + (ehImg ? 'data-foto="' + esc(a.id) + '"' : '') + '>' +
-        (ehImg ? '…' : '📄') + '</div><figcaption>' + esc(rotulo(a.tipo)) +
-        (registro.foto_id === a.id ? ' ★' : '') + '</figcaption></figure>';
-    }).join('');
-    preencherFotos(g);
-    $$('[data-arquivo]', g).forEach(function (el) {
-      el.addEventListener('click', function () {
-        var arq = lista.filter(function (x) { return x.id === el.getAttribute('data-arquivo'); })[0];
-        verArquivoModal(entidade, registro, arq, aoAtualizar);
-      });
-    });
-  }).catch(falhou);
-}
-
-function verArquivoModal(entidade, registro, arq, aoAtualizar) {
-  chamar('verArquivo', { id: arq.id }).then(function (r) {
-    var ehImg = /^image\//.test(r.mime);
-    abrirModal('<h3>' + esc(rotulo(arq.tipo)) + '</h3>' +
-      (ehImg ? '<img class="ampliada" alt="" src="' + r.dataUrl + '">'
-        : '<p><a download="' + esc(r.nome) + '" href="' + r.dataUrl + '">Baixar ' + esc(r.nome) + '</a></p>') +
-      '<div class="acoes">' +
-      (ehImg && pode(entidade, 'editar') && registro.foto_id !== arq.id ? '<button class="btn" data-a="principal">Definir como foto principal</button>' : '') +
-      (pode('arquivos', 'excluir') ? '<button class="btn perigo" data-a="excluir">Excluir</button>' : '') +
-      '<button class="btn" data-a="fechar">Fechar</button></div>');
-    $('#modal-corpo').addEventListener('click', function (ev) {
-      var a = ev.target.getAttribute('data-a');
-      if (a === 'fechar') fecharModal();
-      if (a === 'principal') {
-        chamar('salvar', { tabela: entidade, id: registro.id, dados: { foto_id: arq.id } })
-          .then(function () { fecharModal(); aviso('Foto principal atualizada.'); aoAtualizar(); }).catch(falhou);
-      }
-      if (a === 'excluir' && confirm('Excluir este arquivo?')) {
-        chamar('excluirArquivo', { id: arq.id }).then(function () { fecharModal(); aviso('Arquivo excluído.'); aoAtualizar(); }).catch(falhou);
-      }
-    });
-  }).catch(falhou);
-}
-
-function enviarArquivoModal(entidade, registro, tiposPermitidos, aoAtualizar) {
-  abrirModal('<h3>Adicionar foto ou documento</h3><form id="f-arq" class="form">' +
-    '<label class="largo">Tipo<select name="tipo">' + tiposPermitidos.map(function (t) {
-      return '<option value="' + t + '">' + esc(rotulo(t)) + '</option>'; }).join('') + '</select></label>' +
-    '<label class="largo">Arquivo (foto ou PDF)<input type="file" name="arquivo" accept="image/*,application/pdf" required></label>' +
-    '<label class="largo" style="flex-direction:row;align-items:center"><input type="checkbox" name="principal" style="width:auto"> Usar como foto principal</label>' +
-    '</form><div class="acoes"><button class="btn" type="button" data-a="cancelar">Cancelar</button>' +
-    '<button class="btn primario" type="button" data-a="enviar">Enviar</button></div>');
-  var form = $('#f-arq');
-  $('#modal-corpo').addEventListener('click', function (ev) {
-    var a = ev.target.getAttribute('data-a');
-    if (a === 'cancelar') fecharModal();
-    if (a !== 'enviar') return;
-    var file = form.arquivo.files[0];
-    if (!file) return aviso('Escolha um arquivo.', true);
-    ev.target.disabled = true;
-    carregando(true);
-    prepararArquivo(file).then(function (arq) {
-      carregando(false);
-      return chamar('enviarArquivo', {
-        entidade: entidade, entidade_id: registro.id, tipo: form.tipo.value,
-        nome: arq.nome, mime: arq.mime, base64: arq.base64,
-        definirComoFoto: form.principal.checked && arq.mime !== 'application/pdf'
-      });
-    }).then(function () {
-      fecharModal(); aviso('Arquivo enviado.'); aoAtualizar();
-    }).catch(function (e) { ev.target.disabled = false; carregando(false); falhou(e); });
-  });
-}
-
-// ---------- Telas ----------
-var TELAS = {};
-
-TELAS.inicio = function () {
-  render('<h2>Início</h2><p class="vazio">Carregando…</p>');
-  Promise.all([chamar('listar', { tabela: 'veiculos' }), chamar('listar', { tabela: 'motoristas' }), chamar('lembretes', {})])
-    .then(function (r) {
-      var veic = r[0], mot = r[1], lem = r[2];
-      var urgentes = lem.filter(function (l) { return l.situacao === 'vencida' || l.situacao === 'proxima'; });
-      var cont = function (s) { return veic.filter(function (v) { return v.status === s; }).length; };
-      var cnh = mot.filter(function (m) { return m.status !== 'inativo'; })
-        .map(function (m) { return { m: m, d: diasAte(m.cnh_validade) }; })
-        .filter(function (x) { return x.d !== null && x.d <= 30; })
-        .sort(function (a, b) { return a.d - b.d; });
-      render('<h2>Olá, ' + esc(estado.usuario.nome.split(' ')[0]) + '</h2>' +
-        '<div class="indicadores">' +
-        ind(veic.length, 'Veículos') + ind(cont('disponivel'), 'Disponíveis') + ind(cont('locado'), 'Locados') +
-        ind(cont('manutencao'), 'Em manutenção') + ind(mot.filter(function (m) { return m.status === 'ativo'; }).length, 'Motoristas ativos') +
-        ind(lem.filter(function (l) { return l.situacao === 'vencida'; }).length, 'Manutenções vencidas') +
-        ind(lem.filter(function (l) { return l.situacao === 'proxima'; }).length, 'Manutenções próximas') +
-        '</div>' +
-        '<div class="cartao"><div class="barra"><h3 style="flex:1;margin:0">Manutenções vencidas ou próximas</h3>' +
-        '<a class="btn pequeno" href="#manutencao">Ver todas</a></div>' +
-        (urgentes.length ? '<div class="tabela-rolagem" id="ini-lembretes">' + tabelaLembretes(urgentes.slice(0, 10), true) + '</div>' : '<p class="vazio">Nada vencendo.</p>') + '</div>' +
-        '<div class="cartao secao"><h3>CNH vencida ou vencendo em 30 dias</h3>' +
-        (cnh.length ? '<div class="tabela-rolagem"><table><tr><th>Motorista</th><th>Validade</th><th>Situação</th></tr>' +
-          cnh.map(function (x) {
-            return '<tr><td><a href="#motoristas/' + esc(x.m.id) + '">' + esc(x.m.nome) + '</a></td><td>' + fmtData(x.m.cnh_validade) +
-              '</td><td>' + situacaoCnh(x.m.cnh_validade) + '</td></tr>';
-          }).join('') + '</table></div>' : '<p class="vazio">Nenhuma CNH vencendo.</p>') +
-        '</div><p class="vazio">Contratos, vistoria e financeiro entram nas próximas etapas.</p>');
-      if ($('#ini-lembretes')) ligarLembretes($('#ini-lembretes'), urgentes.slice(0, 10), function () { TELAS.inicio(); });
-    }).catch(falhou);
-  function ind(v, r) { return '<div class="cartao indicador"><div class="valor">' + v + '</div><div class="rotulo">' + r + '</div></div>'; }
-};
-
-function situacaoCnh(validade) {
-  var d = diasAte(validade);
-  if (d === null) return selo('Sem data', 'neutro');
-  if (d < 0) return selo('Vencida há ' + (-d) + ' dia(s)', 'perigo');
-  if (d <= 30) return selo('Vence em ' + d + ' dia(s)', 'alerta');
-  return selo('Válida', 'ok');
-}
-
-// ----- Lista genérica (veículos e motoristas) -----
-function telaLista(cfg) {
-  render('<div class="barra"><h2>' + cfg.titulo + '</h2>' +
-    '<input type="search" id="busca" placeholder="Buscar…" value="' + esc(lerArmazenado('busca_' + cfg.tabela) || '') + '">' +
-    (pode(cfg.tabela, 'criar') ? '<a class="btn primario" href="#' + cfg.tabela + '/novo">+ Novo</a>' : '') +
-    '</div><div id="lista" class="grade"><p class="vazio">Carregando…</p></div>');
-  chamar('listar', { tabela: cfg.tabela }).then(function (itens) {
-    itens.sort(cfg.ordenar);
-    var desenhar = function () {
-      var termo = $('#busca').value.trim().toLowerCase();
-      armazenar('busca_' + cfg.tabela, termo);
-      var filtrados = itens.filter(function (i) { return !termo || cfg.textoBusca(i).toLowerCase().indexOf(termo) >= 0; });
-      $('#lista').innerHTML = filtrados.length ? filtrados.map(function (i) {
-        return '<a class="cartao item" style="text-decoration:none;color:inherit" href="#' + cfg.tabela + '/' + esc(i.id) + '">' +
-          '<div class="miniatura"' + (i.foto_id ? ' data-foto="' + esc(i.foto_id) + '"' : '') + '>' + cfg.icone + '</div>' +
-          '<div class="info"><div class="titulo">' + cfg.titulo1(i) + '</div><div class="sub">' + cfg.sub(i) + '</div></div></a>';
-      }).join('') : '<p class="vazio">' + (termo ? 'Nada encontrado.' : 'Nenhum cadastro ainda.') + '</p>';
-      preencherFotos($('#lista'));
-    };
-    $('#busca').addEventListener('input', desenhar);
-    desenhar();
-  }).catch(falhou);
-}
-
-// ----- Formulário genérico -----
-function telaForm(tabela, id, titulo) {
-  var ehNovo = !id;
-  var p = ehNovo ? Promise.resolve({}) : chamar('buscar', { tabela: tabela, id: id });
-  p.then(function (reg) {
-    render('<h2>' + (ehNovo ? 'Novo ' : 'Editar ') + titulo + '</h2><form id="f" class="cartao"><div class="form">' +
-      CAMPOS[tabela].map(function (c) { return campoHtml(c, reg[c.n], ehNovo); }).join('') +
-      '</div><div class="acoes"><a class="btn" href="#' + tabela + (ehNovo ? '' : '/' + esc(id)) + '">Cancelar</a>' +
-      '<button class="btn primario" type="submit">Salvar</button></div></form>');
-    $('#f').addEventListener('submit', function (ev) {
-      ev.preventDefault();
-      var btn = $('button[type=submit]', ev.target); btn.disabled = true;
-      chamar('salvar', { tabela: tabela, id: id || null, dados: lerForm(ev.target) })
-        .then(function (r) { aviso('Salvo com sucesso.'); ir('#' + tabela + '/' + r.id); })
-        .catch(function (e) { btn.disabled = false; falhou(e); });
-    });
-  }).catch(falhou);
-}
-
-function botoesDetalhe(tabela, id) {
-  return '<div class="acoes" style="margin-top:0">' +
-    (pode(tabela, 'editar') ? '<a class="btn" href="#' + tabela + '/' + esc(id) + '/editar">Editar</a>' : '') +
-    (pode(tabela, 'excluir') ? '<button class="btn perigo" type="button" data-acao="excluir">Excluir</button>' : '') + '</div>';
-}
-
-function ligarExcluir(tabela, id, nome) {
-  var b = $('[data-acao="excluir"]');
-  if (!b) return;
-  b.addEventListener('click', function () {
-    if (!confirm('Excluir ' + nome + '? O registro fica no histórico, mas some das listas.')) return;
-    chamar('excluir', { tabela: tabela, id: id }).then(function () { aviso('Excluído.'); ir('#' + tabela); }).catch(falhou);
-  });
-}
-
-function dado(rot, valor) { return '<div><span>' + esc(rot) + '</span>' + (valor || '—') + '</div>'; }
-
-// ----- Veículos -----
-TELAS.veiculos = function (id, sub) {
-  if (id === 'novo') return telaForm('veiculos', null, 'veículo');
-  if (id && sub === 'editar') return telaForm('veiculos', id, 'veículo');
-  if (id) return detalheVeiculo(id);
-  telaLista({
-    tabela: 'veiculos', titulo: 'Veículos', icone: '🚗',
-    ordenar: function (a, b) { return a.placa.localeCompare(b.placa); },
-    textoBusca: function (v) { return [v.placa, v.marca, v.modelo, v.cor, v.status].join(' '); },
-    titulo1: function (v) { return esc(v.placa) + ' · ' + esc(v.marca) + ' ' + esc(v.modelo); },
-    sub: function (v) { return selo(v.status) + ' ' + esc(v.ano_modelo || '') + ' · ' + fmtKm(v.km_atual); }
-  });
-};
-
-function detalheVeiculo(id) {
-  chamar('buscar', { tabela: 'veiculos', id: id }).then(function (v) {
-    if (!v || v.ativo !== 'TRUE') { render('<p class="vazio">Veículo não encontrado.</p>'); return; }
-    render('<div class="barra"><h2>' + esc(v.placa) + ' · ' + esc(v.marca) + ' ' + esc(v.modelo) + '</h2>' + botoesDetalhe('veiculos', id) + '</div>' +
-      '<div class="cartao detalhe-topo"><div class="foto-principal"' + (v.foto_id ? ' data-foto="' + esc(v.foto_id) + '"' : '') + '>🚗</div>' +
-      '<div class="dados">' +
-      dado('Status', selo(v.status)) + dado('Km atual', fmtKm(v.km_atual)) +
-      dado('Ano', esc([v.ano_fabricacao, v.ano_modelo].filter(String).join('/'))) + dado('Versão', esc(v.versao)) +
-      dado('Cor', esc(v.cor)) + dado('Combustível', esc(rotulo(v.combustivel))) + dado('RENAVAM', esc(v.renavam)) +
-      dado('Chassi', esc(v.chassi)) + dado('Código FIPE', esc(v.codigo_fipe)) + dado('Aquisição', fmtData(v.data_aquisicao)) +
-      dado('Valor de aquisição', fmtMoeda(v.valor_aquisicao)) + '</div>' +
-      (v.observacoes ? '<p style="flex-basis:100%;margin:0">' + esc(v.observacoes) + '</p>' : '') + '</div>' +
-      '<div class="secao cartao"><div class="barra"><h3>Histórico de km</h3>' +
-      (pode('leituras_km', 'criar') ? '<button class="btn pequeno" type="button" data-acao="km">+ Registrar km</button>' : '') +
-      '</div><div id="hist-km" class="tabela-rolagem"><p class="vazio">Carregando…</p></div></div>' +
-      '<div class="secao cartao"><div class="barra"><h3 style="flex:1;margin:0">Manutenção</h3>' +
-      (pode('manutencoes', 'criar') ? '<button class="btn pequeno" type="button" data-acao="manut">+ Registrar manutenção</button>' : '') +
-      '</div><div id="v-lembretes" class="tabela-rolagem"><p class="vazio">Carregando…</p></div>' +
-      '<h3 class="secao">Histórico</h3><div id="v-historico" class="tabela-rolagem"></div></div>' +
-      galeriaHtml('veiculos', id));
-    preencherFotos($('#conteudo'));
-    var recarregar = function () { detalheVeiculo(id); };
-    var bMan = $('[data-acao="manut"]'); if (bMan) bMan.addEventListener('click', function () { manutencaoModal({ veiculo: v }, recarregar); });
-    Promise.all([chamar('lembretes', { veiculo_id: id }, true), chamar('listar', { tabela: 'manutencoes', filtro: { veiculo_id: id } }, true)])
-      .then(function (r) {
-        $('#v-lembretes').innerHTML = r[0].length ? tabelaLembretes(r[0], false) : '<p class="vazio">Nenhum plano cadastrado.</p>';
-        ligarLembretes($('#v-lembretes'), r[0], recarregar);
-        $('#v-historico').innerHTML = tabelaHistorico(r[1], false);
-      }).catch(falhou);
-    ligarExcluir('veiculos', id, 'o veículo ' + v.placa);
-    var bKm = $('[data-acao="km"]'); if (bKm) bKm.addEventListener('click', function () { registrarKmModal(v, recarregar); });
-    var bArq = $('[data-acao="enviar-arquivo"]');
-    if (bArq) bArq.addEventListener('click', function () {
-      enviarArquivoModal('veiculos', v, ['foto_veiculo', 'documento_veiculo', 'outro'], recarregar);
-    });
-    carregarGaleria('veiculos', v, recarregar);
-    chamar('listar', { tabela: 'leituras_km', filtro: { veiculo_id: id } }, true).then(function (ls) {
-      ls.sort(function (a, b) { return (b.data + b.criado_em).localeCompare(a.data + a.criado_em); });
-      $('#hist-km').innerHTML = ls.length ? '<table><tr><th>Data</th><th>Km</th><th>Origem</th><th>Obs.</th><th>Por</th></tr>' +
-        ls.map(function (l) {
-          return '<tr><td>' + fmtData(l.data) + '</td><td>' + fmtKm(l.km) + '</td><td>' + esc(rotulo(l.origem)) +
-            '</td><td>' + esc(l.observacao) + '</td><td>' + esc(l.criado_por) + '</td></tr>';
-        }).join('') + '</table>' : '<p class="vazio">Nenhuma leitura.</p>';
-    }).catch(falhou);
-  }).catch(falhou);
-}
-
-function registrarKmModal(v, aoAtualizar) {
-  var origens = (estado.listas.origem_km || []).filter(function (o) {
-    return o !== 'cadastro' && (o !== 'ajuste' || estado.usuario.perfil === 'administrador');
-  });
-  abrirModal('<h3>Registrar km · ' + esc(v.placa) + '</h3><p style="color:var(--texto-2)">Km atual: ' + fmtKm(v.km_atual) + '</p>' +
-    '<form id="f-km" class="form"><label>Data<input type="date" name="data" value="' + hojeISO() + '" required></label>' +
-    '<label>Km<input name="km" inputmode="numeric" required></label>' +
-    '<label class="largo">Origem<select name="origem">' + origens.map(function (o) {
-      return '<option value="' + o + '">' + esc(rotulo(o)) + '</option>'; }).join('') + '</select></label>' +
-    '<label class="largo">Observação<input name="observacao"></label></form>' +
-    '<div class="acoes"><button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
-  $('#modal-corpo').addEventListener('click', function (ev) {
-    var a = ev.target.getAttribute('data-a');
-    if (a === 'cancelar') fecharModal();
-    if (a !== 'salvar') return;
-    var d = lerForm($('#f-km')); d.veiculo_id = v.id;
-    chamar('registrarKm', d).then(function () { fecharModal(); aviso('Km registrado.'); aoAtualizar(); }).catch(falhou);
-  });
-}
-
-// ----- Motoristas -----
-TELAS.motoristas = function (id, sub) {
-  if (id === 'novo') return telaForm('motoristas', null, 'motorista');
-  if (id && sub === 'editar') return telaForm('motoristas', id, 'motorista');
-  if (id) return detalheMotorista(id);
-  telaLista({
-    tabela: 'motoristas', titulo: 'Motoristas', icone: '👤',
-    ordenar: function (a, b) { return a.nome.localeCompare(b.nome); },
-    textoBusca: function (m) { return [m.nome, m.cpf, m.telefone, m.email, m.status].join(' '); },
-    titulo1: function (m) { return esc(m.nome); },
-    sub: function (m) { return selo(m.status) + ' ' + situacaoCnh(m.cnh_validade) + ' · ' + esc(fmtTel(m.telefone)); }
-  });
-};
-
-function detalheMotorista(id) {
-  chamar('buscar', { tabela: 'motoristas', id: id }).then(function (m) {
-    if (!m || m.ativo !== 'TRUE') { render('<p class="vazio">Motorista não encontrado.</p>'); return; }
-    var tel = String(m.telefone || '');
-    render('<div class="barra"><h2>' + esc(m.nome) + '</h2>' + botoesDetalhe('motoristas', id) + '</div>' +
-      '<div class="cartao detalhe-topo"><div class="foto-principal"' + (m.foto_id ? ' data-foto="' + esc(m.foto_id) + '"' : '') + '>👤</div>' +
-      '<div class="dados">' +
-      dado('Status', selo(m.status)) + dado('CNH', situacaoCnh(m.cnh_validade)) +
-      dado('CPF', esc(fmtCpf(m.cpf))) + dado('RG', esc(m.rg)) + dado('Nascimento', fmtData(m.data_nascimento)) +
-      dado('Telefone', tel ? '<a href="https://wa.me/55' + esc(tel) + '" target="_blank" rel="noopener">' + esc(fmtTel(tel)) + '</a>' : '') +
-      dado('E-mail', esc(m.email)) + dado('Endereço', esc([m.endereco, m.cidade, m.uf].filter(String).join(', '))) +
-      dado('CEP', esc(m.cep)) + dado('Nº CNH', esc(m.cnh_numero)) + dado('Categoria', esc(m.cnh_categoria)) +
-      dado('Validade CNH', fmtData(m.cnh_validade)) + dado('Plataforma', esc(rotulo(m.plataforma))) + '</div>' +
-      (m.observacoes ? '<p style="flex-basis:100%;margin:0">' + esc(m.observacoes) + '</p>' : '') + '</div>' +
-      galeriaHtml('motoristas', id));
-    preencherFotos($('#conteudo'));
-    var recarregar = function () { detalheMotorista(id); };
-    ligarExcluir('motoristas', id, m.nome);
-    var bArq = $('[data-acao="enviar-arquivo"]');
-    if (bArq) bArq.addEventListener('click', function () {
-      enviarArquivoModal('motoristas', m, ['cnh', 'comprovante_residencia', 'foto_motorista', 'outro'], recarregar);
-    });
-    carregarGaleria('motoristas', m, recarregar);
-  }).catch(falhou);
-}
-
-// ----- Manutenção -----
-function faltaTexto(l) {
-  var p = [];
-  if (l.proxima_km) p.push(Number(l.faltam_km) <= 0 ? 'passou ' + fmtKm(-Number(l.faltam_km)) : 'faltam ' + fmtKm(l.faltam_km));
-  if (l.proxima_data) p.push(Number(l.faltam_dias) <= 0 ? 'atrasada ' + (-Number(l.faltam_dias)) + ' dia(s)' : 'faltam ' + l.faltam_dias + ' dia(s)');
-  return p.join(' · ');
-}
-
-function tabelaLembretes(lista, mostrarVeiculo) {
-  var podeReg = pode('manutencoes', 'criar');
-  return '<table><tr>' + (mostrarVeiculo ? '<th>Veículo</th>' : '') + '<th>Item</th><th>Situação</th><th>Última</th><th>Próxima</th>' +
-    (podeReg ? '<th></th>' : '') + '</tr>' +
-    lista.map(function (l, i) {
-      return '<tr>' + (mostrarVeiculo ? '<td><a href="#veiculos/' + esc(l.veiculo_id) + '">' + esc(l.placa) + '</a></td>' : '') +
-        '<td>' + esc(l.item) + '</td><td>' + selo(l.situacao) +
-        (l.situacao !== 'sem_historico' ? '<div class="lembrete-falta">' + esc(faltaTexto(l)) + '</div>' : '') + '</td>' +
-        '<td>' + (l.ultima_data ? fmtData(l.ultima_data) + (l.ultima_km ? '<br>' + fmtKm(l.ultima_km) : '') : '—') + '</td>' +
-        '<td>' + [l.proxima_data ? fmtData(l.proxima_data) : '', l.proxima_km ? fmtKm(l.proxima_km) : ''].filter(String).join('<br>') + '</td>' +
-        (podeReg ? '<td><button class="btn pequeno" type="button" data-lembrete="' + i + '">' +
-          (l.situacao === 'sem_historico' ? 'Informar última' : 'Registrar') + '</button></td>' : '') + '</tr>';
-    }).join('') + '</table>';
-}
-
-function ligarLembretes(raiz, lista, aoAtualizar) {
-  $$('[data-lembrete]', raiz).forEach(function (b) {
-    b.addEventListener('click', function () {
-      var l = lista[Number(b.getAttribute('data-lembrete'))];
-      manutencaoModal({ veiculo: { id: l.veiculo_id, placa: l.placa, km_atual: l.km_atual }, plano_id: l.plano_id,
-        semHistorico: l.situacao === 'sem_historico' }, aoAtualizar);
-    });
-  });
-}
-
-function tabelaHistorico(lista, mostrarVeiculo, veiculos) {
-  if (!lista.length) return '<p class="vazio">Nenhuma manutenção registrada.</p>';
-  var placa = {};
-  (veiculos || []).forEach(function (v) { placa[v.id] = v.placa; });
-  lista.sort(function (a, b) { return (b.data + b.criado_em).localeCompare(a.data + a.criado_em); });
-  var total = lista.reduce(function (s, m) { return s + Number(m.custo || 0); }, 0);
-  return '<table><tr><th>Data</th>' + (mostrarVeiculo ? '<th>Veículo</th>' : '') + '<th>Tipo</th><th>Item</th><th>Km</th><th>Custo</th><th>Oficina</th></tr>' +
-    lista.map(function (m) {
-      return '<tr><td>' + fmtData(m.data) + '</td>' +
-        (mostrarVeiculo ? '<td><a href="#veiculos/' + esc(m.veiculo_id) + '">' + esc(placa[m.veiculo_id] || '?') + '</a></td>' : '') +
-        '<td>' + selo(m.tipo, m.tipo === 'corretiva' ? 'alerta' : 'neutro') + '</td><td>' + esc(m.item) +
-        (m.descricao ? '<div class="lembrete-falta">' + esc(m.descricao) + '</div>' : '') + '</td><td>' + fmtKm(m.km) +
-        '</td><td>' + fmtMoeda(m.custo) + '</td><td>' + esc(m.oficina) + '</td></tr>';
-    }).join('') +
-    '<tr><th colspan="' + (mostrarVeiculo ? 5 : 4) + '">Total</th><th colspan="2">' + fmtMoeda(total) + '</th></tr></table>';
-}
-
-/** opts: { veiculo, plano_id, semHistorico } — veiculo vazio mostra a seleção de veículo. */
-function manutencaoModal(opts, aoAtualizar) {
-  Promise.all([
-    chamar('listar', { tabela: 'planos_manutencao' }),
-    opts.veiculo ? Promise.resolve(null) : chamar('listar', { tabela: 'veiculos' })
-  ]).then(function (r) {
-    var planos = r[0].sort(function (a, b) { return a.item.localeCompare(b.item); }), veiculos = r[1];
-    abrirModal('<h3>Registrar manutenção' + (opts.veiculo ? ' · ' + esc(opts.veiculo.placa) : '') + '</h3>' +
-      (opts.semHistorico ? '<p style="color:var(--texto-2);font-size:13px">Informe quando foi feita a última vez (mesmo que antiga). A partir dela o sistema calcula a próxima.</p>' : '') +
-      '<form id="f-man" class="form">' +
-      (veiculos ? '<label class="largo">Veículo *<select name="veiculo_id" required><option value=""></option>' + veiculos.map(function (v) {
-        return '<option value="' + esc(v.id) + '">' + esc(v.placa + ' · ' + v.marca + ' ' + v.modelo) + '</option>'; }).join('') + '</select></label>' : '') +
-      '<label>Tipo<select name="tipo"><option value="preventiva">Preventiva</option><option value="corretiva">Corretiva</option></select></label>' +
-      '<label data-preventiva>Item do plano *<select name="plano_id"><option value=""></option>' + planos.map(function (p) {
-        return '<option value="' + esc(p.id) + '"' + (p.id === opts.plano_id ? ' selected' : '') + '>' + esc(p.item) + '</option>'; }).join('') + '</select></label>' +
-      '<label data-corretiva class="oculto">O que foi feito *<input name="item" placeholder="Ex.: troca do amortecedor dianteiro"></label>' +
-      '<label>Data *<input type="date" name="data" required value="' + hojeISO() + '" max="' + hojeISO() + '"></label>' +
-      '<label>Km no dia<input name="km" inputmode="numeric" placeholder="' + esc(opts.veiculo && opts.veiculo.km_atual ? 'atual: ' + opts.veiculo.km_atual : '') + '"></label>' +
-      '<label>Custo (R$)<input name="custo" inputmode="decimal"></label>' +
-      '<label>Oficina / fornecedor<input name="oficina"></label>' +
-      '<label class="largo">Descrição<textarea name="descricao" rows="2"></textarea></label></form>' +
-      '<div class="acoes"><button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
-    var f = $('#f-man');
-    var alternar = function () {
-      var prev = f.tipo.value === 'preventiva';
-      $('[data-preventiva]', f).classList.toggle('oculto', !prev);
-      $('[data-corretiva]', f).classList.toggle('oculto', prev);
-    };
-    f.tipo.addEventListener('change', alternar);
-    $('#modal-corpo').addEventListener('click', function (ev) {
-      var a = ev.target.getAttribute('data-a');
-      if (a === 'cancelar') fecharModal();
-      if (a !== 'salvar') return;
-      var d = lerForm(f);
-      if (opts.veiculo) d.veiculo_id = opts.veiculo.id;
-      if (d.tipo === 'preventiva') d.item = ''; else d.plano_id = '';
-      if (d.tipo === 'preventiva' && !d.plano_id) return aviso('Escolha o item do plano.', true);
-      if (d.tipo === 'corretiva' && !d.item) return aviso('Descreva o que foi feito.', true);
-      ev.target.disabled = true;
-      chamar('registrarManutencao', { dados: d })
-        .then(function () { fecharModal(); aviso('Manutenção registrada.'); aoAtualizar(); })
-        .catch(function (e) { ev.target.disabled = false; falhou(e); });
-    });
-  }).catch(falhou);
-}
-
-TELAS.manutencao = function (aba) {
-  aba = aba || 'lembretes';
-  var abas = [['lembretes', 'Lembretes'], ['historico', 'Histórico'], ['planos', 'Planos']];
-  render('<div class="barra"><h2>Manutenção</h2>' +
-    (pode('manutencoes', 'criar') ? '<button class="btn primario" data-acao="nova-man">+ Registrar</button>' : '') + '</div>' +
-    '<nav class="abas">' + abas.map(function (a) {
-      return '<a href="#manutencao/' + a[0] + '"' + (a[0] === aba ? ' class="ativo"' : '') + '>' + a[1] + '</a>'; }).join('') + '</nav>' +
-    '<div id="man-conteudo" class="cartao tabela-rolagem"><p class="vazio">Carregando…</p></div>');
-  var recarregar = function () { TELAS.manutencao(aba); };
-  var bNova = $('[data-acao="nova-man"]'); if (bNova) bNova.addEventListener('click', function () { manutencaoModal({}, recarregar); });
-  var alvo = $('#man-conteudo');
-
-  if (aba === 'lembretes') {
-    chamar('lembretes', {}).then(function (lista) {
-      if (!lista.length) { alvo.innerHTML = '<p class="vazio">Cadastre veículos e planos para ver os lembretes.</p>'; return; }
-      var semHist = lista.filter(function (l) { return l.situacao === 'sem_historico'; }).length;
-      alvo.innerHTML = (semHist ? '<p class="lembrete-falta" style="margin-top:0">' + semHist +
-        ' item(ns) sem histórico. Use "Informar última" para registrar a última vez que foi feito.</p>' : '') + tabelaLembretes(lista, true);
-      ligarLembretes(alvo, lista, recarregar);
-    }).catch(falhou);
+(async () => {   // retoma sessão ao recarregar a página
+  const t = sessionStorage.getItem('frota_token');
+  if (!t || API_URL.includes('COLE_AQUI')) {
+    if (API_URL.includes('COLE_AQUI')) $('lgErro').textContent = 'Configure a API_URL no início do arquivo.';
+    return;
   }
-
-  if (aba === 'historico') {
-    Promise.all([chamar('listar', { tabela: 'manutencoes' }), chamar('listar', { tabela: 'veiculos' })]).then(function (r) {
-      alvo.innerHTML = tabelaHistorico(r[0], true, r[1]);
-    }).catch(falhou);
-  }
-
-  if (aba === 'planos') {
-    chamar('listar', { tabela: 'planos_manutencao' }).then(function (planos) {
-      planos.sort(function (a, b) { return a.item.localeCompare(b.item); });
-      var podeEd = pode('planos_manutencao', 'editar');
-      alvo.innerHTML = '<p class="lembrete-falta" style="margin-top:0">Vence o que acontecer primeiro: km ou tempo. ' +
-        'Os intervalos são referências genéricas; ajuste conforme o manual de cada veículo.</p>' +
-        (pode('planos_manutencao', 'criar') ? '<div class="acoes" style="margin-top:0"><button class="btn pequeno" data-plano="">+ Novo item</button></div>' : '') +
-        '<table><tr><th>Item</th><th>A cada (km)</th><th>A cada (dias)</th><th>Avisar antes</th><th>Vale para</th>' + (podeEd ? '<th></th>' : '') + '</tr>' +
-        planos.map(function (p) {
-          return '<tr><td>' + esc(p.item) + (p.observacao ? '<div class="lembrete-falta">' + esc(p.observacao) + '</div>' : '') + '</td>' +
-            '<td>' + (p.intervalo_km ? Number(p.intervalo_km).toLocaleString('pt-BR') : '—') + '</td>' +
-            '<td>' + (p.intervalo_dias || '—') + '</td>' +
-            '<td>' + [p.aviso_km ? Number(p.aviso_km).toLocaleString('pt-BR') + ' km' : '', p.aviso_dias ? p.aviso_dias + ' dias' : ''].filter(String).join(' / ') + '</td>' +
-            '<td>' + (p.veiculo_id ? 'Veículo específico' : 'Todos') + '</td>' +
-            (podeEd ? '<td><button class="btn pequeno" data-plano="' + esc(p.id) + '">Editar</button></td>' : '') + '</tr>';
-        }).join('') + '</table>';
-      $$('[data-plano]', alvo).forEach(function (b) {
-        b.addEventListener('click', function () {
-          var id = b.getAttribute('data-plano');
-          planoModal(planos.filter(function (p) { return p.id === id; })[0] || null, recarregar);
-        });
-      });
-    }).catch(falhou);
-  }
-};
-
-function planoModal(p, aoAtualizar) {
-  var novo = !p; p = p || {};
-  chamar('listar', { tabela: 'veiculos' }).then(function (veiculos) {
-    abrirModal('<h3>' + (novo ? 'Novo item do plano' : 'Editar item do plano') + '</h3><form id="f-plano" class="form">' +
-      '<label class="largo">Item *<input name="item" required value="' + esc(p.item) + '"></label>' +
-      '<label>A cada (km)<input name="intervalo_km" inputmode="numeric" value="' + esc(p.intervalo_km) + '"></label>' +
-      '<label>A cada (dias)<input name="intervalo_dias" inputmode="numeric" value="' + esc(p.intervalo_dias) + '"></label>' +
-      '<label>Avisar antes (km)<input name="aviso_km" inputmode="numeric" value="' + esc(p.aviso_km) + '"></label>' +
-      '<label>Avisar antes (dias)<input name="aviso_dias" inputmode="numeric" value="' + esc(p.aviso_dias) + '"></label>' +
-      '<label class="largo">Vale para<select name="veiculo_id"><option value="">Todos os veículos</option>' + veiculos.map(function (v) {
-        return '<option value="' + esc(v.id) + '"' + (v.id === p.veiculo_id ? ' selected' : '') + '>' + esc(v.placa + ' · ' + v.modelo) + '</option>'; }).join('') + '</select></label>' +
-      '<label class="largo">Observação<input name="observacao" value="' + esc(p.observacao) + '"></label></form>' +
-      '<div class="acoes">' + (!novo && pode('planos_manutencao', 'excluir') ? '<button class="btn perigo" data-a="excluir">Excluir</button>' : '') +
-      '<button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
-    $('#modal-corpo').addEventListener('click', function (ev) {
-      var a = ev.target.getAttribute('data-a');
-      if (a === 'cancelar') fecharModal();
-      if (a === 'excluir' && confirm('Excluir o item "' + p.item + '" do plano? O histórico já registrado continua.')) {
-        chamar('excluir', { tabela: 'planos_manutencao', id: p.id }).then(function () { fecharModal(); aviso('Item excluído.'); aoAtualizar(); }).catch(falhou);
-      }
-      if (a !== 'salvar') return;
-      chamar('salvar', { tabela: 'planos_manutencao', id: p.id || null, dados: lerForm($('#f-plano')) })
-        .then(function () { fecharModal(); aviso('Plano salvo.'); aoAtualizar(); }).catch(falhou);
-    });
-  }).catch(falhou);
-}
-
-// ----- Usuários (administrador) -----
-TELAS.usuarios = function () {
-  if (!pode('usuarios', 'ler')) { render('<p class="vazio">Sem permissão.</p>'); return; }
-  render('<div class="barra"><h2>Usuários</h2><button class="btn primario" data-acao="novo-usuario">+ Novo</button></div>' +
-    '<div class="cartao tabela-rolagem" id="lista-usuarios"><p class="vazio">Carregando…</p></div>');
-  $('[data-acao="novo-usuario"]').addEventListener('click', function () { usuarioModal(null); });
-  chamar('listarUsuarios').then(function (us) {
-    $('#lista-usuarios').innerHTML = '<table><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Último acesso</th><th></th></tr>' +
-      us.map(function (u) {
-        return '<tr><td>' + esc(u.nome) + '</td><td>' + esc(u.email) + '</td><td>' + esc(rotulo(u.perfil)) + '</td><td>' +
-          esc(fmtData(u.ultimo_acesso) + ' ' + String(u.ultimo_acesso || '').slice(11, 16)) +
-          '</td><td><button class="btn pequeno" data-editar="' + esc(u.id) + '">Editar</button></td></tr>';
-      }).join('') + '</table>';
-    $$('[data-editar]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        usuarioModal(us.filter(function (u) { return u.id === b.getAttribute('data-editar'); })[0]);
-      });
-    });
-  }).catch(falhou);
-};
-
-function usuarioModal(u) {
-  var novo = !u; u = u || {};
-  abrirModal('<h3>' + (novo ? 'Novo usuário' : 'Editar usuário') + '</h3><form id="f-u" class="form">' +
-    '<label class="largo">Nome *<input name="nome" required value="' + esc(u.nome) + '"></label>' +
-    '<label class="largo">E-mail (login) *<input name="email" type="email" required value="' + esc(u.email) + '"></label>' +
-    '<label>Perfil<select name="perfil">' + ['operador', 'administrador'].map(function (p) {
-      return '<option value="' + p + '"' + (u.perfil === p ? ' selected' : '') + '>' + rotulo(p) + '</option>'; }).join('') + '</select></label>' +
-    '<label>' + (novo ? 'Senha *' : 'Nova senha (opcional)') + '<input name="senha" type="password" autocomplete="new-password"></label>' +
-    '</form><p style="color:var(--texto-2);font-size:13px">Senha: mínimo 8 caracteres, com letras e números. Operador cadastra e edita, mas não exclui nem gerencia usuários.</p>' +
-    '<div class="acoes">' + (!novo && u.id !== estado.usuario.id ? '<button class="btn perigo" data-a="excluir">Excluir</button>' : '') +
-    '<button class="btn" data-a="cancelar">Cancelar</button><button class="btn primario" data-a="salvar">Salvar</button></div>');
-  $('#modal-corpo').addEventListener('click', function (ev) {
-    var a = ev.target.getAttribute('data-a');
-    if (a === 'cancelar') fecharModal();
-    if (a === 'excluir' && confirm('Excluir o usuário ' + u.nome + '?')) {
-      chamar('excluirUsuario', { id: u.id }).then(function () { fecharModal(); aviso('Usuário excluído.'); TELAS.usuarios(); }).catch(falhou);
-    }
-    if (a !== 'salvar') return;
-    var d = lerForm($('#f-u')), senha = d.senha; delete d.senha;
-    chamar('salvarUsuario', { id: u.id || null, dados: d, senha: senha || null })
-      .then(function () { fecharModal(); aviso('Usuário salvo.'); TELAS.usuarios(); }).catch(falhou);
-  });
-}
-
-// ----- Perfil -----
-TELAS.perfil = function () {
-  var temas = [['claro', 'Claro'], ['escuro', 'Escuro'], ['frota', 'Verde frota']];
-  render('<h2>Meu perfil</h2><div class="cartao"><h3>Tema de cores</h3><div class="temas">' +
-    temas.map(function (t) {
-      return '<button class="tema-opcao' + (document.body.getAttribute('data-tema') === t[0] ? ' ativo' : '') +
-        '" data-tema="' + t[0] + '">' + t[1] + '</button>';
-    }).join('') + '</div></div>' +
-    '<form id="f-senha" class="cartao secao"><h3>Trocar senha</h3><div class="form">' +
-    '<label>Senha atual<input type="password" name="senhaAtual" required autocomplete="current-password"></label>' +
-    '<label>Nova senha<input type="password" name="novaSenha" required autocomplete="new-password"></label>' +
-    '</div><div class="acoes"><button class="btn primario" type="submit">Trocar senha</button></div></form>');
-  $$('.tema-opcao').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var t = b.getAttribute('data-tema');
-      aplicarTema(t);
-      $$('.tema-opcao').forEach(function (x) { x.classList.toggle('ativo', x === b); });
-      estado.usuario.tema = t;
-      chamar('salvarTema', { tema: t }, true).catch(falhou);
-    });
-  });
-  $('#f-senha').addEventListener('submit', function (ev) {
-    ev.preventDefault();
-    chamar('trocarSenha', lerForm(ev.target)).then(function () { ev.target.reset(); aviso('Senha alterada.'); }).catch(falhou);
-  });
-};
-
-// ---------- Início ----------
-(function iniciar() {
-  aplicarTema(lerArmazenado('tema') || 'claro');
-  estado.token = lerArmazenado('token');
-  if (!estado.token) return mostrarLogin();
-  iniciarSessao().catch(function () { sairLocal(); });
+  S.token = t;
+  try { S.usuario = await api('sessao'); await iniciar(); } catch (e) { sair(true); }
 })();
+
+/* =========================================================
+   NAVEGAÇÃO
+   ========================================================= */
+document.querySelectorAll('#menu a[data-tela]').forEach(a => a.onclick = () => irPara(a.dataset.tela));
+async function irPara(tela) {
+  S.tela = tela;
+  document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
+  ['painel', 'veiculos', 'motoristas'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas' }[tela];
+  const novo = $('btnNovo');
+  novo.classList.toggle('oculto', tela === 'painel');
+  novo.textContent = tela === 'veiculos' ? '+ Novo veículo' : '+ Novo motorista';
+  novo.onclick = () => tela === 'veiculos' ? formVeiculo() : formMotorista();
+  try {
+    if (tela === 'painel') await carregarPainel();
+    if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
+    if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); renderMotoristas(); }
+  } catch (e) { toast(e.message, 'erro'); }
+}
+
+/* =========================================================
+   PAINEL
+   ========================================================= */
+async function carregarPainel() {
+  const r = await api('resumo');
+  const ps = r.porStatus || {};
+  const card = (rot, n, cor) => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num">${n}</div></div>`;
+  $('cards').innerHTML =
+    card('Veículos na frota', r.totalVeiculos, 'var(--azul)') +
+    card('Locados', ps.locado || 0, 'var(--verde)') +
+    card('Disponíveis', ps.disponivel || 0, 'var(--roxo)') +
+    card('Em manutenção', ps.manutencao || 0, 'var(--laranja)');
+  $('alertas').innerHTML = r.alertas.length ? r.alertas.map(a => `
+    <div class="alerta"><span class="badge ${a.dias < 0 ? 'b-vermelho' : 'b-laranja'}">${a.dias < 0 ? 'Vencido há ' + Math.abs(a.dias) + 'd' : 'Vence em ' + a.dias + 'd'}</span>
+      <b>${esc(a.tipo)}</b><span style="color:var(--cinza)">${esc(a.ref)}</span></div>`).join('')
+    : '<div class="vazio">Nenhum vencimento nos próximos dias. 👍</div>';
+}
+
+/* =========================================================
+   VEÍCULOS
+   ========================================================= */
+function renderVeiculos() {
+  const q = $('buscaVeic').value.toLowerCase(), st = $('filtroStatus').value;
+  const lista = S.veiculos.filter(v => (!st || v.status === st) &&
+    [v.placa, v.renavam, v.chassi, nomeModelo(v.modelo_id)].join(' ').toLowerCase().includes(q));
+  $('tbVeic').innerHTML = lista.length ? lista.map(v => `
+    <tr onclick="formVeiculo('${v.id}')">
+      <td><span class="placa">${esc(v.placa.replace(/^([A-Z]{3})(\d{4})$/, '$1-$2'))}</span></td>
+      <td>${esc(nomeModelo(v.modelo_id))}</td><td>${esc(v.ano_fabricacao || '')}/${esc(v.ano_modelo || '')}</td>
+      <td>${num(v.km_atual)}</td><td>${badge(STATUS_VEIC, v.status)}</td><td>${badgeVenc(v.venc_licenciamento)}</td></tr>`).join('')
+    : `<tr><td colspan="6" class="vazio">Nenhum veículo encontrado.</td></tr>`;
+}
+
+function formVeiculo(id) {
+  const v = id ? S.veiculos.find(x => x.id === id) : { status: 'disponivel', propriedade: 'proprio', km_atual: 0 };
+  const modelos = S.cat.modelos.filter(m => m.ativo || m.id === v.modelo_id).map(m => ({ v: m.id, t: nomeModelo(m.id) })).sort((a, b) => a.t.localeCompare(b.t));
+  const cores = S.cat.cores.filter(c => c.ativo || c.id === v.cor_id).map(c => ({ v: c.id, t: c.nome }));
+  const val = k => esc(v[k] ?? '');
+  const md = abrirModal({
+    titulo: id ? `Veículo <span class="placa" style="margin-left:6px">${esc(v.placa)}</span>` : 'Novo veículo',
+    abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="hist">Histórico</button></div>` : '',
+    corpo: `<form id="fVeic" data-painel="dados">
+      <div class="secao">Identificação</div>
+      <div class="grade g3">
+        <div class="campo"><label class="req">Placa</label><input name="placa" value="${val('placa')}" maxlength="8" style="text-transform:uppercase" required></div>
+        <div class="campo"><label>RENAVAM</label><input name="renavam" value="${val('renavam')}" inputmode="numeric"></div>
+        <div class="campo"><label>Chassi</label><input name="chassi" value="${val('chassi')}" maxlength="17" style="text-transform:uppercase"></div>
+      </div>
+      <div class="grade g4">
+        <div class="campo" style="grid-column:span 2"><label class="req">Marca / Modelo</label><select name="modelo_id" required>${opcoes(modelos, v.modelo_id, modelos.length ? 'Selecione...' : 'Cadastre modelos na ⚙️')}</select></div>
+        <div class="campo"><label>Ano fab.</label><input name="ano_fabricacao" type="number" value="${val('ano_fabricacao')}"></div>
+        <div class="campo"><label>Ano modelo</label><input name="ano_modelo" type="number" value="${val('ano_modelo')}"></div>
+      </div>
+      <div class="grade g3">
+        <div class="campo"><label>Cor</label><select name="cor_id">${opcoes(cores, v.cor_id)}</select></div>
+        <div class="campo"><label>Status</label><select name="status">${opcoes(Object.entries(STATUS_VEIC).map(([k, x]) => ({ v: k, t: x[0] })), v.status, '—')}</select></div>
+        <div class="campo"><label>Propriedade</label><select name="propriedade" ${pode('admin', 'gestor') ? '' : 'disabled'}>${opcoes(Object.entries(PROPRIEDADE).map(([k, t]) => ({ v: k, t })), v.propriedade, '—')}</select></div>
+      </div>
+      <div class="secao">Aquisição e FIPE</div>
+      <div class="grade g4">
+        <div class="campo"><label>Data aquisição</label><input name="data_aquisicao" type="date" value="${val('data_aquisicao')}"></div>
+        <div class="campo"><label>Valor pago (R$)</label><input name="valor_aquisicao" type="number" step="0.01" value="${val('valor_aquisicao')}"></div>
+        <div class="campo"><label>FIPE na compra (R$)</label><input name="fipe_na_aquisicao" type="number" step="0.01" value="${val('fipe_na_aquisicao')}"></div>
+        <div class="campo"><label>Código FIPE</label><input name="fipe_codigo" value="${val('fipe_codigo')}" placeholder="000000-0"></div>
+      </div>
+      <div class="secao">Operação e documentos</div>
+      <div class="grade g4">
+        <div class="campo"><label>KM atual</label><input name="km_atual" type="number" min="0" value="${val('km_atual')}"></div>
+        <div class="campo"><label>Venc. licenciamento</label><input name="venc_licenciamento" type="date" value="${val('venc_licenciamento')}"></div>
+        <div class="campo"><label>Seguradora</label><input name="seguradora" value="${val('seguradora')}"></div>
+        <div class="campo"><label>Venc. seguro</label><input name="venc_seguro" type="date" value="${val('venc_seguro')}"></div>
+      </div>
+      <div class="grade g2">
+        <div class="campo"><label>Apólice</label><input name="apolice" value="${val('apolice')}"></div>
+        <div class="campo"><label>Rastreador</label><input name="rastreador" value="${val('rastreador')}"></div>
+      </div>
+      <div class="campo"><label>Observação</label><textarea name="observacao" rows="2">${val('observacao')}</textarea></div>
+      ${id ? `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="ativo" ${v.ativo ? 'checked' : ''} ${pode('admin', 'gestor') ? '' : 'disabled'}> Veículo ativo na frota</label>` : ''}
+      ${id && v.km_atualizado_em ? `<p style="color:var(--cinza);font-size:12px;margin-top:8px">KM atualizado em ${dataBR(v.km_atualizado_em)}</p>` : ''}
+    </form>
+    <div data-painel="hist" class="oculto" id="histVeic">Carregando...</div>`,
+    rodape: `<span></span><div style="display:flex;gap:8px"><button class="btn btn-sec" type="button" data-fechar>Cancelar</button>
+             <button class="btn btn-pri" type="button" id="salvarVeic">Salvar</button></div>`
+  });
+  md.querySelector('[data-fechar]').onclick = () => md.remove();
+  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); if (b.dataset.aba === 'hist') carregarHistorico(id, md.querySelector('#histVeic')); });
+  md.querySelector('#salvarVeic').onclick = async ev => {
+    const f = md.querySelector('#fVeic');
+    if (!f.reportValidity()) return;
+    const dados = lerForm(f); if (id) dados.id = id;
+    if (!pode('admin', 'gestor')) { delete dados.propriedade; delete dados.ativo; }
+    ev.target.disabled = true;
+    try { await api('salvarVeiculo', dados); toast('Veículo salvo.'); md.remove(); irPara('veiculos'); }
+    catch (e) { toast(e.message, 'erro'); } finally { ev.target.disabled = false; }
+  };
+}
+
+/* =========================================================
+   MOTORISTAS
+   ========================================================= */
+function renderMotoristas() {
+  const q = $('buscaMot').value.toLowerCase(), st = $('filtroMot').value;
+  const qd = q.replace(/\D/g, '');
+  const lista = S.motoristas.filter(m => (!st || m.status === st) &&
+    ((m.nome + ' ' + m.telefone).toLowerCase().includes(q) || (qd && String(m.cpf_cnpj).includes(qd))));
+  $('tbMot').innerHTML = lista.length ? lista.map(m => `
+    <tr onclick="formMotorista('${m.id}')">
+      <td><b>${esc(m.nome)}</b></td><td>${esc(fmtDoc(m.cpf_cnpj))}</td><td>${esc(m.telefone)}</td>
+      <td>${badgeVenc(m.cnh_validade)}</td><td>${esc(m.plataformas)}</td><td>${badge(STATUS_MOT, m.status)}</td></tr>`).join('')
+    : `<tr><td colspan="6" class="vazio">Nenhum motorista encontrado.</td></tr>`;
+}
+
+function formMotorista(id) {
+  const m = id ? S.motoristas.find(x => x.id === id) : { status: 'ativo', tipo_pessoa: 'PF' };
+  const val = k => esc(m[k] ?? '');
+  const md = abrirModal({
+    titulo: id ? esc(m.nome) : 'Novo motorista',
+    abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="hist">Histórico</button></div>` : '',
+    corpo: `<form id="fMot" data-painel="dados">
+      <div class="secao">Dados pessoais</div>
+      <div class="grade g3">
+        <div class="campo" style="grid-column:span 2"><label class="req">Nome completo</label><input name="nome" value="${val('nome')}" required></div>
+        <div class="campo"><label class="req">CPF / CNPJ</label><input name="cpf_cnpj" value="${val('cpf_cnpj') ? esc(fmtDoc(m.cpf_cnpj)) : ''}" required></div>
+      </div>
+      <div class="grade g4">
+        <div class="campo"><label>RG</label><input name="rg" value="${val('rg')}"></div>
+        <div class="campo"><label>Nascimento</label><input name="data_nascimento" type="date" value="${val('data_nascimento')}"></div>
+        <div class="campo"><label>Telefone / WhatsApp</label><input name="telefone" value="${val('telefone')}"></div>
+        <div class="campo"><label>E-mail</label><input name="email" type="email" value="${val('email')}"></div>
+      </div>
+      <div class="secao">Endereço</div>
+      <div class="grade g4">
+        <div class="campo"><label>CEP</label><input name="cep" value="${val('cep')}" onblur="buscarCep(this)"></div>
+        <div class="campo" style="grid-column:span 2"><label>Logradouro</label><input name="logradouro" value="${val('logradouro')}"></div>
+        <div class="campo"><label>Número</label><input name="numero" value="${val('numero')}"></div>
+      </div>
+      <div class="grade g4">
+        <div class="campo"><label>Complemento</label><input name="complemento" value="${val('complemento')}"></div>
+        <div class="campo"><label>Bairro</label><input name="bairro" value="${val('bairro')}"></div>
+        <div class="campo"><label>Cidade</label><input name="cidade" value="${val('cidade')}"></div>
+        <div class="campo"><label>UF</label><select name="uf">${opcoes(UFS.map(u => ({ v: u, t: u })), m.uf, '—')}</select></div>
+      </div>
+      <div class="secao">CNH e aplicativos</div>
+      <div class="grade g4">
+        <div class="campo"><label>Nº CNH</label><input name="cnh_numero" value="${val('cnh_numero')}"></div>
+        <div class="campo"><label>Categoria</label><input name="cnh_categoria" value="${val('cnh_categoria')}" maxlength="3" style="text-transform:uppercase"></div>
+        <div class="campo"><label>Validade CNH</label><input name="cnh_validade" type="date" value="${val('cnh_validade')}"></div>
+        <div class="campo"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="cnh_ear" ${m.cnh_ear ? 'checked' : ''}> Possui EAR</label></div>
+      </div>
+      <div class="campo"><label>Plataformas (ex.: Uber, 99, inDrive)</label><input name="plataformas" value="${val('plataformas')}"></div>
+      <div class="grade g2">
+        <div class="campo"><label>Contato de emergência</label><input name="contato_emergencia" value="${val('contato_emergencia')}"></div>
+        <div class="campo"><label>Telefone emergência</label><input name="tel_emergencia" value="${val('tel_emergencia')}"></div>
+      </div>
+      <div class="secao">Situação</div>
+      <div class="grade g3">
+        <div class="campo"><label>Status</label><select name="status" onchange="this.form.motivo_bloqueio.required=this.value==='bloqueado'">${opcoes(Object.entries(STATUS_MOT).map(([k, x]) => ({ v: k, t: x[0] })), m.status, '—')}</select></div>
+        <div class="campo" style="grid-column:span 2"><label>Motivo do bloqueio</label><input name="motivo_bloqueio" value="${val('motivo_bloqueio')}"></div>
+      </div>
+      <div class="campo"><label>Observação</label><textarea name="observacao" rows="2">${val('observacao')}</textarea></div>
+    </form>
+    <div data-painel="hist" class="oculto" id="histMot">Carregando...</div>`,
+    rodape: `<span></span><div style="display:flex;gap:8px"><button class="btn btn-sec" type="button" data-fechar>Cancelar</button>
+             <button class="btn btn-pri" type="button" id="salvarMot">Salvar</button></div>`
+  });
+  md.querySelector('[data-fechar]').onclick = () => md.remove();
+  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); if (b.dataset.aba === 'hist') carregarHistorico(id, md.querySelector('#histMot')); });
+  md.querySelector('#salvarMot').onclick = async ev => {
+    const f = md.querySelector('#fMot');
+    if (!f.reportValidity()) return;
+    const dados = lerForm(f); if (id) dados.id = id;
+    ev.target.disabled = true;
+    try { await api('salvarMotorista', dados); toast('Motorista salvo.'); md.remove(); irPara('motoristas'); }
+    catch (e) { toast(e.message, 'erro'); } finally { ev.target.disabled = false; }
+  };
+}
+
+async function buscarCep(inp) {
+  const cep = inp.value.replace(/\D/g, ''); if (cep.length !== 8) return;
+  try {
+    const r = await (await fetch(`https://viacep.com.br/ws/${cep}/json/`)).json();
+    if (r.erro) return;
+    const f = inp.form;
+    f.logradouro.value = r.logradouro || ''; f.bairro.value = r.bairro || ''; f.cidade.value = r.localidade || ''; f.uf.value = r.uf || '';
+    f.numero.focus();
+  } catch (e) {}
+}
+
+/* =========================================================
+   HISTÓRICO (auditoria)
+   ========================================================= */
+const NAO_MOSTRAR = ['atualizado_em', 'criado_em', 'id'];
+async function carregarHistorico(id, alvo) {
+  if (!pode('admin', 'gestor')) { alvo.innerHTML = '<div class="vazio">Apenas gestor e administrador veem o histórico.</div>'; return; }
+  try {
+    const h = await api('historico', { id });
+    alvo.innerHTML = h.length ? h.map(x => {
+      let det = '';
+      if (x.acao === 'ALTERAR' && x.antes && x.depois) {
+        det = Object.keys(x.depois).filter(k => !NAO_MOSTRAR.includes(k) && String(x.antes[k] ?? '') !== String(x.depois[k] ?? ''))
+          .map(k => `<div>• <b>${esc(k)}</b>: ${esc(x.antes[k] || '—')} → ${esc(x.depois[k] || '—')}</div>`).join('');
+      }
+      return `<div class="hist-item"><b>${x.acao === 'INSERIR' ? 'Cadastro criado' : 'Alteração'}</b> <small>· ${esc(x.em)} · ${esc(x.usuario)}</small>${det}</div>`;
+    }).join('') : '<div class="vazio">Sem histórico.</div>';
+  } catch (e) { alvo.innerHTML = `<div class="vazio">${esc(e.message)}</div>`; }
+}
+
+/* =========================================================
+   CONFIGURAÇÕES (engrenagem)
+   ========================================================= */
+function abrirConfig() {
+  const abas = [['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
+  if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
+  abas.push(['senha', 'Minha senha']);
+  const md = abrirModal({
+    titulo: '⚙️ Configurações',
+    abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
+    corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
+  });
+  const carregar = nome => ({ empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
+  carregar(abas[0][0]);
+}
+
+async function recarregarCatalogos() { S.cat = await api('listarCatalogos'); }
+
+function tabelaSimples(cols, linhas, onClick) {
+  return `<table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${linhas.length ? linhas.map((l, i) => `<tr data-i="${i}">${l.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${cols.length}" class="vazio">Nada cadastrado.</td></tr>`}</tbody></table>`;
+}
+
+function catalogo(alvo, { lista, cols, linha, campos, acao, titulo }) {
+  const editavel = pode('admin', 'gestor');
+  const desenhar = () => {
+    alvo.innerHTML = (editavel ? `<button class="btn btn-pri" style="margin-bottom:12px" data-novo>+ ${titulo}</button>` : '') + tabelaSimples(cols, lista().map(linha));
+    alvo.querySelector('[data-novo]')?.addEventListener('click', () => editar({}));
+    alvo.querySelectorAll('tbody tr[data-i]').forEach(tr => tr.onclick = () => { if (editavel) editar(lista()[tr.dataset.i]); });
+  };
+  const editar = item => {
+    const md = abrirModal({
+      titulo: item.id ? 'Editar ' + titulo.toLowerCase() : 'Nova ' + titulo.toLowerCase(), peq: true,
+      corpo: `<form>${campos(item)}${item.id ? `<label style="display:flex;gap:8px"><input type="checkbox" name="ativo" ${item.ativo ? 'checked' : ''}> Ativo</label>` : ''}</form>`,
+      rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+    });
+    md.querySelector('.modal-rodape .btn-pri').onclick = async ev => {
+      const f = md.querySelector('form'); if (!f.reportValidity()) return;
+      const d = lerForm(f); if (item.id) d.id = item.id;
+      ev.target.disabled = true;
+      try { await api(acao, d); await recarregarCatalogos(); toast('Salvo.'); md.remove(); desenhar(); }
+      catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+    };
+  };
+  desenhar();
+}
+const ativoBadge = a => a ? '<span class="badge b-verde">Ativo</span>' : '<span class="badge b-cinza">Inativo</span>';
+
+function cfgMarcas(alvo) {
+  catalogo(alvo, {
+    titulo: 'Marca', acao: 'salvarMarca', lista: () => S.cat.marcas.slice().sort((a, b) => a.nome.localeCompare(b.nome)),
+    cols: ['Marca', 'Tipo', 'Situação'],
+    linha: m => [esc(m.nome), { cars: 'Carro', motorcycles: 'Moto', trucks: 'Caminhão' }[m.tipo], ativoBadge(m.ativo)],
+    campos: m => `<div class="campo"><label class="req">Nome</label><input name="nome" value="${esc(m.nome || '')}" required></div>
+      <div class="campo"><label>Tipo</label><select name="tipo">${opcoes([{ v: 'cars', t: 'Carro' }, { v: 'motorcycles', t: 'Moto' }, { v: 'trucks', t: 'Caminhão' }], m.tipo || 'cars', '—')}</select></div>`
+  });
+}
+function cfgModelos(alvo) {
+  catalogo(alvo, {
+    titulo: 'Modelo', acao: 'salvarModelo', lista: () => S.cat.modelos.slice().sort((a, b) => nomeModelo(a.id).localeCompare(nomeModelo(b.id))),
+    cols: ['Marca / Modelo', 'Combustível', 'Situação'],
+    linha: m => [esc(nomeModelo(m.id)), esc(m.combustivel), ativoBadge(m.ativo)],
+    campos: m => `<div class="campo"><label class="req">Marca</label><select name="marca_id" required>${opcoes(S.cat.marcas.filter(x => x.ativo).map(x => ({ v: x.id, t: x.nome })), m.marca_id)}</select></div>
+      <div class="campo"><label class="req">Modelo (ex.: Onix 1.0 LT)</label><input name="nome" value="${esc(m.nome || '')}" required></div>
+      <div class="campo"><label>Combustível</label><select name="combustivel">${opcoes(COMBUSTIVEL.map(c => ({ v: c, t: c })), m.combustivel)}</select></div>`
+  });
+}
+function cfgCores(alvo) {
+  catalogo(alvo, {
+    titulo: 'Cor', acao: 'salvarCor', lista: () => S.cat.cores.slice().sort((a, b) => a.nome.localeCompare(b.nome)),
+    cols: ['Cor', 'Situação'], linha: c => [esc(c.nome), ativoBadge(c.ativo)],
+    campos: c => `<div class="campo"><label class="req">Nome</label><input name="nome" value="${esc(c.nome || '')}" required></div>`
+  });
+}
+
+async function cfgEmpresa(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const e = await api('obterEmpresa');
+  const v = k => esc(e[k] || '');
+  alvo.innerHTML = `<form>
+    <div class="grade g2">
+      <div class="campo"><label class="req">Razão social</label><input name="nome" value="${v('nome')}" required></div>
+      <div class="campo"><label>Nome fantasia</label><input name="nome_fantasia" value="${v('nome_fantasia')}"></div>
+      <div class="campo"><label>CNPJ</label><input name="cnpj" value="${v('cnpj')}"></div>
+      <div class="campo"><label>Telefone</label><input name="telefone" value="${v('telefone')}"></div>
+      <div class="campo"><label>E-mail</label><input name="email" value="${v('email')}"></div>
+      <div class="campo"><label>Endereço</label><input name="endereco" value="${v('endereco')}"></div>
+    </div>
+    <div class="campo"><label>Rodapé dos documentos</label><textarea name="rodape_docs" rows="2">${v('rodape_docs')}</textarea></div>
+    <button class="btn btn-pri" type="button">Salvar empresa</button></form>`;
+  alvo.querySelector('button').onclick = async ev => {
+    const f = alvo.querySelector('form'); if (!f.reportValidity()) return;
+    ev.target.disabled = true;
+    try { await api('salvarEmpresa', lerForm(f)); toast('Dados da empresa salvos.'); } catch (er) { toast(er.message, 'erro'); }
+    ev.target.disabled = false;
+  };
+}
+
+async function cfgUsuarios(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const lista = await api('listarUsuarios');
+  alvo.innerHTML = `<button class="btn btn-pri" style="margin-bottom:12px" data-novo>+ Usuário</button>` +
+    tabelaSimples(['Nome', 'E-mail', 'Perfil', 'Situação'], lista.map(u => [esc(u.nome), esc(u.email), PERFIS[u.perfil], ativoBadge(u.ativo)]));
+  const editar = u => {
+    const md = abrirModal({
+      titulo: u.id ? 'Editar usuário' : 'Novo usuário', peq: true,
+      corpo: `<form>
+        <div class="campo"><label class="req">Nome</label><input name="nome" value="${esc(u.nome || '')}" required></div>
+        <div class="campo"><label class="req">E-mail</label><input name="email" type="email" value="${esc(u.email || '')}" required></div>
+        <div class="campo"><label class="req">Perfil</label><select name="perfil" required>${opcoes(Object.entries(PERFIS).filter(([k]) => k !== 'motorista').map(([k, t]) => ({ v: k, t })), u.perfil)}</select></div>
+        <div class="campo"><label ${u.id ? '' : 'class="req"'}>${u.id ? 'Nova senha (deixe vazio para manter)' : 'Senha inicial'}</label><input name="senha" type="password" minlength="8" ${u.id ? '' : 'required'}></div>
+        ${u.id ? `<label style="display:flex;gap:8px"><input type="checkbox" name="ativo" ${u.ativo ? 'checked' : ''}> Ativo</label>` : ''}
+      </form>`,
+      rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+    });
+    md.querySelector('.modal-rodape .btn-pri').onclick = async ev => {
+      const f = md.querySelector('form'); if (!f.reportValidity()) return;
+      const d = lerForm(f); if (u.id) d.id = u.id; if (!d.senha) delete d.senha;
+      ev.target.disabled = true;
+      try { await api('salvarUsuario', d); toast('Usuário salvo.'); md.remove(); cfgUsuarios(alvo); }
+      catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+    };
+  };
+  alvo.querySelector('[data-novo]').onclick = () => editar({});
+  alvo.querySelectorAll('tbody tr[data-i]').forEach(tr => tr.onclick = () => editar(lista[tr.dataset.i]));
+}
+
+function cfgSenha(alvo) {
+  alvo.innerHTML = `<form style="max-width:340px">
+    <div class="campo"><label>Senha atual</label><input name="atual" type="password" required></div>
+    <div class="campo"><label>Nova senha (mín. 8)</label><input name="nova" type="password" minlength="8" required></div>
+    <div class="campo"><label>Confirmar nova senha</label><input name="conf" type="password" minlength="8" required></div>
+    <button class="btn btn-pri" type="button">Alterar senha</button></form>`;
+  alvo.querySelector('button').onclick = async ev => {
+    const f = alvo.querySelector('form'); if (!f.reportValidity()) return;
+    const d = lerForm(f); if (d.nova !== d.conf) return toast('As senhas não conferem.', 'erro');
+    ev.target.disabled = true;
+    try { await api('trocarSenha', { atual: d.atual, nova: d.nova }); toast('Senha alterada.'); f.reset(); } catch (e) { toast(e.message, 'erro'); }
+    ev.target.disabled = false;
+  };
+}
 </script>
 </body>
 </html>
