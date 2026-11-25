@@ -130,8 +130,8 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 <!-- ======================= LOGIN ======================= -->
 <section id="telaLogin">
   <form class="cartao-login" onsubmit="entrar(event)">
-    <div class="logo-txt">Sistema <span>Frota</span></div>
-    <div class="sub">Gestão de frota e locação</div>
+    <div id="logoLogin" style="text-align:center;margin-bottom:6px"><div class="logo-txt">Sistema <span>Frota</span></div></div>
+    <div class="sub" style="text-align:center">Gestão de frota e locação</div>
     <div class="campo"><label>E-mail</label><input id="lgEmail" type="email" required autocomplete="username"></div>
     <div class="campo"><label>Senha</label><input id="lgSenha" type="password" required autocomplete="current-password"></div>
     <div class="erro-login" id="lgErro"></div>
@@ -142,7 +142,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 <!-- ======================= APP ======================= -->
 <div id="app" class="oculto">
   <aside>
-    <div class="logo-txt">Sistema <span>Frota</span></div>
+    <div id="logoMenu" style="padding:0 6px 16px;text-align:center"><div class="logo-txt">Sistema <span>Frota</span></div></div>
     <nav class="menu" id="menu">
       <a data-tela="painel" class="ativo">📊 Painel</a>
       <a data-tela="veiculos">🚗 Veículos</a>
@@ -339,8 +339,36 @@ async function iniciar() {
   $('filtroCt').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_CT).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   $('filtroStatus').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_VEIC).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   S.cat = await api('listarCatalogos');
+  carregarLogo();
   irPara('painel');
 }
+/* ---------- LOGO ---------- */
+function aplicarLogo(url) {
+  const txt = '<div class="logo-txt">Sistema <span>Frota</span></div>';
+  $('logoMenu').innerHTML = url ? `<img src="${url}" alt="Logo" style="max-width:100%;max-height:90px">` : txt;
+  $('logoLogin').innerHTML = url ? `<img src="${url}" alt="Logo" style="max-width:260px;max-height:120px">` : txt;
+  try { url ? localStorage.setItem('frota_logo', url) : localStorage.removeItem('frota_logo'); } catch (e) {}
+}
+async function carregarLogo() { try { aplicarLogo((await api('obterLogo')).dataUrl); } catch (e) {} }
+try { const l = localStorage.getItem('frota_logo'); if (l) aplicarLogo(l); } catch (e) {}
+
+/** Reduz a imagem no navegador (máx. 500x250) antes de enviar, mantendo o fundo transparente */
+function reduzirImagem(file, maxW = 500, maxH = 250) {
+  return new Promise((ok, erro) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, maxW / img.width, maxH / img.height);
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(img.src);
+      ok(cv.toDataURL('image/png'));
+    };
+    img.onerror = () => erro(new Error('Arquivo de imagem inválido.'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 (async () => {   // retoma sessão ao recarregar a página
   const t = sessionStorage.getItem('frota_token');
   if (!t || API_URL.includes('COLE_AQUI')) {
@@ -669,8 +697,33 @@ async function cfgEmpresa(alvo) {
       <div class="campo"><label>Endereço</label><input name="endereco" value="${v('endereco')}"></div>
     </div>
     <div class="campo"><label>Rodapé dos documentos</label><textarea name="rodape_docs" rows="2">${v('rodape_docs')}</textarea></div>
-    <button class="btn btn-pri" type="button">Salvar empresa</button></form>`;
-  alvo.querySelector('button').onclick = async ev => {
+    <button class="btn btn-pri" type="button" id="salvarEmp">Salvar empresa</button></form>
+    <div class="secao" style="margin-top:22px">Logo</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div id="logoPrev" style="width:220px;height:110px;border:1px dashed var(--borda);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fafbfc;color:var(--cinza);font-size:12px">sem logo</div>
+      <div>
+        <input type="file" id="logoArq" accept="image/png,image/jpeg" class="oculto">
+        <button class="btn btn-pri" type="button" onclick="$('logoArq').click()">Enviar logo</button>
+        <button class="btn btn-perigo" type="button" id="logoRem">Remover</button>
+        <p style="font-size:12px;color:var(--cinza);margin-top:8px">PNG (de preferência com fundo transparente) ou JPG.<br>Aparece no menu, no login e nos contratos em PDF.</p>
+      </div>
+    </div>`;
+  const prev = url => { alvo.querySelector('#logoPrev').innerHTML = url ? `<img src="${url}" style="max-width:100%;max-height:100%">` : 'sem logo'; };
+  api('obterLogo').then(r => prev(r.dataUrl)).catch(() => {});
+  alvo.querySelector('#logoArq').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    try {
+      const dataUrl = await reduzirImagem(f);
+      const r = await api('salvarLogo', { mime: 'image/png', base64: dataUrl.split(',')[1] });
+      prev(r.dataUrl); aplicarLogo(r.dataUrl); toast('Logo atualizada.');
+    } catch (e) { toast(e.message, 'erro'); }
+    ev.target.value = '';
+  };
+  alvo.querySelector('#logoRem').onclick = async () => {
+    if (!confirm('Remover a logo?')) return;
+    try { await api('removerLogo'); prev(''); aplicarLogo(''); toast('Logo removida.'); } catch (e) { toast(e.message, 'erro'); }
+  };
+  alvo.querySelector('#salvarEmp').onclick = async ev => {
     const f = alvo.querySelector('form'); if (!f.reportValidity()) return;
     ev.target.disabled = true;
     try { await api('salvarEmpresa', lerForm(f)); toast('Dados da empresa salvos.'); } catch (er) { toast(er.message, 'erro'); }
