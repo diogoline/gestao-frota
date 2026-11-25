@@ -101,6 +101,13 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 .abas{display:flex;gap:4px;border-bottom:1px solid var(--borda);padding:0 20px}
 .abas button{background:none;border:none;padding:11px 12px;font-weight:600;color:var(--cinza);cursor:pointer;border-bottom:2px solid transparent}
 .abas button.ativo{color:var(--azul);border-color:var(--azul)}
+.btn-perigo{background:#fff;color:var(--vermelho);border:1px solid #fda29b}.btn-perigo:hover{background:var(--vermelho-claro)}
+.btn-ok{background:var(--verde);color:#fff}.btn-ok:hover{filter:brightness(1.05)}
+.aviso{background:var(--laranja-claro);color:#b54708;border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:13px}
+.info{background:var(--azul-claro);color:#1849a9;border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:13px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.chip{display:inline-block;background:var(--fundo);border:1px solid var(--borda);border-radius:6px;padding:2px 6px;margin:2px;font-size:11.5px;cursor:pointer}
+.chip:hover{background:var(--azul-claro)}
 .hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
 .hist-item small{color:var(--cinza)}
 
@@ -140,8 +147,8 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <a data-tela="painel" class="ativo">📊 Painel</a>
       <a data-tela="veiculos">🚗 Veículos</a>
       <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
+      <a data-tela="contratos">📄 Contratos</a>
       <div class="menu-titulo">Próximas fases</div>
-      <a class="breve">📄 Contratos <span class="tag">em breve</span></a>
       <a class="breve">🔧 Manutenção <span class="tag">em breve</span></a>
       <a class="breve">🚨 Infrações <span class="tag">em breve</span></a>
       <a class="breve">💰 Financeiro <span class="tag">em breve</span></a>
@@ -183,6 +190,18 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       </div>
     </section>
 
+    <!-- CONTRATOS -->
+    <section id="tela-contratos" class="oculto">
+      <div class="painel">
+        <div class="filtros">
+          <input id="buscaCt" placeholder="Buscar por número, motorista ou placa..." oninput="renderContratos()">
+          <select id="filtroCt" onchange="renderContratos()"><option value="">Todos os status</option></select>
+        </div>
+        <table><thead><tr><th>Número</th><th>Motorista</th><th>Veículo</th><th>Início</th><th>Valor</th><th>Status</th></tr></thead>
+          <tbody id="tbCt"></tbody></table>
+      </div>
+    </section>
+
     <!-- MOTORISTAS -->
     <section id="tela-motoristas" class="oculto">
       <div class="painel">
@@ -203,13 +222,20 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 /* =========================================================
    ESTADO
    ========================================================= */
-const S = { token: null, usuario: null, cat: { marcas: [], modelos: [], cores: [] }, veiculos: [], motoristas: [], tela: 'painel' };
+const S = { token: null, usuario: null, cat: { marcas: [], modelos: [], cores: [] }, veiculos: [], motoristas: [], planos: [], contratos: [], tela: 'painel' };
 
 const STATUS_VEIC = {
   disponivel: ['Disponível', 'b-verde'], locado: ['Locado', 'b-azul'], manutencao: ['Manutenção', 'b-laranja'],
   reservado: ['Reservado', 'b-roxo'], inativo: ['Inativo', 'b-cinza'], vendido: ['Vendido', 'b-cinza']
 };
 const STATUS_MOT = { ativo: ['Ativo', 'b-verde'], bloqueado: ['Bloqueado', 'b-vermelho'], inativo: ['Inativo', 'b-cinza'] };
+const STATUS_CT = {
+  rascunho: ['Rascunho', 'b-cinza'], aguardando_assinatura: ['Aguardando assinatura', 'b-laranja'],
+  ativo: ['Ativo', 'b-verde'], encerrado: ['Encerrado', 'b-azul'], cancelado: ['Cancelado', 'b-vermelho']
+};
+const PERIODICIDADE = { semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
+const ASSINATURA = { govbr: 'gov.br', sistema: 'No sistema (selfie + código)', fisica: 'Física (impressa)' };
+const MANUTENCAO = { locadora: 'Locadora', locatario: 'Locatário (motorista)' };
 const PROPRIEDADE = { proprio: 'Próprio', terceiro: 'Terceiro', financiado: 'Financiado', consignado: 'Consignado' };
 const COMBUSTIVEL = ['flex', 'gasolina', 'etanol', 'diesel', 'gnv', 'eletrico', 'hibrido'];
 const PERFIS = { admin: 'Administrador', gestor: 'Gestor', operador: 'Operador', motorista: 'Motorista' };
@@ -310,6 +336,7 @@ async function iniciar() {
   $('telaLogin').classList.add('oculto'); $('app').classList.remove('oculto');
   $('usNome').textContent = S.usuario.nome; $('usPerfil').textContent = PERFIS[S.usuario.perfil];
   $('avatar').textContent = S.usuario.nome.trim()[0].toUpperCase();
+  $('filtroCt').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_CT).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   $('filtroStatus').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_VEIC).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   S.cat = await api('listarCatalogos');
   irPara('painel');
@@ -331,16 +358,17 @@ document.querySelectorAll('#menu a[data-tela]').forEach(a => a.onclick = () => i
 async function irPara(tela) {
   S.tela = tela;
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
-  ['painel', 'veiculos', 'motoristas'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
-  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas' }[tela];
+  ['painel', 'veiculos', 'motoristas', 'contratos'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos' }[tela];
   const novo = $('btnNovo');
   novo.classList.toggle('oculto', tela === 'painel');
-  novo.textContent = tela === 'veiculos' ? '+ Novo veículo' : '+ Novo motorista';
-  novo.onclick = () => tela === 'veiculos' ? formVeiculo() : formMotorista();
+  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato' }[tela] || '';
+  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato })[tela]();
   try {
     if (tela === 'painel') await carregarPainel();
     if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
     if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); renderMotoristas(); }
+    if (tela === 'contratos') { await carregarBaseContratos(); renderContratos(); }
   } catch (e) { toast(e.message, 'erro'); }
 }
 
@@ -555,7 +583,8 @@ async function carregarHistorico(id, alvo) {
    CONFIGURAÇÕES (engrenagem)
    ========================================================= */
 function abrirConfig() {
-  const abas = [['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
+  const abas = [['planos', 'Planos'], ['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
+  if (pode('admin', 'gestor')) abas.splice(1, 0, ['contrato', 'Modelo de contrato']);
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
   abas.push(['senha', 'Minha senha']);
   const md = abrirModal({
@@ -563,7 +592,7 @@ function abrirConfig() {
     abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
-  const carregar = nome => ({ empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  const carregar = nome => ({ planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
   md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
   carregar(abas[0][0]);
 }
@@ -690,6 +719,252 @@ function cfgSenha(alvo) {
     ev.target.disabled = true;
     try { await api('trocarSenha', { atual: d.atual, nova: d.nova }); toast('Senha alterada.'); f.reset(); } catch (e) { toast(e.message, 'erro'); }
     ev.target.disabled = false;
+  };
+}
+
+/* =========================================================
+   CONTRATOS (Fase 2A)
+   ========================================================= */
+const CAMPOS_PLANO = ['periodicidade', 'valor', 'caucao', 'prazo_minimo_dias', 'renovacao_auto', 'franquia_km', 'valor_km_excedente',
+  'manutencao_preventiva', 'coparticipacao_danos', 'multa_rescisao', 'multa_atraso_pct', 'juros_dia_pct', 'dias_bloqueio'];
+
+async function carregarBaseContratos() {
+  const [c, p, v, m] = await Promise.all([api('listarContratos'), api('listarPlanos'), api('listarVeiculos'), api('listarMotoristas')]);
+  S.contratos = c; S.planos = p; S.veiculos = v; S.motoristas = m;
+}
+const veicTxt = id => { const v = S.veiculos.find(x => x.id === id); return v ? `${v.placa} · ${nomeModelo(v.modelo_id)}` : '—'; };
+const motTxt = id => (S.motoristas.find(x => x.id === id) || {}).nome || '—';
+
+function renderContratos() {
+  const q = $('buscaCt').value.toLowerCase(), st = $('filtroCt').value;
+  const lista = S.contratos.filter(c => (!st || c.status === st) &&
+    [c.numero, motTxt(c.motorista_id), veicTxt(c.veiculo_id)].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
+  $('tbCt').innerHTML = lista.length ? lista.map(c => `
+    <tr onclick="formContrato('${c.id}')">
+      <td><b>${esc(c.numero)}</b></td><td>${esc(motTxt(c.motorista_id))}</td><td>${esc(veicTxt(c.veiculo_id))}</td>
+      <td>${dataBR(c.data_inicio)}</td><td>${dinheiro(c.valor)} <small style="color:var(--cinza)">/${esc(PERIODICIDADE[c.periodicidade] || '').toLowerCase()}</small></td>
+      <td>${badge(STATUS_CT, c.status)}</td></tr>`).join('')
+    : `<tr><td colspan="6" class="vazio">Nenhum contrato encontrado.</td></tr>`;
+}
+
+function abrirArquivo(r) {
+  const bytes = Uint8Array.from(atob(r.base64), ch => ch.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
+  const a = document.createElement('a'); a.href = url; a.target = '_blank';
+  if (!/pdf|image/.test(r.mime)) a.download = r.nome;
+  a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function lerArquivoBase64(file) {
+  return new Promise((ok, erro) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(String(fr.result).split(',')[1]);
+    fr.onerror = () => erro(new Error('Não foi possível ler o arquivo.'));
+    fr.readAsDataURL(file);
+  });
+}
+
+function camposCondicoes(c, travado) {
+  const dis = travado ? 'disabled' : '';
+  const val = k => esc(c[k] ?? '');
+  return `
+    <div class="grade g4">
+      <div class="campo"><label class="req">Periodicidade</label><select name="periodicidade" ${dis} required>${opcoes(Object.entries(PERIODICIDADE).map(([v, t]) => ({ v, t })), c.periodicidade, '—')}</select></div>
+      <div class="campo"><label class="req">Valor por período (R$)</label><input name="valor" type="number" step="0.01" min="0" value="${val('valor')}" ${dis} required></div>
+      <div class="campo"><label>Caução (R$)</label><input name="caucao" type="number" step="0.01" min="0" value="${val('caucao')}" ${dis}></div>
+      <div class="campo"><label>Prazo mínimo (dias)</label><input name="prazo_minimo_dias" type="number" min="0" value="${val('prazo_minimo_dias')}" ${dis}></div>
+    </div>
+    <div class="grade g4">
+      <div class="campo"><label>Franquia km/período (0 = livre)</label><input name="franquia_km" type="number" min="0" value="${val('franquia_km')}" ${dis}></div>
+      <div class="campo"><label>R$ por km excedente</label><input name="valor_km_excedente" type="number" step="0.01" min="0" value="${val('valor_km_excedente')}" ${dis}></div>
+      <div class="campo"><label>Manutenção preventiva</label><select name="manutencao_preventiva" ${dis}>${opcoes(Object.entries(MANUTENCAO).map(([v, t]) => ({ v, t })), c.manutencao_preventiva || 'locadora', '—')}</select></div>
+      <div class="campo"><label>Coparticipação danos (R$)</label><input name="coparticipacao_danos" type="number" step="0.01" min="0" value="${val('coparticipacao_danos')}" ${dis}></div>
+    </div>
+    <div class="grade g4">
+      <div class="campo"><label>Multa rescisória (R$)</label><input name="multa_rescisao" type="number" step="0.01" min="0" value="${val('multa_rescisao')}" ${dis}></div>
+      <div class="campo"><label>Multa atraso (%)</label><input name="multa_atraso_pct" type="number" step="0.01" min="0" value="${val('multa_atraso_pct')}" ${dis}></div>
+      <div class="campo"><label>Juros ao dia (%)</label><input name="juros_dia_pct" type="number" step="0.001" min="0" value="${val('juros_dia_pct')}" ${dis}></div>
+      <div class="campo"><label>Bloqueio após (dias)</label><input name="dias_bloqueio" type="number" min="0" value="${val('dias_bloqueio')}" ${dis}></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" name="renovacao_auto" ${c.renovacao_auto !== false ? 'checked' : ''} ${dis}> Renovação automática após o prazo mínimo</label>`;
+}
+
+async function formContrato(id) {
+  if (!S.planos.length || !S.veiculos.length) { try { await carregarBaseContratos(); } catch (e) { return toast(e.message, 'erro'); } }
+  const c = id ? S.contratos.find(x => x.id === id) : { status: 'rascunho', data_inicio: new Date().toISOString().slice(0, 10), forma_assinatura: 'govbr', renovacao_auto: true };
+  const st = c.status;
+  const travado = st !== 'rascunho';
+  const dis = travado ? 'disabled' : '';
+  const planos = S.planos.filter(p => p.ativo || p.id === c.plano_id).map(p => ({ v: p.id, t: p.nome }));
+  const veics = S.veiculos.filter(v => (v.ativo && v.status === 'disponivel') || v.id === c.veiculo_id).map(v => ({ v: v.id, t: veicTxt(v.id) }));
+  const mots = S.motoristas.filter(m => m.status === 'ativo' || m.id === c.motorista_id).map(m => ({ v: m.id, t: m.nome })).sort((a, b) => a.t.localeCompare(b.t));
+
+  const btn = (idb, txt, cls = 'btn-sec') => `<button class="btn ${cls}" type="button" id="${idb}">${txt}</button>`;
+  let esq = '', dir = '';
+  if (st === 'rascunho') {
+    if (id) esq = btn('ctCancelar', 'Cancelar contrato', 'btn-perigo');
+    dir = btn('ctSalvar', 'Salvar rascunho') + (id ? btn('ctPrevia', '👁 Pré-visualizar') : '') + btn('ctEmitir', 'Salvar e emitir PDF', 'btn-pri');
+  } else if (st === 'aguardando_assinatura') {
+    esq = btn('ctCancelar', 'Cancelar contrato', 'btn-perigo');
+    dir = btn('ctBaixar', '⬇ PDF para assinar') + btn('ctReemitir', '↻ Regerar PDF') + btn('ctAnexar', '📎 Anexar assinado', 'btn-ok');
+  } else {
+    if (st === 'ativo' && pode('admin', 'gestor')) esq = btn('ctEncerrar', 'Encerrar contrato', 'btn-perigo');
+    dir = (c.pdf_file_id ? btn('ctBaixar', '⬇ PDF emitido') : '') + (c.pdf_assinado_file_id ? btn('ctBaixarAss', '⬇ Contrato assinado', 'btn-pri') : '');
+  }
+
+  const md = abrirModal({
+    titulo: id ? `Contrato ${esc(c.numero)} ${badge(STATUS_CT, st)}` : 'Novo contrato',
+    corpo: `
+      ${st === 'aguardando_assinatura' ? `<div class="info">PDF emitido. Envie ao motorista para assinar${c.forma_assinatura === 'govbr' ? ' no <b>gov.br</b> (app gov.br ou assinador.iti.br)' : ''}, assine você também e depois clique em <b>Anexar assinado</b>. O veículo ficou <b>reservado</b>.</div>` : ''}
+      ${['encerrado', 'cancelado'].includes(st) ? `<div class="aviso">${STATUS_CT[st][0]} em ${dataBR(c.data_encerramento)} — ${esc(c.motivo_encerramento)}</div>` : ''}
+      <form id="fCt">
+        <div class="secao">Partes e veículo</div>
+        <div class="grade g2">
+          <div class="campo"><label class="req">Motorista (locatário)</label><select name="motorista_id" ${dis} required>${opcoes(mots, c.motorista_id)}</select></div>
+          <div class="campo"><label class="req">Veículo</label><select name="veiculo_id" ${dis} required>${opcoes(veics, c.veiculo_id, veics.length ? 'Selecione...' : 'Nenhum veículo disponível')}</select></div>
+        </div>
+        <div class="grade g4">
+          <div class="campo" style="grid-column:span 2"><label class="req">Plano</label><select name="plano_id" ${dis} required>${opcoes(planos, c.plano_id, planos.length ? 'Selecione...' : 'Cadastre planos na ⚙️')}</select></div>
+          <div class="campo"><label class="req">Início</label><input name="data_inicio" type="date" value="${esc(c.data_inicio || '')}" ${dis} required></div>
+          <div class="campo"><label>KM na retirada</label><input name="km_inicial" type="number" min="0" value="${esc(c.km_inicial ?? '')}" ${dis} placeholder="pega do veículo"></div>
+        </div>
+        <div class="secao">Condições acordadas <small style="text-transform:none;color:var(--cinza);font-weight:500">— vêm do plano e podem ser ajustadas</small></div>
+        <div id="ctCond">${camposCondicoes(c, travado)}</div>
+        <div class="grade g2">
+          <div class="campo"><label>Forma de assinatura</label><select name="forma_assinatura" ${dis}>${opcoes(Object.entries(ASSINATURA).map(([v, t]) => ({ v, t })), c.forma_assinatura, '—')}</select></div>
+          <div class="campo"><label>Fim do prazo mínimo</label><input value="${dataBR(c.data_fim_minima)}" disabled placeholder="calculado ao salvar"></div>
+        </div>
+        <div class="campo"><label>Observação (pode ir no contrato com o marcador {{contrato.observacao}})</label><textarea name="observacao" rows="2" ${dis}>${esc(c.observacao || '')}</textarea></div>
+        ${c.data_emissao ? `<p style="color:var(--cinza);font-size:12px">Emitido em ${dataBR(c.data_emissao)} · modelo v${esc(c.modelo_versao)}${c.data_assinatura ? ' · assinado/anexado em ' + dataBR(c.data_assinatura) : ''}</p>` : ''}
+      </form>`,
+    rodape: `<div style="display:flex;gap:8px">${esq}</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${dir}</div>`
+  });
+
+  const f = md.querySelector('#fCt');
+  // Ao escolher plano: preenche as condições
+  f.plano_id.onchange = () => {
+    const p = S.planos.find(x => x.id === f.plano_id.value); if (!p) return;
+    md.querySelector('#ctCond').innerHTML = camposCondicoes(Object.assign({}, p), false);
+  };
+  // Ao escolher veículo: sugere o km atual
+  f.veiculo_id.onchange = () => { const v = S.veiculos.find(x => x.id === f.veiculo_id.value); if (v && !travado) f.km_inicial.value = v.km_atual || 0; };
+
+  const acao = async (el, fn) => { el.disabled = true; try { await fn(); } catch (e) { toast(e.message, 'erro'); } finally { el.disabled = false; } };
+  const salvar = async () => {
+    if (!f.reportValidity()) throw new Error('Preencha os campos obrigatórios.');
+    const d = lerForm(f); if (id) d.id = id;
+    const r = await api('salvarContrato', d);
+    (r.avisos || []).forEach(a => toast(a, 'erro'));
+    return r.id;
+  };
+  const recarregar = async (novoId) => { md.remove(); await carregarBaseContratos(); renderContratos(); if (novoId) formContrato(novoId); };
+  const on = (idb, fn) => { const b = md.querySelector('#' + idb); if (b) b.onclick = () => acao(b, fn); };
+
+  on('ctSalvar', async () => { const nid = await salvar(); toast('Rascunho salvo.'); await recarregar(nid); });
+  const avisarFaltando = r => { if (r && r.faltando && r.faltando.length) toast('Campos vazios no contrato (em vermelho no PDF): ' + r.faltando.join(', '), 'erro'); };
+  on('ctPrevia', async () => { await salvar(); const r = await api('previaContrato', { id }); avisarFaltando(r); abrirArquivo(r); });
+  on('ctEmitir', async () => {
+    const nid = await salvar();
+    if (!confirm('Emitir o contrato? Os dados serão congelados e o veículo ficará reservado.')) { await recarregar(nid); return; }
+    const re = await api('emitirContrato', { id: nid }); toast('Contrato emitido.'); avisarFaltando(re);
+    abrirArquivo(await api('baixarContratoPdf', { id: nid, tipo: 'emitido' }));
+    await recarregar(nid);
+  });
+  on('ctReemitir', async () => { avisarFaltando(await api('emitirContrato', { id })); toast('PDF regerado com os dados atuais.'); abrirArquivo(await api('baixarContratoPdf', { id, tipo: 'emitido' })); await recarregar(id); });
+  on('ctBaixar', async () => abrirArquivo(await api('baixarContratoPdf', { id, tipo: 'emitido' })));
+  on('ctBaixarAss', async () => abrirArquivo(await api('baixarContratoPdf', { id, tipo: 'assinado' })));
+  on('ctAnexar', async () => anexarAssinado(c, () => recarregar(id)));
+  on('ctCancelar', async () => {
+    const motivo = prompt('Motivo do cancelamento:'); if (!motivo) return;
+    await api('cancelarContrato', { id, motivo }); toast('Contrato cancelado.'); await recarregar();
+  });
+  on('ctEncerrar', async () => {
+    const motivo = prompt('Motivo do encerramento (ex.: fim do contrato, devolução antecipada, inadimplência):'); if (!motivo) return;
+    await api('encerrarContrato', { id, motivo }); toast('Contrato encerrado. Veículo disponível.'); await recarregar();
+  });
+}
+
+function anexarAssinado(c, depois) {
+  const md = abrirModal({
+    titulo: 'Anexar contrato assinado', peq: true,
+    corpo: `<form>
+      <div class="info">Envie o PDF assinado (gov.br ou digitalizado). Ao anexar, o contrato fica <b>Ativo</b> e o veículo <b>Locado</b>.</div>
+      <div class="campo"><label>Como foi assinado</label><select name="forma_assinatura">${opcoes(Object.entries(ASSINATURA).filter(([k]) => k !== 'sistema').map(([v, t]) => ({ v, t })), c.forma_assinatura === 'sistema' ? 'govbr' : c.forma_assinatura, '—')}</select></div>
+      <div class="campo"><label class="req">Arquivo (PDF, JPG ou PNG — até 10 MB)</label><input type="file" name="arquivo" accept="application/pdf,image/jpeg,image/png" required></div>
+    </form>`,
+    rodape: `<span></span><button class="btn btn-ok" type="button">Anexar e ativar</button>`
+  });
+  md.querySelector('.modal-rodape .btn').onclick = async ev => {
+    const f = md.querySelector('form'); if (!f.reportValidity()) return;
+    const arq = f.arquivo.files[0];
+    if (arq.size > 10 * 1024 * 1024) return toast('Arquivo maior que 10 MB.', 'erro');
+    ev.target.disabled = true; ev.target.textContent = 'Enviando...';
+    try {
+      await api('anexarContratoAssinado', { id: c.id, mime: arq.type, base64: await lerArquivoBase64(arq), forma_assinatura: f.forma_assinatura.value });
+      toast('Contrato ativo!'); md.remove(); depois();
+    } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; ev.target.textContent = 'Anexar e ativar'; }
+  };
+}
+
+/* ---------- ⚙️ Planos ---------- */
+async function cfgPlanos(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  S.planos = await api('listarPlanos');
+  const editavel = pode('admin', 'gestor');
+  const lista = S.planos.slice().sort((a, b) => a.nome.localeCompare(b.nome));
+  alvo.innerHTML = `<div class="info">Planos são as condições <b>padrão</b>. No contrato você ainda pode ajustar cada valor conforme o acordo.</div>` +
+    (editavel ? `<button class="btn btn-pri" style="margin-bottom:12px" data-novo>+ Plano</button>` : '') +
+    tabelaSimples(['Plano', 'Valor', 'Caução', 'Km', 'Situação'], lista.map(p => [
+      `<b>${esc(p.nome)}</b>`, `${dinheiro(p.valor)} <small>/${esc((PERIODICIDADE[p.periodicidade] || '').toLowerCase())}</small>`,
+      dinheiro(p.caucao) || '—', Number(p.franquia_km) ? num(p.franquia_km) + ' km' : 'livre', ativoBadge(p.ativo)]));
+  const editar = p => {
+    const md = abrirModal({
+      titulo: p.id ? 'Editar plano' : 'Novo plano',
+      corpo: `<form>
+        <div class="campo"><label class="req">Nome do plano (ex.: App Semanal 1.0)</label><input name="nome" value="${esc(p.nome || '')}" required></div>
+        ${camposCondicoes(Object.assign({ periodicidade: 'semanal', manutencao_preventiva: 'locadora', renovacao_auto: true }, p), false)}
+        <div class="campo"><label>Observação interna</label><input name="observacao" value="${esc(p.observacao || '')}"></div>
+        ${p.id ? `<label style="display:flex;gap:8px"><input type="checkbox" name="ativo" ${p.ativo ? 'checked' : ''}> Plano ativo</label>` : ''}
+      </form>`,
+      rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+    });
+    md.querySelector('.modal-rodape .btn-pri').onclick = async ev => {
+      const f = md.querySelector('form'); if (!f.reportValidity()) return;
+      const d = lerForm(f); if (p.id) d.id = p.id;
+      ev.target.disabled = true;
+      try { await api('salvarPlano', d); toast('Plano salvo.'); md.remove(); cfgPlanos(alvo); }
+      catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+    };
+  };
+  alvo.querySelector('[data-novo]')?.addEventListener('click', () => editar({}));
+  if (editavel) alvo.querySelectorAll('tbody tr[data-i]').forEach(tr => tr.onclick = () => editar(lista[tr.dataset.i]));
+}
+
+/* ---------- ⚙️ Modelo de contrato ---------- */
+async function cfgModeloContrato(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const m = await api('obterModeloContrato');
+  alvo.innerHTML = `
+    <div class="aviso">⚖️ Este texto é uma <b>minuta</b>. Revise com um advogado antes de usar. Cada vez que salvar, vira uma <b>nova versão</b> (contratos já emitidos não mudam).</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b>${esc(m.nome)}</b><span class="badge b-azul">versão ${esc(m.versao)}</span></div>
+    <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--azul);font-weight:600">Como formatar e marcadores disponíveis (clique para inserir)</summary>
+      <p style="font-size:12.5px;color:var(--cinza);margin:6px 0"><span class="mono"># Título</span> · <span class="mono">## Cláusula</span> · <span class="mono">- item</span> · <span class="mono">**negrito**</span> · <span class="mono">// comentário (não sai no PDF)</span> · linha em branco = novo parágrafo</p>
+      <div>${m.marcadores.map(([k, t]) => `<span class="chip" title="${esc(t)}" data-k="${esc(k)}">{{${esc(k)}}}</span>`).join('')}</div>
+    </details>
+    <textarea id="txtModelo" class="mono" style="width:100%;height:340px;border:1px solid var(--borda);border-radius:9px;padding:10px;line-height:1.5">${esc(m.texto)}</textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-pri" type="button" id="salvarModelo">Salvar nova versão</button></div>`;
+  const ta = alvo.querySelector('#txtModelo');
+  alvo.querySelectorAll('.chip').forEach(ch => ch.onclick = () => {
+    const ins = '{{' + ch.dataset.k + '}}', i = ta.selectionStart;
+    ta.value = ta.value.slice(0, i) + ins + ta.value.slice(ta.selectionEnd); ta.focus(); ta.selectionStart = ta.selectionEnd = i + ins.length;
+  });
+  alvo.querySelector('#salvarModelo').onclick = async ev => {
+    if (!confirm('Salvar como nova versão do contrato?')) return;
+    ev.target.disabled = true;
+    try { await api('salvarModeloContrato', { texto: ta.value }); toast('Nova versão salva.'); cfgModeloContrato(alvo); }
+    catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
   };
 }
 </script>
