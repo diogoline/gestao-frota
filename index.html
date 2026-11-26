@@ -138,6 +138,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 .mn-chk{display:flex;gap:8px;align-items:center;font-weight:400!important;font-size:13px!important;color:var(--texto)!important;cursor:pointer}
 .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .dica{position:absolute;top:8px;background:#fff;border:1px solid var(--borda);border-radius:9px;padding:8px 10px;font-size:12px;box-shadow:var(--sombra);pointer-events:none;min-width:150px}
+@media(max-width:700px){.conf-grid{grid-template-columns:1fr!important}}
 .hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
 .hist-item small{color:var(--cinza)}
 
@@ -275,7 +276,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <div class="painel">
         <div class="abas" id="finAbas" style="padding:0 14px">
           <button data-aba="receber" type="button">A receber</button><button data-aba="pagar" type="button">A pagar</button>
-          <button data-aba="extrato" type="button">Extrato do mês</button><button data-aba="todos" type="button">Todos do mês</button>
+          <button data-aba="extrato" type="button">Extrato do mês</button><button data-aba="todos" type="button">Todos do mês</button><button data-aba="comprovantes" type="button" id="abaComp">Comprovantes</button>
         </div>
         <div class="filtros" style="flex-wrap:wrap">
           <input id="buscaFin" placeholder="Buscar descrição, motorista, placa ou contrato..." oninput="renderFinanceiro()">
@@ -634,7 +635,7 @@ function formMotorista(id) {
   const val = k => esc(m[k] ?? '');
   const md = abrirModal({
     titulo: id ? esc(m.nome) : 'Novo motorista',
-    abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="hist">Histórico</button></div>` : '',
+    abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="portal">Portal</button><button data-aba="hist">Histórico</button></div>` : '',
     corpo: `<form id="fMot" data-painel="dados">
       <div class="secao">Dados pessoais</div>
       <div class="grade g3">
@@ -678,12 +679,13 @@ function formMotorista(id) {
       </div>
       <div class="campo"><label>Observação</label><textarea name="observacao" rows="2">${val('observacao')}</textarea></div>
     </form>
+    <div data-painel="portal" class="oculto" id="portalMot">Carregando...</div>
     <div data-painel="hist" class="oculto" id="histMot">Carregando...</div>`,
     rodape: `<span></span><div style="display:flex;gap:8px"><button class="btn btn-sec" type="button" data-fechar>Cancelar</button>
              <button class="btn btn-pri" type="button" id="salvarMot">Salvar</button></div>`
   });
   md.querySelector('[data-fechar]').onclick = () => md.remove();
-  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); if (b.dataset.aba === 'hist') carregarHistorico(id, md.querySelector('#histMot')); });
+  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); if (b.dataset.aba === 'hist') carregarHistorico(id, md.querySelector('#histMot')); if (b.dataset.aba === 'portal') painelPortalMotorista(id, md.querySelector('#portalMot')); });
   md.querySelector('#salvarMot').onclick = async ev => {
     const f = md.querySelector('#fMot');
     if (!f.reportValidity()) return;
@@ -1510,14 +1512,15 @@ S.fin = { lanc: [], cat: null, aba: 'receber', mes: new Date().toISOString().sli
 
 async function carregarFinanceiro() {
   if (!S.contratos.length || !S.veiculos.length) await carregarBaseContratos();
-  const [l, cat] = await Promise.all([api('listarLancamentos', {}), S.fin.cat ? Promise.resolve(S.fin.cat) : api('obterCategorias')]);
-  S.fin.lanc = l; S.fin.cat = cat;
+  const [l, cat, comp] = await Promise.all([api('listarLancamentos', {}), S.fin.cat ? Promise.resolve(S.fin.cat) : api('obterCategorias'),
+    api('listarComprovantes', { status: 'pendente' }).catch(() => [])]);
+  S.fin.lanc = l; S.fin.cat = cat; S.fin.comp = comp;
 }
 const ctNumero = id => (S.contratos.find(c => c.id === id) || {}).numero || '';
 const refLanc = l => [l.motorista_id ? motTxt(l.motorista_id) : '', l.veiculo_id ? (S.veiculos.find(v => v.id === l.veiculo_id) || {}).placa || '' : ''].filter(Boolean).join(' · ');
 
 function calcEncargos(l) {
-  if (l.situacao !== 'atrasado' || l.tipo !== 'receita') return 0;
+  if (l.situacao !== 'atrasado' || l.tipo !== 'receita' || l.origem !== 'parcela') return 0;   // multa/juros do contrato valem para o aluguel
   const c = S.contratos.find(x => x.id === l.contrato_id); if (!c) return 0;
   const v = Number(l.valor);
   return Math.round((v * Number(c.multa_atraso_pct || 0) / 100 + v * Number(c.juros_dia_pct || 0) / 100 * l.dias_atraso) * 100) / 100;
@@ -1538,6 +1541,9 @@ function renderFinanceiro() {
     card('Saldo do mês', recMes - despMes, recMes - despMes >= 0 ? 'var(--roxo)' : 'var(--laranja)', 'despesas: ' + (dinheiro(despMes) || 'R$ 0,00'));
 
   document.querySelectorAll('#finAbas button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === S.fin.aba));
+  const nComp = (S.fin.comp || []).length;
+  $('abaComp').innerHTML = 'Comprovantes' + (nComp ? ` <span class="badge b-vermelho" style="padding:1px 7px">${nComp}</span>` : '');
+  if (S.fin.aba === 'comprovantes') { $('finMesBox').classList.add('oculto'); return renderComprovantes(); }
   $('finMesBox').classList.toggle('oculto', S.fin.aba !== 'extrato' && S.fin.aba !== 'todos');
   let lista;
   if (S.fin.aba === 'receber') lista = rec.filter(l => ['aberto', 'atrasado'].includes(l.situacao));
@@ -2398,6 +2404,105 @@ function graficoMensal(alvo, meses) {
     };
   });
   alvo.querySelector('svg').onmouseleave = () => { dica.classList.add('oculto'); alvo.querySelectorAll('g[data-i]').forEach(o => o.style.opacity = 1); };
+}
+
+/* =========================================================
+   PORTAL DO MOTORISTA - lado da equipe (Fase 8)
+   ========================================================= */
+const urlBasePortal = () => location.href.split('?')[0].split('#')[0].replace(/[^/]*$/, '') + 'portal.html';
+
+async function painelPortalMotorista(motoristaId, alvo) {
+  alvo.innerHTML = 'Carregando...';
+  try {
+    const st = await api('statusPortal', { motorista_id: motoristaId });
+    const ed = pode('admin', 'gestor');
+    alvo.innerHTML = `
+      <div class="info">No portal o motorista vê o carro, as parcelas (com PIX), recibos, contrato e multas; informa o <b>km com foto</b> e envia <b>comprovantes</b>. Acesso pelo link pessoal + confirmação do CPF.</div>
+      ${st.ativo ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><span class="badge b-verde">Link ativo</span>
+          <small style="color:var(--cinza)">gerado em ${dataBR(st.gerado_em)} · válido até ${dataBR(st.expira)}</small></div>
+        <input readonly value="${esc(st.url || '(gere novamente para gravar o endereço)')}" style="width:100%;border:1px solid var(--borda);border-radius:9px;padding:9px;margin-bottom:10px;font-size:12.5px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sec" type="button" data-p="copiar">📋 Copiar link</button>
+          <button class="btn btn-sec" type="button" data-p="wa">📲 Enviar no WhatsApp</button>
+          ${ed ? '<button class="btn btn-sec" type="button" data-p="gerar">↻ Gerar novo link</button><button class="btn btn-perigo" type="button" data-p="revogar">Desativar acesso</button>' : ''}</div>`
+      : `<div style="margin-bottom:10px"><span class="badge b-cinza">Sem acesso ao portal</span></div>
+        ${ed ? '<button class="btn btn-pri" type="button" data-p="gerar">Gerar link do portal</button>' : '<small>Peça a um gestor para gerar o link.</small>'}`}
+      <p style="font-size:12px;color:var(--cinza);margin-top:10px">Gerar um novo link desativa o anterior. Se o motorista sair da locadora, desative o acesso.</p>`;
+    const acao = {
+      copiar: async () => { try { await navigator.clipboard.writeText(st.url); toast('Link copiado.'); } catch (e) { toast('Não foi possível copiar.', 'erro'); } },
+      wa: () => abrirWhatsapp(motoristaId, (nome, d) => `Olá, ${nome}! Este é o seu acesso à Área do Motorista da ${d.empresa || 'locadora'}:\n${st.url}\n\nPor lá você vê seus pagamentos e recibos, copia a chave PIX, envia comprovantes e informa o km do carro. No primeiro acesso, ele pede o seu CPF.\n*O link é pessoal, não compartilhe.*`),
+      gerar: async () => {
+        if (st.ativo && !confirm('Gerar um novo link? O link atual deixa de funcionar.')) return;
+        try { await api('gerarLinkPortal', { motorista_id: motoristaId, base_url: urlBasePortal() }); toast('Link gerado.'); painelPortalMotorista(motoristaId, alvo); } catch (e) { toast(e.message, 'erro'); }
+      },
+      revogar: async () => {
+        if (!confirm('Desativar o acesso deste motorista ao portal?')) return;
+        try { await api('revogarPortal', { motorista_id: motoristaId }); toast('Acesso desativado.'); painelPortalMotorista(motoristaId, alvo); } catch (e) { toast(e.message, 'erro'); }
+      }
+    };
+    alvo.querySelectorAll('[data-p]').forEach(b => b.onclick = () => acao[b.dataset.p]());
+  } catch (e) { alvo.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
+}
+
+/* ---------- Comprovantes enviados pelo portal (aba no Financeiro) ---------- */
+function renderComprovantes() {
+  const lista = S.fin.comp || [];
+  $('finTotal').textContent = lista.length + ' comprovante(s) aguardando conferência';
+  $('tbFin').innerHTML = lista.length ? lista.map(c => `
+    <tr onclick="conferirComprovante('${c.id}')">
+      <td>${dataBR(c.criado_em)}<br><small style="color:var(--cinza)">pago em ${dataBR(c.data_pagamento)}</small></td>
+      <td>${c.lancamentos.map(l => `<div>${esc(l.descricao)} <small style="color:var(--cinza)">(${dinheiro(l.valor)}${l.status !== 'aberto' ? ' · já ' + esc(l.status) : ''})</small></div>`).join('')}${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}</td>
+      <td>${esc(motTxt(c.motorista_id))}</td>
+      <td style="font-weight:600">${dinheiro(c.valor) || '—'}</td>
+      <td><span class="badge b-azul">conferir</span></td>
+      <td><button class="btn btn-ok" style="padding:6px 12px" onclick="event.stopPropagation();conferirComprovante('${c.id}')">Conferir</button></td></tr>`).join('')
+    : '<tr><td colspan="6" class="vazio">Nenhum comprovante aguardando conferência. 👍</td></tr>';
+}
+
+async function conferirComprovante(id) {
+  const c = (S.fin.comp || []).find(x => x.id === id); if (!c) return;
+  const abertos = c.lancamentos.filter(l => l.status === 'aberto').map(l => S.fin.lanc.find(x => x.id === l.id)).filter(Boolean);
+  const md = abrirModal({
+    titulo: 'Conferir comprovante · ' + esc(motTxt(c.motorista_id)),
+    corpo: `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="conf-grid">
+        <div><div id="cpPrev" style="border:1px solid var(--borda);border-radius:10px;min-height:220px;display:flex;align-items:center;justify-content:center;color:var(--cinza)">Carregando comprovante...</div>
+          <button class="btn btn-sec" type="button" id="cpAbrir" style="margin-top:8px">Abrir em tela cheia</button></div>
+        <div>
+          <div class="info">Informado pelo motorista: <b>${dinheiro(c.valor) || '—'}</b> pago em <b>${dataBR(c.data_pagamento)}</b>.<br>Confira no extrato do banco antes de aprovar.</div>
+          <form id="fConf">
+            ${abertos.map(l => { const enc = calcEncargos(l); return `<div style="border:1px solid var(--borda);border-radius:10px;padding:10px;margin-bottom:8px">
+              <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" data-l="${l.id}" checked> ${esc(l.descricao)}</label>
+              <div class="grade g2" style="margin-top:6px"><div class="campo"><label>Multa + juros</label><input type="number" step="0.01" min="0" data-enc="${l.id}" value="${enc || 0}"></div>
+              <div class="campo"><label>Valor a baixar</label><input type="number" step="0.01" min="0" data-val="${l.id}" value="${(Number(l.valor) + enc).toFixed(2)}"></div></div></div>`; }).join('') || '<div class="aviso">Os lançamentos deste comprovante já não estão em aberto.</div>'}
+            <div class="grade g2"><div class="campo"><label>Data do pagamento</label><input type="date" name="data_pagamento" value="${esc(c.data_pagamento)}"></div>
+            <div class="campo"><label>Forma</label><select name="forma_pagamento">${opcoes(['PIX', 'Transferência', 'Dinheiro', 'Boleto', 'Cartão'].map(x => ({ v: x, t: x })), 'PIX', '—')}</select></div></div>
+          </form>
+        </div>
+      </div>`,
+    rodape: `<button class="btn btn-perigo" type="button" id="cpRecusar">Recusar</button><button class="btn btn-ok" type="button" id="cpAprovar" ${abertos.length ? '' : 'disabled'}>✓ Aprovar e dar baixa</button>`
+  });
+  let arq = null;
+  api('verComprovantePortal', { id }).then(r => {
+    arq = r; const prev = md.querySelector('#cpPrev');
+    prev.innerHTML = /image/.test(r.mime) ? `<img src="data:${r.mime};base64,${r.base64}" style="max-width:100%;max-height:420px;border-radius:8px">` : '<div style="padding:20px;text-align:center">📄 PDF<br><small>use "Abrir em tela cheia"</small></div>';
+  }).catch(e => md.querySelector('#cpPrev').textContent = e.message);
+  md.querySelectorAll('[data-enc]').forEach(inp => inp.oninput = () => {
+    const l = abertos.find(x => x.id === inp.dataset.enc); md.querySelector(`[data-val="${l.id}"]`).value = (Number(l.valor) + Number(inp.value || 0)).toFixed(2);
+  });
+  md.querySelector('#cpAbrir').onclick = () => arq && abrirArquivo(arq);
+  md.querySelector('#cpRecusar').onclick = async () => {
+    const motivo = prompt('Motivo da recusa (o motorista vai ver no portal):', 'Pagamento não identificado no extrato'); if (!motivo) return;
+    try { await api('recusarComprovante', { id, motivo }); toast('Comprovante recusado.'); md.remove(); await recarregarFin(); } catch (e) { toast(e.message, 'erro'); }
+  };
+  md.querySelector('#cpAprovar').onclick = async ev => {
+    const f = md.querySelector('#fConf');
+    const pagamentos = [...f.querySelectorAll('[data-l]:checked')].map(ch => ({ id: ch.dataset.l, valor_pago: f.querySelector(`[data-val="${ch.dataset.l}"]`).value, encargos: f.querySelector(`[data-enc="${ch.dataset.l}"]`).value }));
+    if (!pagamentos.length) return toast('Marque ao menos um pagamento.', 'erro');
+    ev.target.disabled = true;
+    try { await api('aprovarComprovante', { id, pagamentos, data_pagamento: f.data_pagamento.value, forma_pagamento: f.forma_pagamento.value }); toast('Baixa feita. O recibo foi enviado ao motorista (se tiver e-mail).'); md.remove(); await recarregarFin(); }
+    catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
 }
 </script>
 </body>
