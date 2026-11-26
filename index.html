@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Frota</title>
+<title>DMA SYS · Gestão de Frotas</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('frota_tema')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
@@ -11,198 +12,308 @@
   const API_URL = 'https://script.google.com/macros/s/AKfycbz_c2TP-ZqOxUV-tJgdAIhnSDQwwUSlfEUGkhwDkYRZwEKHU9hjFS6dfye0PtaI_WpnwA/exec';
 </script>
 <style>
+/* =====================================================================
+   DMA SYS · DESIGN SYSTEM (tema claro / escuro)
+   Todas as cores vêm destas variáveis. Para mudar a identidade visual,
+   altere só este bloco.
+   ===================================================================== */
 :root{
-  --azul:#1a73e8; --azul-claro:#e8f0fe; --verde:#12b76a; --verde-claro:#e7f8ef;
-  --laranja:#f79009; --laranja-claro:#fef4e6; --vermelho:#f04438; --vermelho-claro:#feeceb;
-  --roxo:#7a5af8; --roxo-claro:#f1edff; --cinza:#667085; --borda:#e4e7ec;
-  --fundo:#f5f7fb; --texto:#1d2939; --branco:#fff; --raio:12px;
-  --sombra:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
+  --fundo:#f3f5f9; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#eef2f7; --borda:#e2e8f0; --borda-forte:#cbd5e1;
+  --texto:#0f172a; --texto-2:#334155; --cinza:#64748b; --muted-2:#94a3b8; --branco:#ffffff;
+  --azul:#3b63f6; --azul-hover:#2f52dd; --azul-claro:rgba(59,99,246,.10); --t-azul:#2847c9;
+  --verde:#16a34a; --verde-claro:#dcfce7; --t-verde:#15803d;
+  --laranja:#e38700; --laranja-claro:#fef3c7; --t-laranja:#b45309;
+  --vermelho:#e5484d; --vermelho-claro:#fee2e2; --t-vermelho:#b91c1c;
+  --roxo:#7c5cff; --roxo-claro:#ede9fe; --t-roxo:#6d28d9;
+  --serie-1:#257de0; --serie-2:#f47230;
+  --sidebar:#ffffff; --sidebar-texto:#475569; --sidebar-ativo:rgba(59,99,246,.10);
+  --sombra:0 1px 2px rgba(15,23,42,.05),0 1px 3px rgba(15,23,42,.06);
+  --sombra-modal:0 24px 60px rgba(15,23,42,.25);
+  --raio:12px; --sb:248px; --topo:64px;
+  color-scheme:light;
+}
+[data-theme="dark"]{
+  --fundo:#0b0f19; --surface:#121826; --surface-2:#161e2e; --surface-3:#1e283b; --borda:#263248; --borda-forte:#34425c;
+  --texto:#e6eaf2; --texto-2:#c3cbd9; --cinza:#8d99ae; --muted-2:#5f6b80; --branco:#ffffff;
+  --azul:#6b8cff; --azul-hover:#8aa3ff; --azul-claro:rgba(107,140,255,.16); --t-azul:#a9bcff;
+  --verde:#34d399; --verde-claro:rgba(52,211,153,.14); --t-verde:#6ee7b7;
+  --laranja:#f5a524; --laranja-claro:rgba(245,165,36,.15); --t-laranja:#fcd34d;
+  --vermelho:#f87171; --vermelho-claro:rgba(248,113,113,.15); --t-vermelho:#fca5a5;
+  --roxo:#a78bfa; --roxo-claro:rgba(167,139,250,.16); --t-roxo:#c4b5fd;
+  --serie-1:#338ced; --serie-2:#e76624;
+  --sidebar:#0f1522; --sidebar-texto:#a7b1c2; --sidebar-ativo:rgba(107,140,255,.16);
+  --sombra:0 1px 2px rgba(0,0,0,.3);
+  --sombra-modal:0 24px 60px rgba(0,0,0,.55);
+  color-scheme:dark;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,system-ui,sans-serif;background:var(--fundo);color:var(--texto);font-size:14px}
-button,input,select,textarea{font-family:inherit;font-size:14px}
+html,body{height:100%}
+body{font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--fundo);color:var(--texto);font-size:14px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--texto)}
 .oculto{display:none!important}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--borda-forte);border-radius:10px;border:2px solid var(--fundo)}
 
 /* ---------- LOGIN ---------- */
-#telaLogin{min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#e8f0fe 0%,#f1edff 50%,#e7f8ef 100%)}
-.cartao-login{background:#fff;padding:36px;border-radius:16px;box-shadow:0 10px 30px rgba(26,115,232,.12);width:360px}
-.logo-txt{font-size:22px;font-weight:700;color:var(--azul);margin-bottom:4px}
-.logo-txt span{color:var(--verde)}
+#telaLogin{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(1200px 600px at 10% -10%,var(--azul-claro),transparent 60%),radial-gradient(900px 500px at 110% 110%,var(--roxo-claro),transparent 60%),var(--fundo)}
+.cartao-login{background:var(--surface);border:1px solid var(--borda);padding:36px;border-radius:18px;box-shadow:var(--sombra-modal);width:100%;max-width:400px}
+.logo-txt{font-size:20px;font-weight:800;color:var(--texto);letter-spacing:-.3px}
+.logo-txt span{color:var(--azul)}
 .sub{color:var(--cinza);margin-bottom:24px}
+.rodape-login{margin-top:22px;color:var(--cinza);font-size:12px;text-align:center}
 
 /* ---------- LAYOUT ---------- */
-#app{display:flex;min-height:100vh}
-aside{width:230px;background:#fff;border-right:1px solid var(--borda);padding:20px 14px;display:flex;flex-direction:column;position:fixed;height:100vh}
-aside .logo-txt{padding:0 10px 18px}
-.menu a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--texto);text-decoration:none;font-weight:500;margin-bottom:2px;cursor:pointer}
-.menu a:hover{background:var(--fundo)}
-.menu a.ativo{background:var(--azul-claro);color:var(--azul)}
-.menu a.breve{color:#98a2b3;cursor:default}
-.menu a.breve:hover{background:none}
-.menu .tag{margin-left:auto;font-size:10px;background:var(--fundo);padding:2px 6px;border-radius:6px}
-.menu-titulo{font-size:11px;text-transform:uppercase;color:#98a2b3;font-weight:600;padding:14px 12px 6px}
-.rodape-menu{margin-top:auto;border-top:1px solid var(--borda);padding-top:12px}
-.usuario-box{display:flex;align-items:center;gap:10px;padding:6px 10px}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--roxo-claro);color:var(--roxo);display:flex;align-items:center;justify-content:center;font-weight:700}
-main{margin-left:230px;flex:1;padding:24px 28px;max-width:1300px}
-.topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.topo h1{font-size:22px}
+#app{display:grid;grid-template-columns:var(--sb) 1fr;height:100vh;transition:grid-template-columns .2s}
+#app.recolhido{--sb:72px}
+aside{background:var(--sidebar);border-right:1px solid var(--borda);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+#logoMenu{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--borda);min-height:var(--topo);display:flex;align-items:center;justify-content:center}
+#logoMenu img{max-width:100%;max-height:56px}
+[data-theme="dark"] #logoMenu img,[data-theme="dark"] #logoLogin img{background:#fff;border-radius:10px;padding:5px 8px}
+.menu{flex:1;overflow-y:auto;padding:12px 10px}
+.menu a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--sidebar-texto);text-decoration:none;font-weight:500;margin-bottom:2px;cursor:pointer;position:relative;white-space:nowrap}
+.menu a:hover{background:var(--surface-3);color:var(--texto)}
+.menu a.ativo{background:var(--sidebar-ativo);color:var(--azul);font-weight:600}
+.menu a.ativo::before{content:'';position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--azul)}
+.menu-titulo{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted-2);font-weight:600;padding:14px 12px 6px}
+.rodape-menu{border-top:1px solid var(--borda);padding:10px}
+.usuario-box{display:flex;align-items:center;gap:10px;padding:6px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--azul-claro);color:var(--azul);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+#app.recolhido .menu a span,#app.recolhido .menu-titulo,#app.recolhido .usuario-info{display:none}
+#app.recolhido .menu a{justify-content:center;padding:11px 0}
+#app.recolhido #logoMenu{padding:12px 8px}
+#app.recolhido .usuario-box{flex-direction:column}
+
+.coluna{display:flex;flex-direction:column;min-width:0;min-height:0;height:100vh}
+.topo{height:var(--topo);flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--borda)}
+.topo h1{font-size:19px;font-weight:700;letter-spacing:-.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acoes-topo{display:flex;gap:8px;align-items:center}
+main{flex:1;overflow-y:auto;padding:22px 24px;min-height:0}
+.rodape-app{flex:none;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 24px;border-top:1px solid var(--borda);background:var(--surface);color:var(--cinza);font-size:12px}
+.rodape-app b{color:var(--texto-2);font-weight:700}
+.rodape-app a{color:var(--cinza);text-decoration:none}.rodape-app a:hover{color:var(--azul)}
 
 /* ---------- COMPONENTES ---------- */
-.btn{border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.btn-pri{background:var(--azul);color:#fff}.btn-pri:hover{filter:brightness(1.08)}
-.btn-sec{background:#fff;color:var(--texto);border:1px solid var(--borda)}.btn-sec:hover{background:var(--fundo)}
-.btn-ico{background:#fff;border:1px solid var(--borda);width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:17px}
-.btn:disabled{opacity:.6;cursor:wait}
-.campo{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
-.campo label{font-size:12px;font-weight:600;color:#475467}
-.campo input,.campo select,.campo textarea{border:1px solid var(--borda);border-radius:9px;padding:9px 11px;background:#fff;outline:none}
-.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-claro)}
+.btn{border:1px solid transparent;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .15s,border-color .15s;white-space:nowrap}
+.btn-pri{background:var(--azul);color:#fff}.btn-pri:hover{background:var(--azul-hover)}
+.btn-sec{background:var(--surface);color:var(--texto);border-color:var(--borda)}.btn-sec:hover{background:var(--surface-3)}
+.btn-ok{background:var(--verde);color:#fff}.btn-ok:hover{filter:brightness(1.07)}
+.btn-perigo{background:transparent;color:var(--vermelho);border-color:var(--vermelho-claro)}.btn-perigo:hover{background:var(--vermelho-claro)}
+.btn-ico{background:var(--surface);border:1px solid var(--borda);width:38px;height:38px;border-radius:10px;cursor:pointer;color:var(--texto-2);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.btn-ico:hover{background:var(--surface-3);color:var(--texto)}
+.btn:disabled{opacity:.55;cursor:wait}
+.campo{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;min-width:0}
+.campo label{font-size:12px;font-weight:600;color:var(--texto-2)}
+.campo input,.campo select,.campo textarea,.filtros input,.filtros select,input[type=date],input[type=month],select,textarea{border:1px solid var(--borda);border-radius:9px;padding:9px 11px;background:var(--surface);outline:none;color:var(--texto)}
+.campo input:focus,.campo select:focus,.campo textarea:focus,.filtros input:focus,.filtros select:focus{border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-claro)}
+.campo input:disabled,.campo select:disabled,.campo textarea:disabled{background:var(--surface-2);color:var(--cinza)}
 .req::after{content:' *';color:var(--vermelho)}
 .grade{display:grid;gap:0 14px}
-.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
-.secao{font-size:12px;font-weight:700;color:var(--azul);text-transform:uppercase;margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--borda)}
-.painel{background:#fff;border-radius:var(--raio);box-shadow:var(--sombra);border:1px solid var(--borda)}
-.filtros{display:flex;gap:10px;padding:14px;border-bottom:1px solid var(--borda)}
-.filtros input{flex:1;border:1px solid var(--borda);border-radius:9px;padding:9px 12px}
-.filtros select{border:1px solid var(--borda);border-radius:9px;padding:9px 12px;background:#fff}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.secao{font-size:11.5px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--borda)}
+.painel{background:var(--surface);border-radius:var(--raio);box-shadow:var(--sombra);border:1px solid var(--borda);overflow:hidden}
+.painel h3{font-size:14.5px;padding:14px 18px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:8px}
+.filtros{display:flex;gap:10px;padding:14px 16px;border-bottom:1px solid var(--borda);align-items:center}
+.filtros input{flex:1;min-width:180px}
 table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:12px;color:var(--cinza);font-weight:600;padding:11px 14px;background:#fafbfc;border-bottom:1px solid var(--borda)}
-td{padding:12px 14px;border-bottom:1px solid #f2f4f7}
-tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
+th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--cinza);font-weight:600;padding:11px 16px;background:var(--surface-2);border-bottom:1px solid var(--borda);white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid var(--borda);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer;transition:background .1s}tbody tr:hover{background:var(--surface-2)}
 .vazio{text-align:center;color:var(--cinza);padding:40px}
-.placa{font-family:monospace;font-weight:700;background:#fff;border:2px solid #1d2939;border-radius:5px;padding:2px 7px;letter-spacing:1px;font-size:13px}
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.b-verde{background:var(--verde-claro);color:#027a48}.b-azul{background:var(--azul-claro);color:var(--azul)}
-.b-laranja{background:var(--laranja-claro);color:#b54708}.b-vermelho{background:var(--vermelho-claro);color:#b42318}
-.b-roxo{background:var(--roxo-claro);color:var(--roxo)}.b-cinza{background:#f2f4f7;color:var(--cinza)}
+.placa{font-family:ui-monospace,Consolas,monospace;font-weight:700;background:var(--surface);color:var(--texto);border:2px solid var(--texto);border-radius:5px;padding:1px 7px;letter-spacing:1px;font-size:12.5px;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-verde{background:var(--verde-claro);color:var(--t-verde)}.b-azul{background:var(--azul-claro);color:var(--t-azul)}
+.b-laranja{background:var(--laranja-claro);color:var(--t-laranja)}.b-vermelho{background:var(--vermelho-claro);color:var(--t-vermelho)}
+.b-roxo{background:var(--roxo-claro);color:var(--t-roxo)}.b-cinza{background:var(--surface-3);color:var(--cinza)}
 
-/* cards do painel */
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.card{background:#fff;border-radius:var(--raio);padding:18px;border:1px solid var(--borda);box-shadow:var(--sombra);border-top:4px solid var(--c)}
-.card .num{font-size:30px;font-weight:700;color:var(--c);margin-top:6px}
-.card .rot{color:var(--cinza);font-weight:500}
-.lista-alertas{padding:6px 0}
-.alerta{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f2f4f7}
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-bottom:18px}
+.card{background:var(--surface);border-radius:var(--raio);padding:16px 18px;border:1px solid var(--borda);box-shadow:var(--sombra);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.card .num{font-size:28px;font-weight:700;color:var(--texto);margin-top:4px;letter-spacing:-.5px}
+.card .rot{color:var(--cinza);font-weight:500;font-size:13px}
+.lista-alertas{padding:4px 0}
+.alerta{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--borda);flex-wrap:wrap}
 .alerta:last-child{border:none}
-.painel h3{font-size:15px;padding:14px 16px;border-bottom:1px solid var(--borda)}
 
-/* modal (telas menores, não ocupa tudo) */
-.fundo-modal{position:fixed;inset:0;background:rgba(16,24,40,.35);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow:auto}
-.modal{background:#fff;border-radius:16px;width:100%;max-width:760px;box-shadow:0 20px 50px rgba(16,24,40,.2)}
-.modal.peq{max-width:460px}
-.modal-cab{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--borda)}
-.modal-cab h2{font-size:17px}
-.fechar{background:none;border:none;font-size:22px;cursor:pointer;color:var(--cinza)}
-.modal-corpo{padding:16px 20px;max-height:68vh;overflow:auto}
-.modal-rodape{display:flex;justify-content:space-between;gap:8px;padding:14px 20px;border-top:1px solid var(--borda)}
-.abas{display:flex;gap:4px;border-bottom:1px solid var(--borda);padding:0 20px}
-.abas button{background:none;border:none;padding:11px 12px;font-weight:600;color:var(--cinza);cursor:pointer;border-bottom:2px solid transparent}
+/* modal */
+.fundo-modal{position:fixed;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(2px);display:flex;align-items:flex-start;justify-content:center;padding:3vh 16px;z-index:50;overflow:auto}
+.modal{background:var(--surface);border:1px solid var(--borda);border-radius:16px;width:100%;max-width:min(1080px,96vw);box-shadow:var(--sombra-modal);display:flex;flex-direction:column;max-height:94vh}
+.modal.peq{max-width:560px}
+.modal-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 22px;border-bottom:1px solid var(--borda);flex:none}
+.modal-cab h2{font-size:17px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fechar{background:none;border:none;font-size:24px;cursor:pointer;color:var(--cinza);line-height:1;width:34px;height:34px;border-radius:8px}
+.fechar:hover{background:var(--surface-3);color:var(--texto)}
+.modal-corpo{padding:18px 22px;overflow:auto;flex:1;min-height:0}
+.modal-rodape{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px 22px;border-top:1px solid var(--borda);flex:none;flex-wrap:wrap}
+.abas{display:flex;gap:2px;border-bottom:1px solid var(--borda);padding:0 22px;overflow-x:auto;flex:none}
+.abas button{background:none;border:none;padding:12px 12px;font-weight:600;color:var(--cinza);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+.abas button:hover{color:var(--texto)}
 .abas button.ativo{color:var(--azul);border-color:var(--azul)}
-.btn-perigo{background:#fff;color:var(--vermelho);border:1px solid #fda29b}.btn-perigo:hover{background:var(--vermelho-claro)}
-.btn-ok{background:var(--verde);color:#fff}.btn-ok:hover{filter:brightness(1.05)}
-.aviso{background:var(--laranja-claro);color:#b54708;border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:13px}
-.info{background:var(--azul-claro);color:#1849a9;border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:13px}
-.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
-.chip{display:inline-block;background:var(--fundo);border:1px solid var(--borda);border-radius:6px;padding:2px 6px;margin:2px;font-size:11.5px;cursor:pointer}
-.chip:hover{background:var(--azul-claro)}
-.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.foto-card{border:2px dashed var(--borda);border-radius:12px;overflow:hidden;background:#fafbfc}
-.foto-card.tem{border-style:solid;border-color:var(--verde)}
-.foto-area{height:110px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--azul);font-weight:600;cursor:pointer;position:relative}
-.foto-area>img:first-child{width:100%;height:100%;object-fit:cover}
-.foto-ret{position:absolute;right:4px;bottom:4px;width:54px;height:40px;object-fit:cover;border:2px solid #fff;border-radius:5px;box-shadow:var(--sombra)}
-.foto-nome{padding:6px 8px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;background:#fff}
-.foto-x{margin-left:auto;border:none;background:var(--vermelho-claro);color:var(--vermelho);border-radius:6px;cursor:pointer;padding:2px 7px}
-.ck-item{padding:10px 0;border-bottom:1px solid #f2f4f7}.ck-nome{font-weight:500;margin-bottom:6px}
-.seg{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden}
-.seg button{border:none;background:#fff;padding:8px 14px;cursor:pointer;font-weight:600;color:var(--cinza);border-right:1px solid var(--borda)}
-.seg button:last-child{border-right:none}
-.seg .sel-ok{background:var(--verde);color:#fff}.seg .sel-problema{background:var(--vermelho);color:#fff}.seg .sel-na{background:#98a2b3;color:#fff}
-.ck-obs{display:block;width:100%;margin-top:6px;border:1px solid var(--borda);border-radius:8px;padding:8px}
-.av-item{border:1px solid var(--borda);border-radius:12px;padding:12px;margin-bottom:10px}
-.ass-box{position:relative;border:2px dashed var(--borda);border-radius:12px;overflow:hidden;touch-action:none}
-.ass-box canvas{display:block;width:100%;touch-action:none}
-@media(max-width:700px){
-  .fundo-modal{padding:0}.modal{border-radius:0;min-height:100vh;max-width:none}
-  .modal-corpo{max-height:none}.g2{grid-template-columns:1fr}
-  .modal-rodape{position:sticky;bottom:0;background:#fff}
-}
-.mn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-.mn-card{display:flex;flex-direction:column}.mn-cab{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--borda)}
-.mn-km{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fafbfc;border-bottom:1px solid var(--borda)}
-.mn-item{display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid #f2f4f7}
-.mn-itens{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px;border:1px solid var(--borda);border-radius:9px;padding:10px}
-.mn-chk{display:flex;gap:8px;align-items:center;font-weight:400!important;font-size:13px!important;color:var(--texto)!important;cursor:pointer}
-.lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.dica{position:absolute;top:8px;background:#fff;border:1px solid var(--borda);border-radius:9px;padding:8px 10px;font-size:12px;box-shadow:var(--sombra);pointer-events:none;min-width:150px}
-@media(max-width:700px){.conf-grid{grid-template-columns:1fr!important}}
+/* configurações: menu vertical */
+.modal.cfg{display:grid;grid-template-columns:240px 1fr;grid-template-rows:auto 1fr;height:88vh;max-width:min(1180px,96vw)}
+.modal.cfg .modal-cab{grid-column:1/3}
+.modal.cfg .abas{flex-direction:column;border-bottom:none;border-right:1px solid var(--borda);padding:10px;overflow-y:auto;gap:2px;background:var(--surface-2);border-radius:0 0 0 16px}
+.modal.cfg .abas button{border-bottom:none;border-radius:9px;padding:10px 12px;justify-content:flex-start;text-align:left;white-space:normal}
+.modal.cfg .abas button.ativo{background:var(--sidebar-ativo);color:var(--azul)}
+.modal.cfg .modal-corpo{padding:20px 26px}
 .hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
 .hist-item small{color:var(--cinza)}
 
 /* toast e carregando */
-#toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:10px;color:#fff;font-weight:600;z-index:99;box-shadow:var(--sombra);transition:.3s;opacity:0;transform:translateY(10px)}
+#toast{position:fixed;bottom:56px;right:24px;padding:12px 18px;border-radius:10px;color:#fff;font-weight:600;z-index:99;box-shadow:var(--sombra-modal);transition:.3s;opacity:0;transform:translateY(10px);pointer-events:none;max-width:420px}
 #toast.show{opacity:1;transform:none}
 #carregando{position:fixed;top:0;left:0;height:3px;background:var(--azul);z-index:100;width:0;transition:width .4s}
 .erro-login{color:var(--vermelho);font-size:13px;min-height:18px;margin-bottom:8px}
+.aviso{background:var(--laranja-claro);color:var(--t-laranja);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.info{background:var(--azul-claro);color:var(--t-azul);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.chip{display:inline-block;background:var(--surface-2);border:1px solid var(--borda);border-radius:6px;padding:2px 6px;margin:2px;font-size:11.5px;cursor:pointer}
+.chip:hover{background:var(--azul-claro)}
+pre{color:var(--texto)}
 
+/* vistoria */
+.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.foto-card{border:2px dashed var(--borda-forte);border-radius:12px;overflow:hidden;background:var(--surface-2)}
+.foto-card.tem{border-style:solid;border-color:var(--verde)}
+.foto-area{height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--azul);font-weight:600;cursor:pointer;position:relative;gap:4px}
+.foto-area>img:first-child{width:100%;height:100%;object-fit:cover}
+.foto-ret{position:absolute;right:4px;bottom:4px;width:54px;height:40px;object-fit:cover;border:2px solid var(--surface);border-radius:5px;box-shadow:var(--sombra)}
+.foto-nome{padding:7px 9px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;background:var(--surface)}
+.foto-x{margin-left:auto;border:none;background:var(--vermelho-claro);color:var(--vermelho);border-radius:6px;cursor:pointer;padding:2px 7px}
+.ck-item{padding:10px 0;border-bottom:1px solid var(--borda)}.ck-nome{font-weight:500;margin-bottom:6px}
+.seg{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden}
+.seg button{border:none;background:var(--surface);padding:8px 14px;cursor:pointer;font-weight:600;color:var(--cinza);border-right:1px solid var(--borda)}
+.seg button:last-child{border-right:none}
+.seg .sel-ok{background:var(--verde);color:#fff}.seg .sel-problema{background:var(--vermelho);color:#fff}.seg .sel-na{background:var(--muted-2);color:#fff}
+.ck-obs{display:block;width:100%;margin-top:6px;border:1px solid var(--borda);border-radius:8px;padding:8px;background:var(--surface)}
+.av-item{border:1px solid var(--borda);border-radius:12px;padding:12px;margin-bottom:10px}
+.ass-box{position:relative;border:2px dashed var(--borda-forte);border-radius:12px;overflow:hidden;touch-action:none;background:#fff}
+.ass-box canvas{display:block;width:100%;touch-action:none}
+
+/* manutenção */
+.mn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.mn-card{display:flex;flex-direction:column}.mn-cab{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--borda)}
+.mn-km{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--surface-2);border-bottom:1px solid var(--borda)}
+.mn-item{display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--borda)}
+.mn-itens{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px;border:1px solid var(--borda);border-radius:9px;padding:10px}
+.mn-chk{display:flex;gap:8px;align-items:center;font-weight:400!important;font-size:13px!important;color:var(--texto)!important;cursor:pointer}
+
+/* gráficos */
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.dica{position:absolute;top:8px;background:var(--surface);border:1px solid var(--borda);border-radius:9px;padding:8px 10px;font-size:12px;box-shadow:var(--sombra-modal);pointer-events:none;min-width:150px;color:var(--texto)}
+
+/* ---------- RESPONSIVO ---------- */
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){
-  aside{position:static;width:100%;height:auto}#app{flex-direction:column}main{margin:0;padding:16px}
-  .cards{grid-template-columns:repeat(2,1fr)}.g3,.g4{grid-template-columns:1fr 1fr}
+  #app{grid-template-columns:1fr;height:auto;min-height:100vh}
+  aside{position:fixed;inset:0 auto 0 0;width:260px;z-index:60;transform:translateX(-105%);transition:transform .2s}
+  #app.menu-aberto aside{transform:none;box-shadow:var(--sombra-modal)}
+  #app.recolhido{--sb:260px}
+  #app.recolhido .menu a span,#app.recolhido .usuario-info{display:inline}
+  .coluna{height:auto;min-height:100vh}
+  main{overflow:visible;padding:16px}
+  .topo{position:sticky;top:0;z-index:20;padding:0 14px}
+  .g3,.g4{grid-template-columns:1fr 1fr}
+  .modal.cfg{grid-template-columns:1fr;grid-template-rows:auto auto 1fr;height:auto}
+  .modal.cfg .modal-cab{grid-column:1}
+  .modal.cfg .abas{flex-direction:row;border-right:none;border-bottom:1px solid var(--borda);border-radius:0;overflow-x:auto}
+  .filtros{flex-wrap:wrap}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .card{padding:12px 14px}.card .num{font-size:20px}
+}
+@media(max-width:700px){
+  .fundo-modal{padding:0}.modal{border-radius:0;min-height:100vh;max-width:none;max-height:none}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .modal-rodape{position:sticky;bottom:0;background:var(--surface)}
+  .conf-grid{grid-template-columns:1fr!important}
+  td,th{padding:10px 10px}
 }
 </style>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-painel" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-veiculos" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-motoristas" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-contratos" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="i-vistorias" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+  <symbol id="i-manutencao" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-infracoes" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-financeiro" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-config" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-sair" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-lua" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-empresa" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+  <symbol id="i-camadas" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+  <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
+  <symbol id="i-sino" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
+  <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+</svg>
 <div id="carregando"></div>
 <div id="toast"></div>
 
 <!-- ======================= LOGIN ======================= -->
 <section id="telaLogin">
   <form class="cartao-login" onsubmit="entrar(event)">
-    <div id="logoLogin" style="text-align:center;margin-bottom:6px"><div class="logo-txt">Sistema <span>Frota</span></div></div>
-    <div class="sub" style="text-align:center">Gestão de frota e locação</div>
+    <div id="logoLogin" style="text-align:center;margin-bottom:8px"><div class="logo-txt">Gestão de <span>Frotas</span></div></div>
+    <div class="sub" style="text-align:center">Acesse com seu e-mail e senha</div>
     <div class="campo"><label>E-mail</label><input id="lgEmail" type="email" required autocomplete="username"></div>
     <div class="campo"><label>Senha</label><input id="lgSenha" type="password" required autocomplete="current-password"></div>
     <div class="erro-login" id="lgErro"></div>
-    <button class="btn btn-pri" style="width:100%;justify-content:center" id="lgBtn">Entrar</button>
+    <button class="btn btn-pri" style="width:100%;padding:11px" id="lgBtn">Entrar</button>
   </form>
+  <div class="rodape-login"><b>DMA SYS</b> · Gestão de Frotas v2.0 · © 2026 · <a href="https://dmasys.com.br" target="_blank" style="color:inherit">dmasys.com.br</a></div>
 </section>
 
 <!-- ======================= APP ======================= -->
 <div id="app" class="oculto">
   <aside>
-    <div id="logoMenu" style="padding:0 6px 16px;text-align:center"><div class="logo-txt">Sistema <span>Frota</span></div></div>
+    <div id="logoMenu"><div class="logo-txt">Gestão de <span>Frotas</span></div></div>
     <nav class="menu" id="menu">
-      <a data-tela="painel" class="ativo">📊 Painel</a>
-      <a data-tela="dashboard" id="menuDash">📈 Dashboard</a>
-      <a data-tela="veiculos">🚗 Veículos</a>
-      <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
-      <a data-tela="contratos">📄 Contratos</a>
-      <a data-tela="vistorias">📷 Vistorias</a>
-      <a data-tela="manutencao">🔧 Manutenção</a>
-      <a data-tela="infracoes">🚨 Infrações</a>
-      <a data-tela="financeiro">💰 Financeiro</a>
+      <div class="menu-titulo">Visão geral</div>
+      <a data-tela="painel" class="ativo" title="Painel"><svg class="i"><use href="#i-painel"/></svg><span>Painel</span></a>
+      <a data-tela="dashboard" id="menuDash" title="Dashboard"><svg class="i"><use href="#i-dashboard"/></svg><span>Dashboard</span></a>
+      <div class="menu-titulo">Operação</div>
+      <a data-tela="veiculos" title="Veículos"><svg class="i"><use href="#i-veiculos"/></svg><span>Veículos</span></a>
+      <a data-tela="motoristas" title="Motoristas"><svg class="i"><use href="#i-motoristas"/></svg><span>Motoristas</span></a>
+      <a data-tela="contratos" title="Contratos"><svg class="i"><use href="#i-contratos"/></svg><span>Contratos</span></a>
+      <a data-tela="vistorias" title="Vistorias"><svg class="i"><use href="#i-vistorias"/></svg><span>Vistorias</span></a>
+      <a data-tela="manutencao" title="Manutenção"><svg class="i"><use href="#i-manutencao"/></svg><span>Manutenção</span></a>
+      <a data-tela="infracoes" title="Infrações"><svg class="i"><use href="#i-infracoes"/></svg><span>Infrações</span></a>
+      <div class="menu-titulo">Gestão</div>
+      <a data-tela="financeiro" title="Financeiro"><svg class="i"><use href="#i-financeiro"/></svg><span>Financeiro</span></a>
     </nav>
     <div class="rodape-menu">
       <div class="usuario-box">
         <div class="avatar" id="avatar">?</div>
-        <div style="flex:1;min-width:0"><div id="usNome" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div class="usuario-info" style="flex:1;min-width:0"><div id="usNome" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
           <small id="usPerfil" style="color:var(--cinza)"></small></div>
-        <button class="btn-ico" title="Sair" onclick="sair()">⏻</button>
+        <button class="btn-ico" title="Sair" onclick="sair()"><svg class="i"><use href="#i-sair"/></svg></button>
       </div>
     </div>
   </aside>
 
-  <main>
-    <div class="topo">
+  <div class="coluna">
+    <header class="topo">
+      <button class="btn-ico" id="btnMenu" title="Recolher / expandir menu"><svg class="i"><use href="#i-menu"/></svg></button>
       <h1 id="tituloTela">Painel</h1>
       <div class="acoes-topo">
         <button class="btn btn-pri oculto" id="btnNovo">+ Novo</button>
-        <button class="btn-ico" title="Configurações" onclick="abrirConfig()">⚙️</button>
+        <button class="btn-ico" id="btnTema" title="Alternar tema claro / escuro"></button>
+        <button class="btn-ico" title="Configurações" onclick="abrirConfig()"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
-    </div>
+    </header>
+  <main>
 
     <!-- DASHBOARD -->
     <section id="tela-dashboard" class="oculto">
@@ -218,7 +329,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
     <!-- PAINEL -->
     <section id="tela-painel">
       <div class="cards" id="cards"></div>
-      <div class="painel"><h3>⚠️ Alertas: vencimentos e atrasos</h3><div class="lista-alertas" id="alertas"></div></div>
+      <div class="painel"><h3><svg class="i"><use href="#i-alerta"/></svg> Alertas: vencimentos e atrasos</h3><div class="lista-alertas" id="alertas"></div></div>
     </section>
 
     <!-- VEÍCULOS -->
@@ -311,6 +422,11 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       </div>
     </section>
   </main>
+    <footer class="rodape-app">
+      <span><b>DMA SYS</b> · Gestão de Frotas · v2.0</span>
+      <span>© 2026 DMA SYS · <a href="https://dmasys.com.br" target="_blank">dmasys.com.br</a></span>
+    </footer>
+  </div>
 </div>
 
 <div id="modais"></div>
@@ -370,7 +486,7 @@ const diasAte = iso => { if (!iso) return null; const [a, m, d] = iso.slice(0, 1
 const fmtDoc = d => { d = String(d || '').replace(/\D/g, ''); if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); return d; };
 const badge = (map, k) => { const v = map[k] || [k, 'b-cinza']; return `<span class="badge ${v[1]}">${esc(v[0])}</span>`; };
 function badgeVenc(iso) {
-  const d = diasAte(iso); if (d === null) return '<span style="color:#98a2b3">—</span>';
+  const d = diasAte(iso); if (d === null) return '<span style="color:var(--muted-2)">—</span>';
   if (d < 0) return `<span class="badge b-vermelho">Vencido ${dataBR(iso)}</span>`;
   if (d <= 30) return `<span class="badge b-laranja">${dataBR(iso)} (${d}d)</span>`;
   return dataBR(iso);
@@ -392,12 +508,37 @@ const nomeModelo = id => { const m = S.cat.modelos.find(x => x.id === id); if (!
 const pode = (...perfis) => perfis.includes(S.usuario?.perfil);
 
 /* =========================================================
+   ÍCONES, TEMA E MENU
+   ========================================================= */
+const ico = (n, t = 18) => `<svg class="i" style="width:${t}px;height:${t}px"><use href="#i-${n}"/></svg>`;
+const ICONE_CFG = { empresa: 'empresa', usuarios: 'motoristas', planos: 'tag', contrato: 'contratos', marcas: 'camadas', modelos: 'veiculos', cores: 'gota',
+  notif: 'sino', planoManut: 'manutencao', checklist: 'vistorias', categorias: 'lista', senha: 'chave' };
+function aplicarTema(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('frota_tema', t); } catch (e) {}
+  $('btnTema').innerHTML = ico(t === 'dark' ? 'sol' : 'lua');
+  $('btnTema').title = t === 'dark' ? 'Usar tema claro' : 'Usar tema escuro';
+}
+aplicarTema(document.documentElement.dataset.theme || 'light');
+$('btnTema').onclick = () => aplicarTema(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+const telaPequena = () => matchMedia('(max-width: 900px)').matches;
+try { if (localStorage.getItem('frota_menu') === 'recolhido') $('app').classList.add('recolhido'); } catch (e) {}
+$('btnMenu').onclick = () => {
+  if (telaPequena()) return $('app').classList.toggle('menu-aberto');
+  const r = $('app').classList.toggle('recolhido');
+  try { localStorage.setItem('frota_menu', r ? 'recolhido' : ''); } catch (e) {}
+};
+document.addEventListener('click', e => {
+  if (telaPequena() && $('app').classList.contains('menu-aberto') && !e.target.closest('aside') && !e.target.closest('#btnMenu')) $('app').classList.remove('menu-aberto');
+});
+
+/* =========================================================
    MODAL
    ========================================================= */
-function abrirModal({ titulo, corpo, rodape = '', peq = false, abas = '' }) {
+function abrirModal({ titulo, corpo, rodape = '', peq = false, abas = '', classe = '' }) {
   const div = document.createElement('div');
   div.className = 'fundo-modal';
-  div.innerHTML = `<div class="modal ${peq ? 'peq' : ''}">
+  div.innerHTML = `<div class="modal ${peq ? 'peq' : ''} ${classe}">
       <div class="modal-cab"><h2>${titulo}</h2><button class="fechar" type="button">×</button></div>
       ${abas}<div class="modal-corpo">${corpo}</div>${rodape ? `<div class="modal-rodape">${rodape}</div>` : ''}</div>`;
   div.querySelector('.fechar').onclick = () => div.remove();
@@ -489,6 +630,7 @@ $('finNovaRec').onclick = () => formLanc('receita');
 $('finNovaDesp').onclick = () => formLanc('despesa');
 async function irPara(tela) {
   S.tela = tela;
+  $('app').classList.remove('menu-aberto');
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
   ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao', 'infracoes', 'dashboard'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
   $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro', manutencao: 'Manutenção', infracoes: 'Infrações', dashboard: 'Dashboard' }[tela];
@@ -532,7 +674,7 @@ async function carregarPainel() {
   $('alertas').innerHTML = r.alertas.length ? r.alertas.map(a => `
     <div class="alerta">${(t => `<span class="badge ${t[1]}">${t[0]}</span>`)(textoBadgeAlerta(a))}
       <b style="${/BLOQUEAR/.test(a.tipo) ? 'color:var(--vermelho)' : ''}">${esc(a.tipo)}</b><span style="color:var(--cinza)">${esc(a.ref)}</span></div>`).join('')
-    : '<div class="vazio">Nenhum vencimento nos próximos dias. 👍</div>';
+    : '<div class="vazio">Nenhum vencimento nos próximos dias. </div>';
 }
 
 /* =========================================================
@@ -566,7 +708,7 @@ function formVeiculo(id) {
         <div class="campo"><label>Chassi</label><input name="chassi" value="${val('chassi')}" maxlength="17" style="text-transform:uppercase"></div>
       </div>
       <div class="grade g4">
-        <div class="campo" style="grid-column:span 2"><label class="req">Marca / Modelo</label><select name="modelo_id" required>${opcoes(modelos, v.modelo_id, modelos.length ? 'Selecione...' : 'Cadastre modelos na ⚙️')}</select></div>
+        <div class="campo" style="grid-column:span 2"><label class="req">Marca / Modelo</label><select name="modelo_id" required>${opcoes(modelos, v.modelo_id, modelos.length ? 'Selecione...' : 'Cadastre modelos em Configurações')}</select></div>
         <div class="campo"><label>Ano fab.</label><input name="ano_fabricacao" type="number" value="${val('ano_fabricacao')}"></div>
         <div class="campo"><label>Ano modelo</label><input name="ano_modelo" type="number" value="${val('ano_modelo')}"></div>
       </div>
@@ -737,8 +879,8 @@ function abrirConfig() {
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
   abas.push(['senha', 'Minha senha']);
   const md = abrirModal({
-    titulo: '⚙️ Configurações',
-    abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
+    titulo: ico('config') + ' Configurações', classe: 'cfg',
+    abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${ico(ICONE_CFG[a[0]] || 'lista')}<span>${a[1]}</span></button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
   const carregar = nome => ({ notif: cfgNotificacoes, planoManut: cfgPlanoManut, categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
@@ -821,7 +963,7 @@ async function cfgEmpresa(alvo) {
     <button class="btn btn-pri" type="button" id="salvarEmp">Salvar empresa</button></form>
     <div class="secao" style="margin-top:22px">Logo</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-      <div id="logoPrev" style="width:220px;height:110px;border:1px dashed var(--borda);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fafbfc;color:var(--cinza);font-size:12px">sem logo</div>
+      <div id="logoPrev" style="width:220px;height:110px;border:1px dashed var(--borda);border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--cinza);font-size:12px">sem logo</div>
       <div>
         <input type="file" id="logoArq" accept="image/png,image/jpeg" class="oculto">
         <button class="btn btn-pri" type="button" onclick="$('logoArq').click()">Enviar logo</button>
@@ -978,13 +1120,13 @@ async function formContrato(id) {
   let esq = '', dir = '';
   if (st === 'rascunho') {
     if (id) esq = btn('ctCancelar', 'Cancelar contrato', 'btn-perigo');
-    dir = btn('ctSalvar', 'Salvar rascunho') + (id ? btn('ctPrevia', '👁 Pré-visualizar') : '') + btn('ctEmitir', 'Salvar e emitir PDF', 'btn-pri');
+    dir = btn('ctSalvar', 'Salvar rascunho') + (id ? btn('ctPrevia', 'Pré-visualizar') : '') + btn('ctEmitir', 'Salvar e emitir PDF', 'btn-pri');
   } else if (st === 'aguardando_assinatura') {
     esq = btn('ctCancelar', 'Cancelar contrato', 'btn-perigo');
-    dir = btn('ctBaixar', '⬇ PDF para assinar') + btn('ctReemitir', '↻ Regerar PDF') + btn('ctAnexar', '📎 Anexar assinado', 'btn-ok');
+    dir = btn('ctBaixar', 'PDF para assinar') + btn('ctReemitir', '↻ Regerar PDF') + btn('ctAnexar', 'Anexar assinado', 'btn-ok');
   } else {
     if (st === 'ativo' && pode('admin')) esq = btn('ctEncerrar', 'Encerrar sem vistoria', 'btn-perigo');
-    dir = (c.pdf_file_id ? btn('ctBaixar', '⬇ PDF emitido') : '') + (c.pdf_assinado_file_id ? btn('ctBaixarAss', '⬇ Contrato assinado', 'btn-pri') : '');
+    dir = (c.pdf_file_id ? btn('ctBaixar', 'PDF emitido') : '') + (c.pdf_assinado_file_id ? btn('ctBaixarAss', 'Contrato assinado', 'btn-pri') : '');
   }
 
   const md = abrirModal({
@@ -999,7 +1141,7 @@ async function formContrato(id) {
           <div class="campo"><label class="req">Veículo</label><select name="veiculo_id" ${dis} required>${opcoes(veics, c.veiculo_id, veics.length ? 'Selecione...' : 'Nenhum veículo disponível')}</select></div>
         </div>
         <div class="grade g4">
-          <div class="campo" style="grid-column:span 2"><label class="req">Plano</label><select name="plano_id" ${dis} required>${opcoes(planos, c.plano_id, planos.length ? 'Selecione...' : 'Cadastre planos na ⚙️')}</select></div>
+          <div class="campo" style="grid-column:span 2"><label class="req">Plano</label><select name="plano_id" ${dis} required>${opcoes(planos, c.plano_id, planos.length ? 'Selecione...' : 'Cadastre planos em Configurações')}</select></div>
           <div class="campo"><label class="req">Início</label><input name="data_inicio" type="date" value="${esc(c.data_inicio || '')}" ${dis} required></div>
           <div class="campo"><label>KM na retirada</label><input name="km_inicial" type="number" min="0" value="${esc(c.km_inicial ?? '')}" ${dis} placeholder="pega do veículo"></div>
         </div>
@@ -1086,7 +1228,7 @@ function anexarAssinado(c, depois) {
   };
 }
 
-/* ---------- ⚙️ Planos ---------- */
+/* ---------- Planos ---------- */
 async function cfgPlanos(alvo) {
   alvo.innerHTML = 'Carregando...';
   S.planos = await api('listarPlanos');
@@ -1120,12 +1262,12 @@ async function cfgPlanos(alvo) {
   if (editavel) alvo.querySelectorAll('tbody tr[data-i]').forEach(tr => tr.onclick = () => editar(lista[tr.dataset.i]));
 }
 
-/* ---------- ⚙️ Modelo de contrato ---------- */
+/* ---------- Modelo de contrato ---------- */
 async function cfgModeloContrato(alvo) {
   alvo.innerHTML = 'Carregando...';
   const m = await api('obterModeloContrato');
   alvo.innerHTML = `
-    <div class="aviso">⚖️ Este texto é uma <b>minuta</b>. Revise com um advogado antes de usar. Cada vez que salvar, vira uma <b>nova versão</b> (contratos já emitidos não mudam).</div>
+    <div class="aviso">Este texto é uma <b>minuta</b>. Revise com um advogado antes de usar. Cada vez que salvar, vira uma <b>nova versão</b> (contratos já emitidos não mudam).</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <b>${esc(m.nome)}</b><span class="badge b-azul">versão ${esc(m.versao)}</span></div>
     <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--azul);font-weight:600">Como formatar e marcadores disponíveis (clique para inserir)</summary>
@@ -1202,10 +1344,10 @@ async function blocoVistoriasContrato(c, alvo, fecharContrato) {
     const tem = t => vs.find(v => v.tipo === t);
     const ret = tem('retirada'), dev = tem('devolucao');
     let botoes = '';
-    if (!ret || ret.status === 'rascunho') botoes += `<button class="btn btn-pri" type="button" data-vs="retirada">📷 ${ret ? 'Continuar' : 'Iniciar'} vistoria de retirada</button>`;
-    if (c.status === 'ativo' && (!dev || dev.status === 'rascunho')) botoes += `<button class="btn btn-sec" type="button" data-vs="devolucao">🔁 ${dev ? 'Continuar' : 'Iniciar'} devolução (encerra o contrato)</button>`;
+    if (!ret || ret.status === 'rascunho') botoes += `<button class="btn btn-pri" type="button" data-vs="retirada">${ret ? 'Continuar' : 'Iniciar'} vistoria de retirada</button>`;
+    if (c.status === 'ativo' && (!dev || dev.status === 'rascunho')) botoes += `<button class="btn btn-sec" type="button" data-vs="devolucao">${dev ? 'Continuar' : 'Iniciar'} devolução (encerra o contrato)</button>`;
     alvo.innerHTML = `<div class="secao">Vistorias</div>
-      ${vs.map(v => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f2f4f7;cursor:pointer" data-abrir="${v.id}">
+      ${vs.map(v => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--surface-3);cursor:pointer" data-abrir="${v.id}">
         ${badge(TIPO_VS, v.tipo)} <b>${esc(v.numero)}</b> ${badge(STATUS_VS, v.status)}
         <span style="color:var(--cinza);margin-left:auto">${v.km !== '' ? num(v.km) + ' km · ' : ''}${dataBR(v.concluida_em || v.criado_em)}</span></div>`).join('')}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${botoes}</div>`;
@@ -1293,7 +1435,7 @@ async function abrirVistoria(id) {
     md.querySelector('#vsFotos').innerHTML = r.posicoes.map(([pos, nome, obrig]) => {
       const f = fotos.find(x => x.posicao === pos), fr = fotoRet(pos);
       return `<div class="foto-card ${f ? 'tem' : ''}" data-pos="${pos}">
-        <div class="foto-area">${f ? `<img src="${f.thumb}" data-ver="${f.id}">` : `<span>📷<br>${fechada ? 'sem foto' : 'Tirar foto'}</span>`}
+        <div class="foto-area">${f ? `<img src="${f.thumb}" data-ver="${f.id}">` : `<span>${ico('camera', 26)}${fechada ? 'sem foto' : 'Tirar foto'}</span>`}
           ${fr ? `<img class="foto-ret" src="${fr.thumb}" data-ver="${fr.id}" title="Retirada">` : ''}</div>
         <div class="foto-nome">${esc(nome)}${obrig ? ' <span style="color:var(--vermelho)">*</span>' : ''}
           ${f && !fechada ? `<button type="button" class="foto-x" data-rem="${f.id}" title="Remover">✕</button>` : ''}</div>
@@ -1361,7 +1503,7 @@ async function abrirVistoria(id) {
         </div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           ${f ? `<img src="${f.thumb}" data-ver="${f.id}" style="height:60px;border-radius:6px;cursor:pointer">` : ''}
-          ${fechada ? '' : `<button type="button" class="btn btn-sec" data-foto>📷 ${f ? 'Trocar foto' : 'Foto da avaria'}</button><input type="file" accept="image/*" capture="environment" class="oculto">`}
+          ${fechada ? '' : `<button type="button" class="btn btn-sec" data-foto>${f ? 'Trocar foto' : 'Foto da avaria'}</button><input type="file" accept="image/*" capture="environment" class="oculto">`}
           ${dev ? `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-k="nova" ${a.nova ? 'checked' : ''} ${dis}> Avaria nova</label>
             <input data-k="valor" type="number" step="0.01" min="0" placeholder="Valor estimado R$" value="${esc(a.valor || '')}" style="width:150px;border:1px solid var(--borda);border-radius:8px;padding:7px" ${dis}>` : ''}
           ${fechada ? '' : '<button type="button" class="btn btn-perigo" data-del style="margin-left:auto">Excluir</button>'}
@@ -1388,7 +1530,7 @@ async function abrirVistoria(id) {
     const alvo = md.querySelector('#vsFim');
     if (fechada) {
       alvo.innerHTML = `<div class="info">Vistoria concluída em ${dataBR(v.concluida_em)} por ${esc(v.realizada_por)}. Assinada por ${esc(v.assinante_nome)}.</div>
-        <button class="btn btn-pri" type="button" id="vsPdf">⬇ Baixar Termo de Vistoria (PDF)</button>`;
+        <button class="btn btn-pri" type="button" id="vsPdf">Baixar Termo de Vistoria (PDF)</button>`;
       alvo.querySelector('#vsPdf').onclick = async ev => { ev.target.disabled = true; try { abrirArquivo(await api('baixarVistoriaPdf', { id })); } catch (e) { toast(e.message, 'erro'); } ev.target.disabled = false; };
       return;
     }
@@ -1404,7 +1546,7 @@ async function abrirVistoria(id) {
       ${pend.length ? `<div class="aviso"><b>Pendências antes de concluir:</b><br>${pend.map(p => '• ' + esc(p)).join('<br>')}</div>`
         : `<div class="info">Tudo preenchido. ${dev ? '<b>Ao concluir, o contrato será encerrado.</b>' : 'Peça ao motorista para conferir e assinar.'}</div>`}
       <div class="campo"><label class="req">Nome de quem assina (motorista)</label><input id="vsAssNome" value="${esc(v.assinante_nome || r.motorista)}"></div>
-      <label style="font-size:12px;font-weight:600;color:#475467">Assinatura do motorista</label>
+      <label style="font-size:12px;font-weight:600;color:var(--texto-2)">Assinatura do motorista</label>
       <div class="ass-box"><canvas id="vsCanvas"></canvas><button type="button" class="btn btn-sec" id="vsLimpar" style="position:absolute;right:8px;top:8px;padding:5px 10px">Limpar</button></div>
       <p style="font-size:12px;color:var(--cinza);margin-top:6px">Ao assinar, o motorista declara que conferiu ${dev ? 'a devolução' : 'o estado do veículo'} conforme fotos, checklist e avarias registrados.</p>`;
     prepararCanvas(md.querySelector('#vsCanvas'), () => canvasVazio = false);
@@ -1465,7 +1607,7 @@ function prepararCanvas(cv, aoDesenhar) {
   cv.onpointerup = cv.onpointercancel = () => { ativo = false; };
 }
 
-/* ---------- ⚙️ Checklist da vistoria ---------- */
+/* ---------- Checklist da vistoria ---------- */
 async function cfgChecklist(alvo) {
   alvo.innerHTML = 'Carregando...';
   const txt = await api('obterChecklistVistoria');
@@ -1484,8 +1626,8 @@ async function novaVistoria() {
   const opcoesVs = [];
   S.contratos.filter(c => ['aguardando_assinatura', 'ativo'].includes(c.status)).forEach(c => {
     const rot = `${c.numero} · ${veicTxt(c.veiculo_id)} · ${motTxt(c.motorista_id)}`;
-    if (!conc(c.id, 'retirada')) opcoesVs.push({ v: c.id + '|retirada', t: '📷 Retirada — ' + rot });
-    if (c.status === 'ativo' && !conc(c.id, 'devolucao')) opcoesVs.push({ v: c.id + '|devolucao', t: '🔁 Devolução — ' + rot });
+    if (!conc(c.id, 'retirada')) opcoesVs.push({ v: c.id + '|retirada', t: 'Retirada — ' + rot });
+    if (c.status === 'ativo' && !conc(c.id, 'devolucao')) opcoesVs.push({ v: c.id + '|devolucao', t: 'Devolução — ' + rot });
   });
   const md = abrirModal({
     titulo: 'Nova vistoria', peq: true,
@@ -1562,7 +1704,7 @@ function renderFinanceiro() {
       <td>${S.fin.aba === 'extrato' ? dataBR(l.data_pagamento) : dataBR(l.vencimento)}${l.situacao === 'atrasado' ? `<br><small style="color:var(--vermelho)">${l.dias_atraso} dia(s)</small>` : ''}</td>
       <td><b>${esc(l.descricao)}</b><br><small style="color:var(--cinza)">${esc(l.categoria)}</small></td>
       <td>${esc(refLanc(l))}</td>
-      <td style="white-space:nowrap;font-weight:600;color:${l.tipo === 'receita' ? '#027a48' : '#b42318'}">${l.tipo === 'receita' ? '+' : '−'} ${dinheiro(l.status === 'pago' ? l.valor_pago : l.valor)}</td>
+      <td style="white-space:nowrap;font-weight:600;color:${l.tipo === 'receita' ? 'var(--t-verde)' : 'var(--t-vermelho)'}">${l.tipo === 'receita' ? '+' : '−'} ${dinheiro(l.status === 'pago' ? l.valor_pago : l.valor)}</td>
       <td>${badge(SIT_FIN, l.situacao)}</td>
       <td style="white-space:nowrap">${['aberto', 'atrasado'].includes(l.situacao) ? `<button class="btn btn-ok" style="padding:6px 12px" onclick="event.stopPropagation();pagarLanc('${l.id}')">${l.tipo === 'receita' ? 'Receber' : 'Pagar'}</button>` : ''}
         ${l.status === 'pago' && l.tipo === 'receita' ? `<button class="btn btn-sec" style="padding:6px 10px" onclick="event.stopPropagation();reciboLanc('${l.id}',this)">Recibo</button>` : ''}</td></tr>`).join('')
@@ -1663,9 +1805,9 @@ function detalheLanc(id) {
         ${l.status === 'pago' && pode('admin') ? '<button class="btn btn-perigo" type="button" data-a="estornar">Estornar</button>' : ''}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
         ${aberto && pode('admin', 'gestor') ? '<button class="btn btn-sec" type="button" data-a="editar">Editar</button>' : ''}
-        ${aberto && l.tipo === 'receita' && l.motorista_id ? '<button class="btn btn-sec" type="button" data-a="wa">📲 WhatsApp</button>' : ''}
+        ${aberto && l.tipo === 'receita' && l.motorista_id ? '<button class="btn btn-sec" type="button" data-a="wa">WhatsApp</button>' : ''}
         ${l.comprovante_file_id ? '<button class="btn btn-sec" type="button" data-a="comp">Comprovante</button>' : ''}
-        ${l.status === 'pago' && l.tipo === 'receita' ? '<button class="btn btn-sec" type="button" data-a="recibo">⬇ Recibo</button>' : ''}
+        ${l.status === 'pago' && l.tipo === 'receita' ? '<button class="btn btn-sec" type="button" data-a="recibo">Recibo</button>' : ''}
         ${aberto ? `<button class="btn btn-ok" type="button" data-a="pagar">${l.tipo === 'receita' ? 'Receber' : 'Pagar'}</button>` : ''}</div>`
   });
   const acoes = {
@@ -1700,7 +1842,7 @@ async function blocoFinanceiroContrato(c, alvo) {
         ${cau ? `<span class="badge ${cau.status === 'pago' ? 'b-verde' : 'b-laranja'}">Caução ${cau.status === 'pago' ? 'paga' : 'pendente'}</span>` : ''}</div>
       <div style="max-height:220px;overflow:auto;border:1px solid var(--borda);border-radius:10px">
       <table><tbody>${L.map(l => `<tr data-l="${l.id}"><td style="padding:7px 10px">${dataBR(l.vencimento)}</td><td style="padding:7px 10px">${esc(l.descricao)}</td>
-        <td style="padding:7px 10px;white-space:nowrap;color:${l.tipo === 'receita' ? '#027a48' : '#b42318'}">${l.tipo === 'receita' ? '+' : '−'} ${dinheiro(l.status === 'pago' ? l.valor_pago : l.valor)}</td>
+        <td style="padding:7px 10px;white-space:nowrap;color:${l.tipo === 'receita' ? 'var(--t-verde)' : 'var(--t-vermelho)'}">${l.tipo === 'receita' ? '+' : '−'} ${dinheiro(l.status === 'pago' ? l.valor_pago : l.valor)}</td>
         <td style="padding:7px 10px">${badge(SIT_FIN, l.situacao)}</td></tr>`).join('') || '<tr><td class="vazio">Sem lançamentos.</td></tr>'}</tbody></table></div>`;
     alvo.querySelectorAll('[data-l]').forEach(tr => tr.onclick = async () => {
       S.fin.lanc = await api('listarLancamentos', {}); detalheLanc(tr.dataset.l);
@@ -1708,7 +1850,7 @@ async function blocoFinanceiroContrato(c, alvo) {
   } catch (e) { alvo.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
 }
 
-/* ---------- ⚙️ Categorias financeiras ---------- */
+/* ---------- Categorias financeiras ---------- */
 async function cfgCategorias(alvo) {
   alvo.innerHTML = 'Carregando...';
   const cat = await api('obterCategorias'); S.fin.cat = cat;
@@ -1744,7 +1886,10 @@ function textoBadgeAlerta(a) {
     if (a.km != null) return ['Faltam ' + num(a.km) + ' km' + (dr != null ? ' / ' + dr + 'd' : ''), 'b-laranja'];
     return ['Em ' + dr + 'd', 'b-laranja'];
   }
+  if (/Comprovante|suspeito/i.test(a.tipo)) return ['Novo', 'b-azul'];
+  if (a.grupo === 'km') return ['KM', 'b-laranja'];
   if (a.dias < 0) return [(/atras|BLOQ/i.test(a.tipo) ? 'Atrasado ' : 'Vencido há ') + Math.abs(a.dias) + 'd', 'b-vermelho'];
+  if (a.dias === 0) return ['Vence hoje', 'b-vermelho'];
   return ['Vence em ' + a.dias + 'd', 'b-laranja'];
 }
 
@@ -1898,7 +2043,7 @@ function detalheManut(id) {
       ${lin('Financeiro', m.lancamento_id ? 'Despesa lançada' : '')}${lin('Observação', esc(m.observacao))}</table>`,
     rodape: `<div>${m.status === 'agendada' ? '<button class="btn btn-perigo" type="button" data-a="cancelar">Cancelar</button>' : ''}</div>
       <div style="display:flex;gap:6px">${m.anexo_file_id ? '<button class="btn btn-sec" type="button" data-a="anexo">Ver anexo</button>' : ''}
-      ${m.status === 'agendada' && S.contratos.some(c => c.veiculo_id === m.veiculo_id && c.status === 'ativo') ? '<button class="btn btn-sec" type="button" data-a="wa">📲 Avisar</button>' : ''}
+      ${m.status === 'agendada' && S.contratos.some(c => c.veiculo_id === m.veiculo_id && c.status === 'ativo') ? '<button class="btn btn-sec" type="button" data-a="wa">Avisar</button>' : ''}
       ${m.status === 'agendada' ? '<button class="btn btn-sec" type="button" data-a="editar">Editar</button><button class="btn btn-ok" type="button" data-a="concluir">Concluir</button>' : ''}</div>`
   });
   const ac = {
@@ -1912,7 +2057,7 @@ function detalheManut(id) {
   md.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ac[b.dataset.a]());
 }
 
-/* ---------- ⚙️ Plano de manutenção ---------- */
+/* ---------- Plano de manutenção ---------- */
 async function cfgPlanoManut(alvo) {
   alvo.innerHTML = 'Carregando...';
   const itens = await api('listarItensManutencao'); S.mn.itens = itens;
@@ -2027,7 +2172,7 @@ function formInfracao(i = {}) {
     if (!f.veiculo_id.value || !f.data_infracao.value) { alvo.innerHTML = ''; return; }
     try {
       const c = await api('identificarCondutor', { veiculo_id: f.veiculo_id.value, data_infracao: f.data_infracao.value });
-      alvo.innerHTML = c ? `<div class="info">👤 Na data, o carro estava com <b>${esc(c.nome)}</b> (contrato ${esc(c.contrato_numero)}). A responsabilidade será do motorista.</div>`
+      alvo.innerHTML = c ? `<div class="info">Na data, o carro estava com <b>${esc(c.nome)}</b> (contrato ${esc(c.contrato_numero)}). A responsabilidade será do motorista.</div>`
         : `<div class="aviso">Nenhum contrato cobria este carro nessa data. A responsabilidade fica com a <b>locadora</b>.</div>`;
     } catch (e) { alvo.innerHTML = ''; }
   };
@@ -2069,7 +2214,7 @@ async function detalheInfracao(id) {
       <div class="secao">Histórico</div><div id="ifHist" style="color:var(--cinza)">Carregando...</div>`,
     rodape: `<div style="display:flex;gap:6px">${fin ? '' : '<button class="btn btn-perigo" type="button" data-a="arquivar">Arquivar</button><button class="btn btn-sec" type="button" data-a="editar">Editar</button>'}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-        ${i.responsavel === 'motorista' && i.motorista_id && !fin ? '<button class="btn btn-sec" type="button" data-a="wa">📲 Avisar</button>' : ''}
+        ${i.responsavel === 'motorista' && i.motorista_id && !fin ? '<button class="btn btn-sec" type="button" data-a="wa">Avisar</button>' : ''}
         ${i.anexo_file_id ? '<button class="btn btn-sec" type="button" data-a="anexo">Notificação</button>' : ''}
         ${i.status === 'aberta' && i.responsavel === 'motorista' ? '<button class="btn btn-pri" type="button" data-a="indicar">✓ Condutor indicado</button>' : ''}
         ${['aberta', 'indicado', 'em_recurso'].includes(i.status) ? '<button class="btn btn-sec" type="button" data-a="penalidade">Penalidade recebida</button>' : ''}
@@ -2086,8 +2231,8 @@ async function detalheInfracao(id) {
       const p = i.pontos_motorista_12m;
       const dados = c ? `Nome: ${c.nome}\nCPF: ${c.cpf}\nCNH: ${c.cnh_numero}  Categoria: ${c.cnh_categoria}  UF: ${c.uf}  Validade: ${c.cnh_validade}\nEndereço: ${c.endereco}\nE-mail: ${c.email}  Telefone: ${c.telefone}` : '';
       alvo.innerHTML = c ? `<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
-          <pre class="mono" style="flex:1;min-width:240px;background:#fafbfc;border:1px solid var(--borda);border-radius:9px;padding:10px;white-space:pre-wrap;margin:0">${esc(dados)}</pre>
-          <div><button class="btn btn-sec" type="button" id="ifCopiar">📋 Copiar dados do condutor</button>
+          <pre class="mono" style="flex:1;min-width:240px;background:var(--surface-2);border:1px solid var(--borda);border-radius:9px;padding:10px;white-space:pre-wrap;margin:0">${esc(dados)}</pre>
+          <div><button class="btn btn-sec" type="button" id="ifCopiar">Copiar dados do condutor</button>
           <p style="margin-top:8px;font-size:12.5px">Contrato <b>${esc(c.contrato_numero)}</b><br>Pontos do motorista em 12 meses (no sistema): <b style="color:${p >= 20 ? 'var(--vermelho)' : 'inherit'}">${p ?? 0}</b></p></div></div>`
         : '<div class="aviso">Motorista vinculado, mas o contrato não foi encontrado para a data.</div>';
       const b = alvo.querySelector('#ifCopiar');
@@ -2184,19 +2329,19 @@ function waManutencao(m) {
     `• Data: *${dataBR(m.data_agendada)}*\n• Local: ${m.oficina || 'a combinar'}\n• Serviço: ${JSON.parse(m.itens || '[]').map(nomeItem).join(', ') || m.descricao}\n\nConsegue levar nesse dia? Se não puder, avise para remarcarmos.`);
 }
 
-/* ---------- ⚙️ Notificações ---------- */
+/* ---------- Notificações ---------- */
 async function cfgNotificacoes(alvo) {
   alvo.innerHTML = 'Carregando...';
   const [cfg, log] = await Promise.all([api('obterConfigNotif'), api('listarNotificacoes')]);
   alvo.innerHTML = `
     <div class="info">Os e-mails saem automaticamente <b>todo dia às 7h</b> e também na hora de alguns eventos (recibo, multa, manutenção agendada). Cota do Google restante hoje: <b>${cfg.cota ?? '—'}</b> e-mails. O mesmo aviso nunca é enviado duas vezes.</div>
     <form id="fNotif">${cfg.itens.map(i => i.bool
-      ? `<label style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f2f4f7"><input type="checkbox" name="${i.chave}" ${String(i.valor).toUpperCase() === 'TRUE' ? 'checked' : ''}> ${esc(i.descricao)}</label>`
+      ? `<label style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--surface-3)"><input type="checkbox" name="${i.chave}" ${String(i.valor).toUpperCase() === 'TRUE' ? 'checked' : ''}> ${esc(i.descricao)}</label>`
       : `<div class="campo" style="margin-top:8px"><label>${esc(i.descricao)}</label><input name="${i.chave}" value="${esc(i.valor)}" ${/email/.test(i.chave) ? 'type="email"' : ''}></div>`).join('')}
     </form>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px">
       <button class="btn btn-pri" type="button" id="nSalvar">Salvar</button>
-      <button class="btn btn-sec" type="button" id="nTeste">✉ Enviar e-mail de teste</button>
+      <button class="btn btn-sec" type="button" id="nTeste">Enviar e-mail de teste</button>
       <button class="btn btn-sec" type="button" id="nRodar">▶ Rodar os avisos de hoje agora</button>
     </div>
     <div class="secao">Últimos envios</div>
@@ -2249,7 +2394,7 @@ async function painelFipeVeiculo(veiculoId, alvo) {
           const ant = arr[i + 1]; const dv = ant ? Number(x.valor) - Number(ant.valor) : null;
           return [nomeMes(x.mes), esc(x.referencia), dinheiro(x.valor), dv == null ? '—' : sinal(dv)];
         })) : ''}
-      ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${v.fipe_codigo ? 'Alterar vínculo' : '🔎 Vincular à FIPE'}</button>
+      ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${v.fipe_codigo ? 'Alterar vínculo' : 'Vincular à FIPE'}</button>
         ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}</div>` : ''}
       <p style="font-size:12px;color:var(--cinza);margin-top:10px">FIPE é o preço médio de mercado (referência para venda e seguro), não a depreciação contábil.</p>`;
     const b1 = alvo.querySelector('[data-f=vincular]'); if (b1) b1.onclick = () => vincularFipe(veiculoId, v, () => painelFipeVeiculo(veiculoId, alvo));
@@ -2348,7 +2493,7 @@ function renderDashboard(r) {
     <div class="grade" style="grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
       <div class="painel" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <b>Receita × despesa (últimos 12 meses)</b>
-        <span style="font-size:12px;color:var(--texto)"><span class="lg" style="background:#257de0"></span>Receita <span class="lg" style="background:#f47230;margin-left:10px"></span>Despesa</span></div>
+        <span style="font-size:12px;color:var(--texto)"><span class="lg" style="background:var(--serie-1)"></span>Receita <span class="lg" style="background:var(--serie-2);margin-left:10px"></span>Despesa</span></div>
         <div id="dashGraf" style="position:relative"></div>
         <details style="margin-top:6px;font-size:12.5px"><summary style="cursor:pointer;color:var(--azul)">Ver em tabela</summary>
           ${tabelaSimples(['Mês', 'Receita', 'Despesa', 'Resultado'], r.meses.map(m => [nomeMes(m.mes), dinheiro(m.receita) || 'R$ 0,00', dinheiro(m.despesa) || 'R$ 0,00', sinal(m.receita - m.despesa)]))}</details>
@@ -2356,7 +2501,7 @@ function renderDashboard(r) {
       <div class="painel" style="padding:14px 16px"><b>Despesas por categoria</b>
         <div style="margin-top:12px">${r.por_categoria.length ? (() => { const mx = Math.max(...r.por_categoria.map(c => c.valor)); return r.por_categoria.map(c => `
           <div style="margin-bottom:10px" title="${esc(c.categoria)}: ${dinheiro(c.valor)}"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(c.categoria)}</span><b>${dinheiro(c.valor)}</b></div>
-          <div style="height:8px;background:#f2f4f7;border-radius:4px;margin-top:3px"><div style="height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:#f47230;border-radius:4px"></div></div></div>`).join(''); })()
+          <div style="height:8px;background:var(--surface-3);border-radius:4px;margin-top:3px"><div style="height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:var(--serie-2);border-radius:4px"></div></div></div>`).join(''); })()
           : '<div class="vazio" style="padding:20px">Sem despesas no período.</div>'}</div>
       </div>
     </div>
@@ -2364,7 +2509,7 @@ function renderDashboard(r) {
       <div style="overflow-x:auto"><table><thead><tr><th>Veículo</th><th>Ocupação</th><th>Receita</th><th>Despesa</th><th>Resultado</th><th>Km no período*</th><th>Custo/km</th><th>FIPE atual</th><th>Desvalorização</th><th>Retorno acumulado**</th></tr></thead><tbody>
       ${r.veiculos.map(v => `<tr onclick="formVeiculo('${v.id}')">
         <td><span class="placa">${esc(v.placa)}</span><br><small style="color:var(--cinza)">${esc(v.modelo)}</small></td>
-        <td>${pct(v.ocupacao)}<div style="height:5px;background:#f2f4f7;border-radius:3px;margin-top:3px;width:70px"><div style="height:5px;width:${v.ocupacao || 0}%;background:#6a4ce2;border-radius:3px"></div></div></td>
+        <td>${pct(v.ocupacao)}<div style="height:5px;background:var(--surface-3);border-radius:3px;margin-top:3px;width:70px"><div style="height:5px;width:${v.ocupacao || 0}%;background:var(--roxo);border-radius:3px"></div></div></td>
         <td>${dinheiro(v.receita) || 'R$ 0,00'}</td><td>${dinheiro(v.despesa) || 'R$ 0,00'}</td><td><b>${sinal(v.resultado)}</b></td>
         <td>${v.km != null ? num(v.km) + ' km' : '—'}</td><td>${v.custo_km != null ? dinheiro(v.custo_km) : '—'}</td>
         <td>${v.fipe_atual ? dinheiro(v.fipe_atual) : '<small style="color:var(--cinza)">não vinculado</small>'}</td>
@@ -2385,12 +2530,12 @@ function graficoMensal(alvo, meses) {
   const y = v => mt + (H - mt - mb) * (1 - v / topo), bw = (W - ml - mr) / meses.length, barra = Math.min(18, (bw - 10) / 2);
   const ticks = []; for (let t = 0; t <= topo + 1e-9; t += passo) ticks.push(t);
   const barraPath = (x, v, cor) => { if (v <= 0) return ''; const y0 = H - mb, y1 = y(v), r = Math.min(4, (y0 - y1) / 2, barra / 2);
-    return `<path d="M${x},${y0} V${y1 + r} Q${x},${y1} ${x + r},${y1} H${x + barra - r} Q${x + barra},${y1} ${x + barra},${y1 + r} V${y0} Z" fill="${cor}"/>`; };
+    return `<path d="M${x},${y0} V${y1 + r} Q${x},${y1} ${x + r},${y1} H${x + barra - r} Q${x + barra},${y1} ${x + barra},${y1 + r} V${y0} Z" style="fill:${cor}"/>`; };
   alvo.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:8px" role="img" aria-label="Receita e despesa por mês">
-    ${ticks.map(t => `<line x1="${ml}" x2="${W - mr}" y1="${y(t)}" y2="${y(t)}" stroke="#eef0f3"/><text x="${ml - 6}" y="${y(t) + 4}" text-anchor="end" font-size="10.5" fill="#667085">${fmtK(t)}</text>`).join('')}
+    ${ticks.map(t => `<line x1="${ml}" x2="${W - mr}" y1="${y(t)}" y2="${y(t)}" style="stroke:var(--borda)"/><text x="${ml - 6}" y="${y(t) + 4}" text-anchor="end" font-size="10.5" style="fill:var(--cinza)">${fmtK(t)}</text>`).join('')}
     ${meses.map((m, i) => { const x0 = ml + i * bw + (bw - (barra * 2 + 2)) / 2;
-      return `<g data-i="${i}">${barraPath(x0, m.receita, '#257de0')}${barraPath(x0 + barra + 2, m.despesa, '#f47230')}
-        <text x="${ml + i * bw + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="#667085">${nomeMes(m.mes)}</text>
+      return `<g data-i="${i}">${barraPath(x0, m.receita, 'var(--serie-1)')}${barraPath(x0 + barra + 2, m.despesa, 'var(--serie-2)')}
+        <text x="${ml + i * bw + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" style="fill:var(--cinza)">${nomeMes(m.mes)}</text>
         <rect x="${ml + i * bw}" y="${mt}" width="${bw}" height="${H - mt - mb}" fill="transparent" class="hit"/></g>`; }).join('')}
   </svg><div class="dica oculto"></div>`;
   const dica = alvo.querySelector('.dica');
@@ -2398,7 +2543,7 @@ function graficoMensal(alvo, meses) {
     const m = meses[g.dataset.i];
     g.onmouseenter = g.ontouchstart = () => {
       alvo.querySelectorAll('g[data-i]').forEach(o => o.style.opacity = o === g ? 1 : .45);
-      dica.innerHTML = `<b>${nomeMes(m.mes)}</b><br><span class="lg" style="background:#257de0"></span>Receita ${dinheiro(m.receita) || 'R$ 0,00'}<br><span class="lg" style="background:#f47230"></span>Despesa ${dinheiro(m.despesa) || 'R$ 0,00'}<br>Resultado ${sinal(m.receita - m.despesa)}`;
+      dica.innerHTML = `<b>${nomeMes(m.mes)}</b><br><span class="lg" style="background:var(--serie-1)"></span>Receita ${dinheiro(m.receita) || 'R$ 0,00'}<br><span class="lg" style="background:var(--serie-2)"></span>Despesa ${dinheiro(m.despesa) || 'R$ 0,00'}<br>Resultado ${sinal(m.receita - m.despesa)}`;
       const i = Number(g.dataset.i); dica.style.left = Math.min(78, Math.max(0, (i + .5) / meses.length * 100 - 10)) + '%';
       dica.classList.remove('oculto');
     };
@@ -2422,8 +2567,8 @@ async function painelPortalMotorista(motoristaId, alvo) {
           <small style="color:var(--cinza)">gerado em ${dataBR(st.gerado_em)} · válido até ${dataBR(st.expira)}</small></div>
         <input readonly value="${esc(st.url || '(gere novamente para gravar o endereço)')}" style="width:100%;border:1px solid var(--borda);border-radius:9px;padding:9px;margin-bottom:10px;font-size:12.5px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-sec" type="button" data-p="copiar">📋 Copiar link</button>
-          <button class="btn btn-sec" type="button" data-p="wa">📲 Enviar no WhatsApp</button>
+          <button class="btn btn-sec" type="button" data-p="copiar">Copiar link</button>
+          <button class="btn btn-sec" type="button" data-p="wa">Enviar no WhatsApp</button>
           ${ed ? '<button class="btn btn-sec" type="button" data-p="gerar">↻ Gerar novo link</button><button class="btn btn-perigo" type="button" data-p="revogar">Desativar acesso</button>' : ''}</div>`
       : `<div style="margin-bottom:10px"><span class="badge b-cinza">Sem acesso ao portal</span></div>
         ${ed ? '<button class="btn btn-pri" type="button" data-p="gerar">Gerar link do portal</button>' : '<small>Peça a um gestor para gerar o link.</small>'}`}
@@ -2456,7 +2601,7 @@ function renderComprovantes() {
       <td style="font-weight:600">${dinheiro(c.valor) || '—'}</td>
       <td><span class="badge b-azul">conferir</span></td>
       <td><button class="btn btn-ok" style="padding:6px 12px" onclick="event.stopPropagation();conferirComprovante('${c.id}')">Conferir</button></td></tr>`).join('')
-    : '<tr><td colspan="6" class="vazio">Nenhum comprovante aguardando conferência. 👍</td></tr>';
+    : '<tr><td colspan="6" class="vazio">Nenhum comprovante aguardando conferência. </td></tr>';
 }
 
 async function conferirComprovante(id) {
@@ -2485,7 +2630,7 @@ async function conferirComprovante(id) {
   let arq = null;
   api('verComprovantePortal', { id }).then(r => {
     arq = r; const prev = md.querySelector('#cpPrev');
-    prev.innerHTML = /image/.test(r.mime) ? `<img src="data:${r.mime};base64,${r.base64}" style="max-width:100%;max-height:420px;border-radius:8px">` : '<div style="padding:20px;text-align:center">📄 PDF<br><small>use "Abrir em tela cheia"</small></div>';
+    prev.innerHTML = /image/.test(r.mime) ? `<img src="data:${r.mime};base64,${r.base64}" style="max-width:100%;max-height:420px;border-radius:8px">` : '<div style="padding:20px;text-align:center">PDF<br><small>use "Abrir em tela cheia"</small></div>';
   }).catch(e => md.querySelector('#cpPrev').textContent = e.message);
   md.querySelectorAll('[data-enc]').forEach(inp => inp.oninput = () => {
     const l = abertos.find(x => x.id === inp.dataset.enc); md.querySelector(`[data-val="${l.id}"]`).value = (Number(l.valor) + Number(inp.value || 0)).toFixed(2);
