@@ -178,9 +178,9 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <a data-tela="contratos">📄 Contratos</a>
       <a data-tela="vistorias">📷 Vistorias</a>
       <a data-tela="manutencao">🔧 Manutenção</a>
+      <a data-tela="infracoes">🚨 Infrações</a>
       <a data-tela="financeiro">💰 Financeiro</a>
       <div class="menu-titulo">Próximas fases</div>
-      <a class="breve">🚨 Infrações <span class="tag">em breve</span></a>
     </nav>
     <div class="rodape-menu">
       <div class="usuario-box">
@@ -239,6 +239,21 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
         </div>
       </div>
       <div id="mnConteudo"></div>
+    </section>
+
+    <!-- INFRAÇÕES -->
+    <section id="tela-infracoes" class="oculto">
+      <div class="painel">
+        <div class="filtros">
+          <input id="buscaIf" placeholder="Buscar por AIT, placa, motorista, descrição..." oninput="renderInfracoes()">
+          <select id="filtroIf" onchange="renderInfracoes()">
+            <option value="pendentes">Pendentes</option><option value="aberta">Abertas (indicar)</option><option value="indicado">Condutor indicado</option>
+            <option value="a_pagar">A pagar</option><option value="em_recurso">Em recurso</option><option value="paga">Pagas</option><option value="arquivada">Arquivadas</option><option value="todas">Todas</option>
+          </select>
+        </div>
+        <table><thead><tr><th>Nº</th><th>Data</th><th>Placa</th><th>Infração</th><th>Valor</th><th>Responsável</th><th>Prazo indicação</th><th>Situação</th></tr></thead>
+          <tbody id="tbIf"></tbody></table>
+      </div>
     </section>
 
     <!-- FINANCEIRO -->
@@ -459,12 +474,12 @@ $('finNovaDesp').onclick = () => formLanc('despesa');
 async function irPara(tela) {
   S.tela = tela;
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
-  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
-  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro', manutencao: 'Manutenção' }[tela];
+  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao', 'infracoes'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro', manutencao: 'Manutenção', infracoes: 'Infrações' }[tela];
   const novo = $('btnNovo');
   novo.classList.toggle('oculto', tela === 'painel' || tela === 'financeiro');
-  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria', manutencao: '+ Registrar manutenção' }[tela] || '';
-  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria, manutencao: () => formManut({ status: 'realizada' }) })[tela]();
+  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria', manutencao: '+ Registrar manutenção', infracoes: '+ Registrar infração' }[tela] || '';
+  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria, manutencao: () => formManut({ status: 'realizada' }), infracoes: () => formInfracao() })[tela]();
   try {
     if (tela === 'painel') await carregarPainel();
     if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
@@ -472,6 +487,7 @@ async function irPara(tela) {
     if (tela === 'contratos') { await carregarBaseContratos(); renderContratos(); }
     if (tela === 'vistorias') { await carregarVistorias(); renderVistorias(); }
     if (tela === 'manutencao') { await carregarManutencao(); renderManutencao(); }
+    if (tela === 'infracoes') { await carregarInfracoes(); renderInfracoes(); }
     if (tela === 'financeiro') {
       $('finMes').value = S.fin.mes;
       ['finNovaRec', 'finNovaDesp'].forEach(i => $(i).classList.toggle('oculto', !pode('admin', 'gestor')));
@@ -1905,6 +1921,198 @@ async function cfgPlanoManut(alvo) {
   };
   alvo.querySelector('[data-novo]')?.addEventListener('click', () => editar({}));
   if (ed) alvo.querySelectorAll('tbody tr[data-i]').forEach(tr => tr.onclick = () => editar(lista[tr.dataset.i]));
+}
+
+/* =========================================================
+   INFRAÇÕES (Fase 5)
+   ========================================================= */
+const ST_IF = { aberta: ['Aberta', 'b-laranja'], indicado: ['Condutor indicado', 'b-azul'], a_pagar: ['A pagar', 'b-vermelho'],
+  em_recurso: ['Em recurso', 'b-roxo'], paga: ['Paga', 'b-verde'], arquivada: ['Arquivada', 'b-cinza'] };
+const GRAV = { leve: ['Leve', 3, 88.38], media: ['Média', 4, 130.16], grave: ['Grave', 5, 195.23], gravissima: ['Gravíssima', 7, 293.47] };
+S.inf = { lista: [], filtro: 'pendentes' };
+
+async function carregarInfracoes() {
+  if (!S.veiculos.length || !S.contratos.length) await carregarBaseContratos();
+  S.inf.lista = await api('listarInfracoes');
+}
+function prazoBadge(i) {
+  if (i.status !== 'aberta' || i.responsavel !== 'motorista') return '—';
+  if (!i.prazo_indicacao) return '<span class="badge b-cinza">sem data</span>';
+  const d = i.dias_prazo;
+  return `<span class="badge ${d < 0 ? 'b-vermelho' : d <= 7 ? 'b-laranja' : 'b-azul'}">${d < 0 ? 'PERDIDO' : d === 0 ? 'hoje' : d + 'd'} · ${dataBR(i.prazo_indicacao)}</span>`;
+}
+function renderInfracoes() {
+  const q = $('buscaIf').value.toLowerCase(), f = $('filtroIf').value;
+  const lista = S.inf.lista.filter(i => (f === 'todas' || (f === 'pendentes' ? !['paga', 'arquivada'].includes(i.status) : i.status === f)) &&
+    [i.numero, i.ait, i.descricao, veicTxt(i.veiculo_id), motTxt(i.motorista_id), i.orgao].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => (a.dias_prazo ?? 9999) - (b.dias_prazo ?? 9999) || String(b.data_infracao).localeCompare(a.data_infracao));
+  $('tbIf').innerHTML = lista.length ? lista.map(i => `
+    <tr onclick="detalheInfracao('${i.id}')">
+      <td><b>${esc(i.numero)}</b>${i.ait ? `<br><small style="color:var(--cinza)">AIT ${esc(i.ait)}</small>` : ''}</td>
+      <td>${dataBR(i.data_infracao)} ${esc(i.hora_infracao || '')}</td>
+      <td>${esc((S.veiculos.find(v => v.id === i.veiculo_id) || {}).placa || '')}</td>
+      <td style="max-width:260px">${esc(i.descricao)}<br><small style="color:var(--cinza)">${GRAV[i.gravidade] ? GRAV[i.gravidade][0] : ''} · ${esc(i.pontos)} pts</small></td>
+      <td>${dinheiro(i.valor)}</td>
+      <td>${i.responsavel === 'motorista' ? esc(motTxt(i.motorista_id)) : '<span class="badge b-cinza">Locadora</span>'}</td>
+      <td>${prazoBadge(i)}</td><td>${badge(ST_IF, i.status)}</td></tr>`).join('')
+    : `<tr><td colspan="8" class="vazio">Nenhuma infração ${f === 'pendentes' ? 'pendente' : ''}.</td></tr>`;
+}
+
+function formInfracao(i = {}) {
+  const veics = S.veiculos.filter(v => v.ativo || v.id === i.veiculo_id).map(v => ({ v: v.id, t: veicTxt(v.id) }));
+  const md = abrirModal({
+    titulo: i.id ? 'Editar ' + esc(i.numero) : 'Registrar infração',
+    corpo: `<form>
+      <div class="grade g4">
+        <div class="campo" style="grid-column:span 2"><label class="req">Veículo</label><select name="veiculo_id" required>${opcoes(veics, i.veiculo_id)}</select></div>
+        <div class="campo"><label class="req">Data da infração</label><input name="data_infracao" type="date" value="${esc(i.data_infracao || '')}" required></div>
+        <div class="campo"><label>Hora</label><input name="hora_infracao" type="time" value="${esc(i.hora_infracao || '')}"></div>
+      </div>
+      <div id="ifCond"></div>
+      <div class="grade g3">
+        <div class="campo"><label>Nº do AIT (auto de infração)</label><input name="ait" value="${esc(i.ait || '')}" style="text-transform:uppercase"></div>
+        <div class="campo"><label>Órgão autuador</label><input name="orgao" value="${esc(i.orgao || '')}" placeholder="ex.: DETRAN-SP, PRF, CET"></div>
+        <div class="campo"><label>Código da infração</label><input name="codigo" value="${esc(i.codigo || '')}" placeholder="ex.: 745-50"></div>
+      </div>
+      <div class="campo"><label class="req">Descrição</label><input name="descricao" value="${esc(i.descricao || '')}" required placeholder="ex.: Transitar em velocidade superior à máxima em até 20%"></div>
+      <div class="campo"><label>Local</label><input name="local" value="${esc(i.local || '')}"></div>
+      <div class="grade g4">
+        <div class="campo"><label class="req">Gravidade</label><select name="gravidade" required>${opcoes(Object.entries(GRAV).map(([k, g]) => ({ v: k, t: g[0] })), i.gravidade)}</select></div>
+        <div class="campo"><label>Pontos</label><input name="pontos" type="number" min="0" value="${esc(i.pontos ?? '')}"></div>
+        <div class="campo"><label class="req">Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" value="${esc(i.valor || '')}" required></div>
+        <div class="campo"><label>Responsável</label><select name="responsavel">${opcoes([{ v: 'motorista', t: 'Motorista (indicar)' }, { v: 'locadora', t: 'Locadora' }], i.responsavel, 'Automático')}</select></div>
+      </div>
+      <div class="grade g2">
+        <div class="campo"><label>Data em que recebeu a notificação</label><input name="data_notificacao" type="date" value="${esc(i.data_notificacao || '')}"></div>
+        <div class="campo"><label>Prazo para indicar condutor <small style="font-weight:400">(confira o impresso na notificação)</small></label><input name="prazo_indicacao" type="date" value="${esc(i.prazo_indicacao || '')}"></div>
+      </div>
+      <div class="campo"><label>Notificação (foto ou PDF)</label><input type="file" name="anexo" accept="application/pdf,image/jpeg,image/png"></div>
+      <div class="campo"><label>Observação</label><input name="observacao" value="${esc(i.observacao || '')}"></div>
+    </form>`,
+    rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+  });
+  const f = md.querySelector('form');
+  f.gravidade.onchange = () => { const g = GRAV[f.gravidade.value]; if (g) { f.pontos.value = g[1]; if (!f.valor.value) f.valor.value = g[2]; } };
+  f.data_notificacao.onchange = () => { if (f.data_notificacao.value) { const d = new Date(f.data_notificacao.value + 'T12:00:00'); d.setDate(d.getDate() + 30); f.prazo_indicacao.value = d.toISOString().slice(0, 10); } };
+  const identificar = async () => {
+    const alvo = md.querySelector('#ifCond');
+    if (!f.veiculo_id.value || !f.data_infracao.value) { alvo.innerHTML = ''; return; }
+    try {
+      const c = await api('identificarCondutor', { veiculo_id: f.veiculo_id.value, data_infracao: f.data_infracao.value });
+      alvo.innerHTML = c ? `<div class="info">👤 Na data, o carro estava com <b>${esc(c.nome)}</b> (contrato ${esc(c.contrato_numero)}). A responsabilidade será do motorista.</div>`
+        : `<div class="aviso">Nenhum contrato cobria este carro nessa data. A responsabilidade fica com a <b>locadora</b>.</div>`;
+    } catch (e) { alvo.innerHTML = ''; }
+  };
+  f.veiculo_id.onchange = f.data_infracao.onchange = identificar;
+  identificar();
+  md.querySelector('.modal-rodape .btn').onclick = async ev => {
+    if (!f.reportValidity()) return;
+    const d = lerForm(f); delete d.anexo; if (i.id) d.id = i.id;
+    const arq = f.anexo.files[0];
+    if (arq) { if (arq.size > 8 * 1024 * 1024) return toast('Arquivo maior que 8 MB.', 'erro'); d.anexo64 = await lerArquivoBase64(arq); d.anexo_mime = arq.type; }
+    ev.target.disabled = true;
+    try {
+      const r = await api('salvarInfracao', d);
+      toast(r.condutor ? 'Infração registrada para ' + r.condutor.nome + '.' : 'Infração registrada (locadora).');
+      md.remove(); await carregarInfracoes(); renderInfracoes(); detalheInfracao(r.id);
+    } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
+}
+
+async function detalheInfracao(id) {
+  const i = S.inf.lista.find(x => x.id === id); if (!i) return;
+  const lin = (k, v) => v ? `<tr><td style="color:var(--cinza);width:34%;padding:5px 0;vertical-align:top">${k}</td><td>${v}</td></tr>` : '';
+  const fin = ['paga', 'arquivada'].includes(i.status);
+  const v = Number(i.valor);
+  const md = abrirModal({
+    titulo: `${esc(i.numero)} ${badge(ST_IF, i.status)}`,
+    corpo: `
+      ${i.status === 'aberta' && i.responsavel === 'motorista' ? `<div class="${i.dias_prazo != null && i.dias_prazo <= 7 ? 'aviso' : 'info'}"><b>Indicar o condutor até ${dataBR(i.prazo_indicacao) || '(informe o prazo)'}</b>${i.dias_prazo != null ? ` — ${i.dias_prazo < 0 ? 'PRAZO PERDIDO' : 'faltam ' + i.dias_prazo + ' dia(s)'}` : ''}. Depois do prazo a indicação não é mais aceita e a infração fica com o proprietário${'.'}</div>` : ''}
+      <table style="width:100%">
+        ${lin('Veículo', esc(veicTxt(i.veiculo_id)))}${lin('Data/hora', dataBR(i.data_infracao) + ' ' + esc(i.hora_infracao || ''))}
+        ${lin('AIT / órgão', esc([i.ait, i.orgao].filter(Boolean).join(' · ')))}${lin('Infração', esc((i.codigo ? i.codigo + ' – ' : '') + i.descricao))}
+        ${lin('Local', esc(i.local))}${lin('Gravidade', (GRAV[i.gravidade] || [''])[0] + ' · ' + esc(i.pontos) + ' pontos')}
+        ${lin('Valor', `${dinheiro(v)} <small style="color:var(--cinza)">(até o vencimento: 20% off = ${dinheiro(v * 0.8)}; via SNE reconhecendo a infração: 40% off = ${dinheiro(v * 0.6)})</small>`)}
+        ${lin('Notificação', i.data_notificacao ? 'recebida em ' + dataBR(i.data_notificacao) : '')}${lin('Boleto', i.vencimento_boleto ? 'vence em ' + dataBR(i.vencimento_boleto) : '')}
+        ${lin('Pagamento', i.status === 'paga' ? dataBR(i.data_pagamento) + ' · ' + dinheiro(i.valor_pago) + ' · pago pela ' + (i.pago_por === 'locadora' ? 'locadora' : 'motorista') : '')}
+        ${lin('Observação', esc(i.observacao))}
+      </table>
+      <div class="secao">Responsável</div><div id="ifResp">Carregando...</div>
+      <div class="secao">Histórico</div><div id="ifHist" style="color:var(--cinza)">Carregando...</div>`,
+    rodape: `<div style="display:flex;gap:6px">${fin ? '' : '<button class="btn btn-perigo" type="button" data-a="arquivar">Arquivar</button><button class="btn btn-sec" type="button" data-a="editar">Editar</button>'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        ${i.anexo_file_id ? '<button class="btn btn-sec" type="button" data-a="anexo">Notificação</button>' : ''}
+        ${i.status === 'aberta' && i.responsavel === 'motorista' ? '<button class="btn btn-pri" type="button" data-a="indicar">✓ Condutor indicado</button>' : ''}
+        ${['aberta', 'indicado', 'em_recurso'].includes(i.status) ? '<button class="btn btn-sec" type="button" data-a="penalidade">Penalidade recebida</button>' : ''}
+        ${['aberta', 'indicado', 'a_pagar'].includes(i.status) ? '<button class="btn btn-sec" type="button" data-a="recurso">Recurso</button>' : ''}
+        ${i.status === 'em_recurso' ? '<button class="btn btn-pri" type="button" data-a="resultado">Resultado do recurso</button>' : ''}
+        ${['aberta', 'indicado', 'a_pagar'].includes(i.status) ? '<button class="btn btn-ok" type="button" data-a="pagar">Registrar pagamento</button>' : ''}</div>`
+  });
+  // responsável + copiar dados
+  (async () => {
+    const alvo = md.querySelector('#ifResp');
+    if (i.responsavel !== 'motorista') { alvo.innerHTML = '<div class="aviso">Locadora (nenhum contrato cobria o carro na data, ou marcado manualmente).</div>'; return; }
+    try {
+      const c = await api('identificarCondutor', { veiculo_id: i.veiculo_id, data_infracao: i.data_infracao });
+      const p = i.pontos_motorista_12m;
+      const dados = c ? `Nome: ${c.nome}\nCPF: ${c.cpf}\nCNH: ${c.cnh_numero}  Categoria: ${c.cnh_categoria}  UF: ${c.uf}  Validade: ${c.cnh_validade}\nEndereço: ${c.endereco}\nE-mail: ${c.email}  Telefone: ${c.telefone}` : '';
+      alvo.innerHTML = c ? `<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+          <pre class="mono" style="flex:1;min-width:240px;background:#fafbfc;border:1px solid var(--borda);border-radius:9px;padding:10px;white-space:pre-wrap;margin:0">${esc(dados)}</pre>
+          <div><button class="btn btn-sec" type="button" id="ifCopiar">📋 Copiar dados do condutor</button>
+          <p style="margin-top:8px;font-size:12.5px">Contrato <b>${esc(c.contrato_numero)}</b><br>Pontos do motorista em 12 meses (no sistema): <b style="color:${p >= 20 ? 'var(--vermelho)' : 'inherit'}">${p ?? 0}</b></p></div></div>`
+        : '<div class="aviso">Motorista vinculado, mas o contrato não foi encontrado para a data.</div>';
+      const b = alvo.querySelector('#ifCopiar');
+      if (b) b.onclick = async () => { try { await navigator.clipboard.writeText(dados); toast('Dados copiados.'); } catch (e) { toast('Não foi possível copiar.', 'erro'); } };
+    } catch (e) { alvo.innerHTML = esc(e.message); }
+  })();
+  api('verAnexoInfracao', { id, historico: true }).then(h => {
+    md.querySelector('#ifHist').innerHTML = h.map(x => `<div class="hist-item"><small>${dataBR(x.em)} · ${esc(x.por)}</small><div style="color:var(--texto)">${esc(x.txt)}</div></div>`).join('') || 'Sem histórico.';
+  }).catch(() => {});
+
+  const etapa = (titulo, campos, extra = {}) => {
+    const m2 = abrirModal({ titulo, peq: true, corpo: `<form>${campos}</form>`, rodape: '<span></span><button class="btn btn-pri" type="button">Confirmar</button>' });
+    const f = m2.querySelector('form');
+    if (extra.init) extra.init(f);
+    m2.querySelector('.modal-rodape .btn').onclick = async ev => {
+      if (!f.reportValidity()) return;
+      const d = Object.assign(lerForm(f), { id, etapa: extra.etapa });
+      ev.target.disabled = true;
+      try { await api('etapaInfracao', d); toast('Atualizado.'); m2.remove(); md.remove(); await carregarInfracoes(); renderInfracoes(); detalheInfracao(id); }
+      catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+    };
+  };
+  const hoje = new Date().toISOString().slice(0, 10);
+  const ac = {
+    editar: () => { md.remove(); formInfracao(i); },
+    anexo: async () => { try { abrirArquivo(await api('verAnexoInfracao', { id })); } catch (e) { toast(e.message, 'erro'); } },
+    indicar: () => etapa('Condutor indicado', `
+      <div class="info">Faça a indicação no site/app do órgão (ou SNE / Carteira Digital de Trânsito) com o formulário assinado pelo motorista, e registre aqui.</div>
+      <div class="campo"><label class="req">Data da indicação</label><input name="data_indicacao" type="date" value="${hoje}" required></div>
+      <div class="campo"><label>Como</label><select name="forma">${opcoes(['Online / SNE', 'Correios', 'Presencial'].map(x => ({ v: x, t: x })), 'Online / SNE', '—')}</select></div>
+      <div class="campo"><label>Protocolo</label><input name="protocolo"></div>`, { etapa: 'indicar' }),
+    penalidade: () => etapa('Penalidade recebida (boleto)', `
+      <div class="campo"><label class="req">Vencimento do boleto</label><input name="vencimento_boleto" type="date" required></div>
+      <div class="campo"><label>Valor (se diferente)</label><input name="valor" type="number" step="0.01" min="0" value="${esc(i.valor)}"></div>`, { etapa: 'penalidade' }),
+    recurso: () => etapa('Recurso / defesa', `
+      <div class="campo"><label class="req">Data em que apresentou</label><input name="data_recurso" type="date" value="${hoje}" required></div>
+      <div class="campo"><label>Observação</label><input name="obs"></div>`, { etapa: 'recurso' }),
+    resultado: () => etapa('Resultado do recurso', `
+      <div class="campo"><label class="req">Resultado</label><select name="resultado" required>${opcoes([{ v: 'deferido', t: 'Deferido (multa cancelada)' }, { v: 'indeferido', t: 'Indeferido (vai pagar)' }], '')}</select></div>
+      <div class="campo"><label>Novo vencimento (se indeferido)</label><input name="vencimento_boleto" type="date"></div>`, { etapa: 'resultado_recurso' }),
+    arquivar: () => etapa('Arquivar infração', `<div class="campo"><label class="req">Motivo</label><input name="motivo" required placeholder="ex.: auto cancelado pelo órgão, duplicada"></div>`, { etapa: 'arquivar' }),
+    pagar: () => etapa('Registrar pagamento da multa', `
+      <div class="grade g2">
+        <div class="campo"><label class="req">Data</label><input name="data_pagamento" type="date" value="${hoje}" required></div>
+        <div class="campo"><label class="req">Valor pago</label><input name="valor_pago" type="number" step="0.01" min="0" value="${(v * 0.8).toFixed(2)}" required></div>
+      </div>
+      <div class="campo"><label class="req">Quem pagou o boleto?</label><select name="pago_por" required>${opcoes([{ v: 'locadora', t: 'Locadora (gera despesa)' }, { v: 'motorista', t: 'O próprio motorista' }], 'locadora')}</select></div>
+      <div class="campo"><label>Forma</label><select name="forma">${opcoes(['PIX', 'Boleto', 'Cartão', 'Transferência', 'Dinheiro'].map(x => ({ v: x, t: x })), 'Boleto', '—')}</select></div>
+      ${i.responsavel === 'motorista' ? `<label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" name="cobrar_motorista" checked> Cobrar reembolso do motorista</label>
+      <div class="grade g2"><div class="campo"><label>Valor a cobrar</label><input name="valor_cobrar" type="number" step="0.01" min="0" value="${(v * 0.8).toFixed(2)}"></div>
+      <div class="campo"><label>Vencimento da cobrança</label><input name="vencimento_reembolso" type="date"></div></div>` : ''}`,
+      { etapa: 'pagar', init: f => { f.valor_pago.oninput = () => { if (f.valor_cobrar) f.valor_cobrar.value = f.valor_pago.value; }; } })
+  };
+  md.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ac[b.dataset.a]());
 }
 </script>
 </body>
