@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DMA SYS · Gestão de Frotas</title>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('frota_tema')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script>try{var m=localStorage.getItem('frota_tema')||'auto';document.documentElement.dataset.theme=m==='auto'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m;
+var c=localStorage.getItem('frota_cor');if(c&&c!=='indigo')document.documentElement.dataset.accent=c;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
@@ -26,7 +27,9 @@
   --vermelho:#e5484d; --vermelho-claro:#fee2e2; --t-vermelho:#b91c1c;
   --roxo:#7c5cff; --roxo-claro:#ede9fe; --t-roxo:#6d28d9;
   --serie-1:#257de0; --serie-2:#f47230;
-  --sidebar:#ffffff; --sidebar-texto:#475569; --sidebar-ativo:rgba(59,99,246,.10);
+  --sidebar:#ffffff; --sidebar-texto:#475569; --sidebar-ativo:rgba(59,99,246,.10); --sidebar-ativo-texto:var(--azul);
+  --sidebar-hover:var(--surface-3); --sidebar-forte:var(--texto); --sidebar-borda:var(--borda); --sidebar-titulo:var(--muted-2); --sidebar-marca:var(--azul);
+  --on-accent:#ffffff;
   --sombra:0 1px 2px rgba(15,23,42,.05),0 1px 3px rgba(15,23,42,.06);
   --sombra-modal:0 24px 60px rgba(15,23,42,.25);
   --raio:12px; --sb:248px; --topo:64px;
@@ -42,6 +45,7 @@
   --roxo:#a78bfa; --roxo-claro:rgba(167,139,250,.16); --t-roxo:#c4b5fd;
   --serie-1:#338ced; --serie-2:#e76624;
   --sidebar:#0f1522; --sidebar-texto:#a7b1c2; --sidebar-ativo:rgba(107,140,255,.16);
+  --on-accent:#0b0f19;
   --sombra:0 1px 2px rgba(0,0,0,.3);
   --sombra-modal:0 24px 60px rgba(0,0,0,.55);
   color-scheme:dark;
@@ -66,17 +70,22 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 /* ---------- LAYOUT ---------- */
 #app{display:grid;grid-template-columns:var(--sb) 1fr;height:100vh;transition:grid-template-columns .2s}
 #app.recolhido{--sb:72px}
-aside{background:var(--sidebar);border-right:1px solid var(--borda);display:flex;flex-direction:column;overflow:hidden;min-height:0}
-#logoMenu{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--borda);min-height:var(--topo);display:flex;align-items:center;justify-content:center}
+aside{background:var(--sidebar);border-right:1px solid var(--sidebar-borda);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+#logoMenu{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--sidebar-borda);min-height:var(--topo);display:flex;align-items:center;justify-content:center}
 #logoMenu img{max-width:100%;max-height:56px}
-[data-theme="dark"] #logoMenu img,[data-theme="dark"] #logoLogin img{background:#fff;border-radius:10px;padding:5px 8px}
+[data-theme="dark"] #logoMenu img,[data-theme="dark"] #logoLogin img,html[data-accent="marinho"] #logoMenu img{background:#fff;border-radius:10px;padding:5px 8px}
 .menu{flex:1;overflow-y:auto;padding:12px 10px}
 .menu a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--sidebar-texto);text-decoration:none;font-weight:500;margin-bottom:2px;cursor:pointer;position:relative;white-space:nowrap}
-.menu a:hover{background:var(--surface-3);color:var(--texto)}
-.menu a.ativo{background:var(--sidebar-ativo);color:var(--azul);font-weight:600}
-.menu a.ativo::before{content:'';position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--azul)}
-.menu-titulo{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted-2);font-weight:600;padding:14px 12px 6px}
-.rodape-menu{border-top:1px solid var(--borda);padding:10px}
+.menu a:hover{background:var(--sidebar-hover);color:var(--sidebar-forte)}
+.menu a.ativo{background:var(--sidebar-ativo);color:var(--sidebar-ativo-texto);font-weight:600}
+.menu a.ativo::before{content:'';position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--sidebar-marca)}
+.menu-titulo{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--sidebar-titulo);font-weight:600;padding:14px 12px 6px}
+.rodape-menu{border-top:1px solid var(--sidebar-borda);padding:10px;color:var(--sidebar-forte)}
+.rodape-menu small{color:var(--sidebar-texto)!important}
+.rodape-menu .avatar{background:var(--sidebar-ativo);color:var(--sidebar-ativo-texto)}
+.rodape-menu .btn-ico{background:transparent;border-color:var(--sidebar-borda);color:var(--sidebar-texto)}
+.rodape-menu .btn-ico:hover{background:var(--sidebar-hover);color:var(--sidebar-forte)}
+#logoMenu .logo-txt{color:var(--sidebar-forte)}
 .usuario-box{display:flex;align-items:center;gap:10px;padding:6px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--azul-claro);color:var(--azul);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
 #app.recolhido .menu a span,#app.recolhido .menu-titulo,#app.recolhido .usuario-info{display:none}
@@ -95,7 +104,7 @@ main{flex:1;overflow-y:auto;padding:22px 24px;min-height:0}
 
 /* ---------- COMPONENTES ---------- */
 .btn{border:1px solid transparent;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .15s,border-color .15s;white-space:nowrap}
-.btn-pri{background:var(--azul);color:#fff}.btn-pri:hover{background:var(--azul-hover)}
+.btn-pri{background:var(--azul);color:var(--on-accent)}.btn-pri:hover{background:var(--azul-hover)}
 .btn-sec{background:var(--surface);color:var(--texto);border-color:var(--borda)}.btn-sec:hover{background:var(--surface-3)}
 .btn-ok{background:var(--verde);color:#fff}.btn-ok:hover{filter:brightness(1.07)}
 .btn-perigo{background:transparent;color:var(--vermelho);border-color:var(--vermelho-claro)}.btn-perigo:hover{background:var(--vermelho-claro)}
@@ -204,6 +213,37 @@ pre{color:var(--texto)}
 .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .dica{position:absolute;top:8px;background:var(--surface);border:1px solid var(--borda);border-radius:9px;padding:8px 10px;font-size:12px;box-shadow:var(--sombra-modal);pointer-events:none;min-width:150px;color:var(--texto)}
 
+
+/* ---------- CORES DE DESTAQUE (escolhidas pelo usuário) ---------- */
+html[data-accent="oceano"]{--azul:#0369a1;--azul-hover:#075985;--t-azul:#075985;--azul-claro:rgba(3,105,161,.10);--sidebar-ativo:rgba(3,105,161,.10)}
+html[data-theme="dark"][data-accent="oceano"]{--azul:#38bdf8;--azul-hover:#7dd3fc;--t-azul:#7dd3fc;--azul-claro:rgba(56,189,248,.15);--sidebar-ativo:rgba(56,189,248,.16)}
+html[data-accent="teal"]{--azul:#0f766e;--azul-hover:#115e59;--t-azul:#115e59;--azul-claro:rgba(15,118,110,.10);--sidebar-ativo:rgba(15,118,110,.10)}
+html[data-theme="dark"][data-accent="teal"]{--azul:#2dd4bf;--azul-hover:#5eead4;--t-azul:#5eead4;--azul-claro:rgba(45,212,191,.15);--sidebar-ativo:rgba(45,212,191,.16)}
+html[data-accent="violeta"]{--azul:#7c3aed;--azul-hover:#6d28d9;--t-azul:#6d28d9;--azul-claro:rgba(124,58,237,.10);--sidebar-ativo:rgba(124,58,237,.10)}
+html[data-theme="dark"][data-accent="violeta"]{--azul:#a78bfa;--azul-hover:#c4b5fd;--t-azul:#c4b5fd;--azul-claro:rgba(167,139,250,.15);--sidebar-ativo:rgba(167,139,250,.16)}
+html[data-accent="rosa"]{--azul:#db2777;--azul-hover:#be185d;--t-azul:#be185d;--azul-claro:rgba(219,39,119,.10);--sidebar-ativo:rgba(219,39,119,.10)}
+html[data-theme="dark"][data-accent="rosa"]{--azul:#f472b6;--azul-hover:#f9a8d4;--t-azul:#f9a8d4;--azul-claro:rgba(244,114,182,.15);--sidebar-ativo:rgba(244,114,182,.16)}
+html[data-accent="laranja"]{--azul:#c2410c;--azul-hover:#9a3412;--t-azul:#9a3412;--azul-claro:rgba(194,65,12,.10);--sidebar-ativo:rgba(194,65,12,.10)}
+html[data-theme="dark"][data-accent="laranja"]{--azul:#fb923c;--azul-hover:#fdba74;--t-azul:#fdba74;--azul-claro:rgba(251,146,60,.15);--sidebar-ativo:rgba(251,146,60,.16)}
+html[data-accent="grafite"]{--azul:#334155;--azul-hover:#1e293b;--t-azul:#1e293b;--azul-claro:rgba(51,65,85,.10);--sidebar-ativo:rgba(51,65,85,.10)}
+html[data-theme="dark"][data-accent="grafite"]{--azul:#cbd5e1;--azul-hover:#e2e8f0;--t-azul:#e2e8f0;--azul-claro:rgba(203,213,225,.15);--sidebar-ativo:rgba(203,213,225,.16)}
+html[data-accent="marinho"]{--azul:#1e3a8a;--azul-hover:#172f6e;--t-azul:#1e3a8a;--azul-claro:rgba(30,58,138,.10);--sidebar-ativo:rgba(30,58,138,.10)}
+html[data-theme="dark"][data-accent="marinho"]{--azul:#93b4ff;--azul-hover:#b5ccff;--t-azul:#b5ccff;--azul-claro:rgba(147,180,255,.15);--sidebar-ativo:rgba(147,180,255,.16)}
+html[data-accent="marinho"]{--sidebar:#0b1f4d;--sidebar-texto:#c7d2fe;--sidebar-forte:#ffffff;--sidebar-hover:rgba(255,255,255,.08);--sidebar-ativo:rgba(255,255,255,.14);
+  --sidebar-ativo-texto:#ffffff;--sidebar-borda:rgba(255,255,255,.10);--sidebar-titulo:#8ea2d8;--sidebar-marca:#f5b301}
+html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo:rgba(255,255,255,.12)}
+
+/* ---------- SELETOR DE TEMA ---------- */
+.tema-pop{position:fixed;z-index:70;background:var(--surface);border:1px solid var(--borda);border-radius:14px;box-shadow:var(--sombra-modal);padding:14px;width:300px}
+.tema-pop h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);margin:2px 0 8px}
+.tema-modos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.tema-modos button{border:1px solid var(--borda);background:var(--surface);border-radius:9px;padding:8px 4px;cursor:pointer;font-weight:600;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--texto-2)}
+.tema-modos button.ativo{border-color:var(--azul);color:var(--azul);background:var(--azul-claro)}
+.tema-cores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tema-cores button{border:1px solid var(--borda);background:var(--surface);border-radius:10px;padding:8px 4px 6px;cursor:pointer;font-size:11.5px;color:var(--texto-2);display:flex;flex-direction:column;align-items:center;gap:5px}
+.tema-cores button.ativo{border-color:var(--azul);box-shadow:0 0 0 2px var(--azul-claro);color:var(--texto)}
+.tema-cores i{width:26px;height:26px;border-radius:50%;display:block;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--borda)}
+
 /* ---------- RESPONSIVO ---------- */
 @media(max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){
@@ -257,6 +297,8 @@ pre{color:var(--texto)}
   <symbol id="i-lista" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
   <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-paleta" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.56-2.5 5.56-5.55C21.97 6.01 17.46 2 12 2z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
   <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
 </svg>
 <div id="carregando"></div>
@@ -310,6 +352,7 @@ pre{color:var(--texto)}
       <div class="acoes-topo">
         <button class="btn btn-pri oculto" id="btnNovo">+ Novo</button>
         <button class="btn-ico" id="btnTema" title="Alternar tema claro / escuro"></button>
+        <button class="btn-ico" id="btnCor" title="Aparência: cores e tema"><svg class="i"><use href="#i-paleta"/></svg></button>
         <button class="btn-ico" title="Configurações" onclick="abrirConfig()"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
     </header>
@@ -474,6 +517,24 @@ async function api(acao, dados) {
   }
 }
 
+/** Várias ações numa única ida ao servidor. Devolve os dados na mesma ordem. */
+async function lote(chamadas, tolerantes = []) {
+  const r = await api('lote', { chamadas });
+  return r.map((x, i) => {
+    if (x.ok) return x.dados;
+    if (tolerantes.includes(chamadas[i].acao)) return null;
+    throw new Error(x.erro);
+  });
+}
+/** Base usada por várias telas (contratos, planos, veículos, motoristas), pedida junto no mesmo lote */
+const BASE = [{ acao: 'listarContratos' }, { acao: 'listarPlanos' }, { acao: 'listarVeiculos' }, { acao: 'listarMotoristas' }];
+function aplicarBase(r) { [S.contratos, S.planos, S.veiculos, S.motoristas] = r; }
+async function loteComBase(chamadas, tolerantes) {
+  const r = await lote([...BASE, ...chamadas], tolerantes);
+  aplicarBase(r.slice(0, 4));
+  return r.slice(4);
+}
+
 /* =========================================================
    UTILITÁRIOS
    ========================================================= */
@@ -513,14 +574,46 @@ const pode = (...perfis) => perfis.includes(S.usuario?.perfil);
 const ico = (n, t = 18) => `<svg class="i" style="width:${t}px;height:${t}px"><use href="#i-${n}"/></svg>`;
 const ICONE_CFG = { empresa: 'empresa', usuarios: 'motoristas', planos: 'tag', contrato: 'contratos', marcas: 'camadas', modelos: 'veiculos', cores: 'gota',
   notif: 'sino', planoManut: 'manutencao', checklist: 'vistorias', categorias: 'lista', senha: 'chave' };
-function aplicarTema(t) {
+const CORES_TEMA = [['indigo', 'Índigo', '#3b63f6'], ['oceano', 'Oceano', '#0369a1'], ['teal', 'Turquesa', '#0f766e'], ['violeta', 'Violeta', '#7c3aed'],
+  ['rosa', 'Rosa', '#db2777'], ['laranja', 'Laranja', '#c2410c'], ['grafite', 'Grafite', '#334155'], ['marinho', 'Marinho', '#0b1f4d']];
+const lerPref = (k, p) => { try { return localStorage.getItem(k) || p; } catch (e) { return p; } };
+const modoEscuroSistema = matchMedia('(prefers-color-scheme: dark)');
+function aplicarTema(modo) {                       // 'light' | 'dark' | 'auto'
+  try { localStorage.setItem('frota_tema', modo); } catch (e) {}
+  const t = modo === 'auto' ? (modoEscuroSistema.matches ? 'dark' : 'light') : modo;
   document.documentElement.dataset.theme = t;
-  try { localStorage.setItem('frota_tema', t); } catch (e) {}
   $('btnTema').innerHTML = ico(t === 'dark' ? 'sol' : 'lua');
   $('btnTema').title = t === 'dark' ? 'Usar tema claro' : 'Usar tema escuro';
 }
-aplicarTema(document.documentElement.dataset.theme || 'light');
+function aplicarCor(cor) {
+  try { localStorage.setItem('frota_cor', cor); } catch (e) {}
+  if (cor === 'indigo') delete document.documentElement.dataset.accent; else document.documentElement.dataset.accent = cor;
+}
+aplicarTema(lerPref('frota_tema', 'auto'));
+modoEscuroSistema.addEventListener('change', () => { if (lerPref('frota_tema', 'auto') === 'auto') aplicarTema('auto'); });
 $('btnTema').onclick = () => aplicarTema(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+$('btnCor').onclick = ev => {
+  ev.stopPropagation();
+  let pop = document.querySelector('.tema-pop');
+  if (pop) return pop.remove();
+  pop = document.createElement('div'); pop.className = 'tema-pop';
+  const desenhar = () => {
+    const modo = lerPref('frota_tema', 'auto'), cor = lerPref('frota_cor', 'indigo');
+    pop.innerHTML = `<h4>Modo</h4><div class="tema-modos">
+        ${[['light', 'Claro', 'sol'], ['dark', 'Escuro', 'lua'], ['auto', 'Automático', 'monitor']].map(([k, t, i]) => `<button type="button" data-modo="${k}" class="${modo === k ? 'ativo' : ''}">${ico(i)}${t}</button>`).join('')}</div>
+      <h4>Cor de destaque</h4><div class="tema-cores">
+        ${CORES_TEMA.map(([k, t, c]) => `<button type="button" data-cor="${k}" class="${cor === k ? 'ativo' : ''}"><i style="background:${c}"></i>${t}</button>`).join('')}</div>
+      <p style="font-size:11.5px;color:var(--cinza);margin-top:10px">A escolha fica salva neste navegador. "Marinho" usa o menu lateral azul-marinho.</p>`;
+    pop.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { aplicarTema(b.dataset.modo); desenhar(); });
+    pop.querySelectorAll('[data-cor]').forEach(b => b.onclick = () => { aplicarCor(b.dataset.cor); desenhar(); });
+  };
+  desenhar();
+  document.body.appendChild(pop);
+  const r = $('btnCor').getBoundingClientRect();
+  pop.style.top = (r.bottom + 8) + 'px';
+  pop.style.left = Math.max(8, Math.min(r.right - 300, innerWidth - 308)) + 'px';
+};
+document.addEventListener('click', e => { const p = document.querySelector('.tema-pop'); if (p && !p.contains(e.target)) p.remove(); });
 const telaPequena = () => matchMedia('(max-width: 900px)').matches;
 try { if (localStorage.getItem('frota_menu') === 'recolhido') $('app').classList.add('recolhido'); } catch (e) {}
 $('btnMenu').onclick = () => {
@@ -570,15 +663,16 @@ async function sair(semChamar) {
   S.token = null; S.usuario = null; sessionStorage.removeItem('frota_token');
   $('app').classList.add('oculto'); $('telaLogin').classList.remove('oculto'); $('modais').innerHTML = '';
 }
-async function iniciar() {
+async function iniciar(pre) {
   $('telaLogin').classList.add('oculto'); $('app').classList.remove('oculto');
   $('usNome').textContent = S.usuario.nome; $('usPerfil').textContent = PERFIS[S.usuario.perfil];
   $('avatar').textContent = S.usuario.nome.trim()[0].toUpperCase();
   $('filtroCt').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_CT).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   $('filtroStatus').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_VEIC).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
-  S.cat = await api('listarCatalogos');
   $('menuDash').classList.toggle('oculto', !pode('admin', 'gestor'));
-  carregarLogo();
+  if (!pre) { const r = await lote([{ acao: 'listarCatalogos' }, { acao: 'obterLogo' }, { acao: 'resumo' }], ['obterLogo']); pre = { cat: r[0], logo: r[1], resumo: r[2] }; }
+  S.cat = pre.cat; S.resumo = pre.resumo; S.resumoEm = Date.now();
+  if (pre.logo) aplicarLogo(pre.logo.dataUrl);
   irPara('painel');
 }
 /* ---------- LOGO ---------- */
@@ -615,7 +709,11 @@ function reduzirImagem(file, maxW = 500, maxH = 250) {
     return;
   }
   S.token = t;
-  try { S.usuario = await api('sessao'); await iniciar(); } catch (e) { sair(true); }
+  try {
+    const r = await lote([{ acao: 'sessao' }, { acao: 'listarCatalogos' }, { acao: 'obterLogo' }, { acao: 'resumo' }], ['obterLogo']);
+    S.usuario = r[0];
+    await iniciar({ cat: r[1], logo: r[2], resumo: r[3] });
+  } catch (e) { sair(true); }
 })();
 
 /* =========================================================
@@ -638,10 +736,22 @@ async function irPara(tela) {
   novo.classList.toggle('oculto', ['painel', 'financeiro', 'dashboard'].includes(tela));
   novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria', manutencao: '+ Registrar manutenção', infracoes: '+ Registrar infração' }[tela] || '';
   novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria, manutencao: () => formManut({ status: 'realizada' }), infracoes: () => formInfracao() })[tela]();
+  // 1) desenha imediatamente com o que já está na memória do navegador
+  try {
+    if (tela === 'painel' && S.resumo) renderPainel(S.resumo);
+    if (tela === 'veiculos' && S.veiculos.length) renderVeiculos();
+    if (tela === 'motoristas' && S.motoristas.length) renderMotoristas();
+    if (tela === 'contratos' && S.contratos.length) renderContratos();
+    if (tela === 'vistorias' && S.vistorias.length) renderVistorias();
+    if (tela === 'infracoes' && S.inf.lista.length) renderInfracoes();
+    if (tela === 'manutencao' && S.mn.situacao.length) renderManutencao();
+    if (tela === 'financeiro' && S.fin.lanc.length) renderFinanceiro();
+  } catch (e) {}
+  // 2) busca a versão atualizada no servidor
   try {
     if (tela === 'painel') await carregarPainel();
-    if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
-    if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); renderMotoristas(); }
+    if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); if (S.tela === tela) renderVeiculos(); }
+    if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); if (S.tela === tela) renderMotoristas(); }
     if (tela === 'contratos') { await carregarBaseContratos(); renderContratos(); }
     if (tela === 'vistorias') { await carregarVistorias(); renderVistorias(); }
     if (tela === 'manutencao') { await carregarManutencao(); renderManutencao(); }
@@ -659,7 +769,11 @@ async function irPara(tela) {
    PAINEL
    ========================================================= */
 async function carregarPainel() {
-  const r = await api('resumo');
+  if (S.resumo && Date.now() - (S.resumoEm || 0) < 8000) return renderPainel(S.resumo);   // acabou de chegar no lote
+  S.resumo = await api('resumo'); S.resumoEm = Date.now();
+  if (S.tela === 'painel') renderPainel(S.resumo);
+}
+function renderPainel(r) {
   const ps = r.porStatus || {};
   const card = (rot, n, cor) => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num">${n}</div></div>`;
   $('cards').innerHTML =
@@ -1045,8 +1159,7 @@ const CAMPOS_PLANO = ['periodicidade', 'valor', 'caucao', 'prazo_minimo_dias', '
   'manutencao_preventiva', 'coparticipacao_danos', 'multa_rescisao', 'multa_atraso_pct', 'juros_dia_pct', 'dias_bloqueio'];
 
 async function carregarBaseContratos() {
-  const [c, p, v, m] = await Promise.all([api('listarContratos'), api('listarPlanos'), api('listarVeiculos'), api('listarMotoristas')]);
-  S.contratos = c; S.planos = p; S.veiculos = v; S.motoristas = m;
+  aplicarBase(await lote(BASE));
 }
 const veicTxt = id => { const v = S.veiculos.find(x => x.id === id); return v ? `${v.placa} · ${nomeModelo(v.modelo_id)}` : '—'; };
 const motTxt = id => (S.motoristas.find(x => x.id === id) || {}).nome || '—';
@@ -1319,8 +1432,7 @@ function fotoParaJpeg(file, max, qualidade) {
 
 /* ---------- Lista (menu Vistorias) ---------- */
 async function carregarVistorias() {
-  if (!S.contratos.length) await carregarBaseContratos();
-  S.vistorias = await api('listarVistorias', {});
+  [S.vistorias] = await loteComBase([{ acao: 'listarVistorias', dados: {} }]);
 }
 function renderVistorias() {
   const q = $('buscaVs').value.toLowerCase();
@@ -1653,10 +1765,8 @@ const SIT_FIN = { aberto: ['Em aberto', 'b-azul'], atrasado: ['Atrasado', 'b-ver
 S.fin = { lanc: [], cat: null, aba: 'receber', mes: new Date().toISOString().slice(0, 7) };
 
 async function carregarFinanceiro() {
-  if (!S.contratos.length || !S.veiculos.length) await carregarBaseContratos();
-  const [l, cat, comp] = await Promise.all([api('listarLancamentos', {}), S.fin.cat ? Promise.resolve(S.fin.cat) : api('obterCategorias'),
-    api('listarComprovantes', { status: 'pendente' }).catch(() => [])]);
-  S.fin.lanc = l; S.fin.cat = cat; S.fin.comp = comp;
+  const [l, cat, comp] = await loteComBase([{ acao: 'listarLancamentos' }, { acao: 'obterCategorias' }, { acao: 'listarComprovantes', dados: { status: 'pendente' } }], ['listarComprovantes']);
+  S.fin.lanc = l; S.fin.cat = cat; S.fin.comp = comp || [];
 }
 const ctNumero = id => (S.contratos.find(c => c.id === id) || {}).numero || '';
 const refLanc = l => [l.motorista_id ? motTxt(l.motorista_id) : '', l.veiculo_id ? (S.veiculos.find(v => v.id === l.veiculo_id) || {}).placa || '' : ''].filter(Boolean).join(' · ');
@@ -1894,8 +2004,7 @@ function textoBadgeAlerta(a) {
 }
 
 async function carregarManutencao() {
-  if (!S.veiculos.length || !S.contratos.length || !S.motoristas.length) await carregarBaseContratos();
-  const [sit, lista, itens] = await Promise.all([api('situacaoManutencao'), api('listarManutencoes'), api('listarItensManutencao')]);
+  const [sit, lista, itens] = await loteComBase([{ acao: 'situacaoManutencao' }, { acao: 'listarManutencoes' }, { acao: 'listarItensManutencao' }]);
   S.mn.situacao = sit; S.mn.lista = lista; S.mn.itens = itens;
 }
 const nomeItem = id => (S.mn.itens.find(i => i.id === id) || {}).nome || '?';
@@ -2105,8 +2214,7 @@ const GRAV = { leve: ['Leve', 3, 88.38], media: ['Média', 4, 130.16], grave: ['
 S.inf = { lista: [], filtro: 'pendentes' };
 
 async function carregarInfracoes() {
-  if (!S.veiculos.length || !S.contratos.length) await carregarBaseContratos();
-  S.inf.lista = await api('listarInfracoes');
+  [S.inf.lista] = await loteComBase([{ acao: 'listarInfracoes' }]);
 }
 function prazoBadge(i) {
   if (i.status !== 'aberta' || i.responsavel !== 'motorista') return '—';
