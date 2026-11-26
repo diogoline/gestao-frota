@@ -421,9 +421,9 @@ async function irPara(tela) {
   ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
   $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias' }[tela];
   const novo = $('btnNovo');
-  novo.classList.toggle('oculto', tela === 'painel' || tela === 'vistorias');
-  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato' }[tela] || '';
-  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato })[tela]();
+  novo.classList.toggle('oculto', tela === 'painel');
+  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria' }[tela] || '';
+  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria })[tela]();
   try {
     if (tela === 'painel') await carregarPainel();
     if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
@@ -1386,6 +1386,33 @@ async function cfgChecklist(alvo) {
     ${ed ? '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-pri" type="button">Salvar checklist</button></div>' : ''}`;
   const b = alvo.querySelector('button');
   if (b) b.onclick = async () => { b.disabled = true; try { await api('salvarChecklistVistoria', { texto: alvo.querySelector('#txtCk').value }); toast('Checklist salvo.'); } catch (e) { toast(e.message, 'erro'); } b.disabled = false; };
+}
+
+/* ---------- + Nova vistoria (escolhe o contrato) ---------- */
+async function novaVistoria() {
+  try { await carregarVistorias(); } catch (e) { return toast(e.message, 'erro'); }
+  const conc = (cid, t) => S.vistorias.some(v => v.contrato_id === cid && v.tipo === t && v.status === 'concluida');
+  const opcoesVs = [];
+  S.contratos.filter(c => ['aguardando_assinatura', 'ativo'].includes(c.status)).forEach(c => {
+    const rot = `${c.numero} · ${veicTxt(c.veiculo_id)} · ${motTxt(c.motorista_id)}`;
+    if (!conc(c.id, 'retirada')) opcoesVs.push({ v: c.id + '|retirada', t: '📷 Retirada — ' + rot });
+    if (c.status === 'ativo' && !conc(c.id, 'devolucao')) opcoesVs.push({ v: c.id + '|devolucao', t: '🔁 Devolução — ' + rot });
+  });
+  const md = abrirModal({
+    titulo: 'Nova vistoria', peq: true,
+    corpo: opcoesVs.length ? `<div class="campo"><label class="req">Contrato e tipo de vistoria</label><select id="nvSel">${opcoes(opcoesVs, '')}</select></div>
+      <p style="font-size:12px;color:var(--cinza)">Retirada: contratos emitidos ou ativos. Devolução: só contratos ativos (ao concluir, encerra o contrato).</p>`
+      : '<div class="vazio">Nenhum contrato precisando de vistoria.<br>Emita um contrato primeiro.</div>',
+    rodape: opcoesVs.length ? '<span></span><button class="btn btn-pri" type="button">Iniciar</button>' : ''
+  });
+  const b = md.querySelector('.modal-rodape .btn-pri');
+  if (b) b.onclick = async () => {
+    const val = md.querySelector('#nvSel').value; if (!val) return toast('Escolha o contrato.', 'erro');
+    const [contrato_id, tipo] = val.split('|');
+    b.disabled = true;
+    try { const r = await api('iniciarVistoria', { contrato_id, tipo }); md.remove(); abrirVistoria(r.id); }
+    catch (e) { toast(e.message, 'erro'); b.disabled = false; }
+  };
 }
 </script>
 </body>
