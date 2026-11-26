@@ -136,6 +136,8 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 .mn-item{display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid #f2f4f7}
 .mn-itens{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px;border:1px solid var(--borda);border-radius:9px;padding:10px}
 .mn-chk{display:flex;gap:8px;align-items:center;font-weight:400!important;font-size:13px!important;color:var(--texto)!important;cursor:pointer}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.dica{position:absolute;top:8px;background:#fff;border:1px solid var(--borda);border-radius:9px;padding:8px 10px;font-size:12px;box-shadow:var(--sombra);pointer-events:none;min-width:150px}
 .hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
 .hist-item small{color:var(--cinza)}
 
@@ -173,6 +175,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
     <div id="logoMenu" style="padding:0 6px 16px;text-align:center"><div class="logo-txt">Sistema <span>Frota</span></div></div>
     <nav class="menu" id="menu">
       <a data-tela="painel" class="ativo">📊 Painel</a>
+      <a data-tela="dashboard" id="menuDash">📈 Dashboard</a>
       <a data-tela="veiculos">🚗 Veículos</a>
       <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
       <a data-tela="contratos">📄 Contratos</a>
@@ -180,7 +183,6 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <a data-tela="manutencao">🔧 Manutenção</a>
       <a data-tela="infracoes">🚨 Infrações</a>
       <a data-tela="financeiro">💰 Financeiro</a>
-      <div class="menu-titulo">Próximas fases</div>
     </nav>
     <div class="rodape-menu">
       <div class="usuario-box">
@@ -200,6 +202,17 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
         <button class="btn-ico" title="Configurações" onclick="abrirConfig()">⚙️</button>
       </div>
     </div>
+
+    <!-- DASHBOARD -->
+    <section id="tela-dashboard" class="oculto">
+      <div class="painel" style="margin-bottom:14px"><div class="filtros" style="border:none;flex-wrap:wrap;align-items:center">
+        <b>Período</b>
+        <select id="dashPer"><option value="mes">Este mês</option><option value="mes_ant">Mês passado</option><option value="3m">Últimos 3 meses</option>
+          <option value="12m">Últimos 12 meses</option><option value="ano">Este ano</option><option value="custom">Personalizado</option></select>
+        <span id="dashCustom" class="oculto"><input type="date" id="dashDe" style="border:1px solid var(--borda);border-radius:9px;padding:8px"> a <input type="date" id="dashAte" style="border:1px solid var(--borda);border-radius:9px;padding:8px"></span>
+      </div></div>
+      <div id="dashConteudo"></div>
+    </section>
 
     <!-- PAINEL -->
     <section id="tela-painel">
@@ -422,6 +435,7 @@ async function iniciar() {
   $('filtroCt').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_CT).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   $('filtroStatus').innerHTML = '<option value="">Todos os status</option>' + Object.entries(STATUS_VEIC).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
   S.cat = await api('listarCatalogos');
+  $('menuDash').classList.toggle('oculto', !pode('admin', 'gestor'));
   carregarLogo();
   irPara('painel');
 }
@@ -466,6 +480,7 @@ function reduzirImagem(file, maxW = 500, maxH = 250) {
    NAVEGAÇÃO
    ========================================================= */
 document.querySelectorAll('#menu a[data-tela]').forEach(a => a.onclick = () => irPara(a.dataset.tela));
+$('dashPer').onchange = carregarDashboard; $('dashDe').onchange = $('dashAte').onchange = carregarDashboard;
 document.querySelectorAll('#mnAbas button').forEach(b => b.onclick = () => { S.mn.aba = b.dataset.aba; renderManutencao(); });
 document.querySelectorAll('#finAbas button').forEach(b => b.onclick = () => { S.fin.aba = b.dataset.aba; renderFinanceiro(); });
 $('finMes').onchange = () => { S.fin.mes = $('finMes').value || S.fin.mes; renderFinanceiro(); };
@@ -474,10 +489,10 @@ $('finNovaDesp').onclick = () => formLanc('despesa');
 async function irPara(tela) {
   S.tela = tela;
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
-  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao', 'infracoes'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
-  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro', manutencao: 'Manutenção', infracoes: 'Infrações' }[tela];
+  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao', 'infracoes', 'dashboard'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro', manutencao: 'Manutenção', infracoes: 'Infrações', dashboard: 'Dashboard' }[tela];
   const novo = $('btnNovo');
-  novo.classList.toggle('oculto', tela === 'painel' || tela === 'financeiro');
+  novo.classList.toggle('oculto', ['painel', 'financeiro', 'dashboard'].includes(tela));
   novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria', manutencao: '+ Registrar manutenção', infracoes: '+ Registrar infração' }[tela] || '';
   novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria, manutencao: () => formManut({ status: 'realizada' }), infracoes: () => formInfracao() })[tela]();
   try {
@@ -488,6 +503,7 @@ async function irPara(tela) {
     if (tela === 'vistorias') { await carregarVistorias(); renderVistorias(); }
     if (tela === 'manutencao') { await carregarManutencao(); renderManutencao(); }
     if (tela === 'infracoes') { await carregarInfracoes(); renderInfracoes(); }
+    if (tela === 'dashboard') await carregarDashboard();
     if (tela === 'financeiro') {
       $('finMes').value = S.fin.mes;
       ['finNovaRec', 'finNovaDesp'].forEach(i => $(i).classList.toggle('oculto', !pode('admin', 'gestor')));
@@ -540,7 +556,7 @@ function formVeiculo(id) {
   const val = k => esc(v[k] ?? '');
   const md = abrirModal({
     titulo: id ? `Veículo <span class="placa" style="margin-left:6px">${esc(v.placa)}</span>` : 'Novo veículo',
-    abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="hist">Histórico</button></div>` : '',
+    abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="fipe">FIPE</button><button data-aba="hist">Histórico</button></div>` : '',
     corpo: `<form id="fVeic" data-painel="dados">
       <div class="secao">Identificação</div>
       <div class="grade g3">
@@ -580,12 +596,13 @@ function formVeiculo(id) {
       ${id ? `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="ativo" ${v.ativo ? 'checked' : ''} ${pode('admin', 'gestor') ? '' : 'disabled'}> Veículo ativo na frota</label>` : ''}
       ${id && v.km_atualizado_em ? `<p style="color:var(--cinza);font-size:12px;margin-top:8px">KM atualizado em ${dataBR(v.km_atualizado_em)}</p>` : ''}
     </form>
+    <div data-painel="fipe" class="oculto" id="fipeVeic">Carregando...</div>
     <div data-painel="hist" class="oculto" id="histVeic">Carregando...</div>`,
     rodape: `<span></span><div style="display:flex;gap:8px"><button class="btn btn-sec" type="button" data-fechar>Cancelar</button>
              <button class="btn btn-pri" type="button" id="salvarVeic">Salvar</button></div>`
   });
   md.querySelector('[data-fechar]').onclick = () => md.remove();
-  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); if (b.dataset.aba === 'hist') carregarHistorico(id, md.querySelector('#histVeic')); });
+  md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); if (b.dataset.aba === 'hist') carregarHistorico(id, md.querySelector('#histVeic')); if (b.dataset.aba === 'fipe') painelFipeVeiculo(id, md.querySelector('#fipeVeic')); });
   md.querySelector('#salvarVeic').onclick = async ev => {
     const f = md.querySelector('#fVeic');
     if (!f.reportValidity()) return;
@@ -2195,6 +2212,192 @@ async function cfgNotificacoes(alvo) {
     ev.target.disabled = true;
     try { const r = await api('rodarNotificacoes'); toast(r.enviados + ' e-mail(s) enviado(s).'); cfgNotificacoes(alvo); } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
   };
+}
+
+/* =========================================================
+   FIPE + DASHBOARD (Fase 7)
+   ========================================================= */
+const fmtK = n => { n = Number(n || 0); const a = Math.abs(n); return (n < 0 ? '−' : '') + 'R$ ' + (a >= 1000 ? (a / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : a.toLocaleString('pt-BR', { maximumFractionDigits: 0 })); };
+const pct = n => n == null ? '—' : Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%';
+const sinal = n => n == null ? '—' : `<span style="color:${n < 0 ? 'var(--vermelho)' : 'inherit'}">${n < 0 ? '−' : ''}${dinheiro(Math.abs(n)) || 'R$ 0,00'}</span>`;
+const MESES_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const nomeMes = ym => MESES_PT[Number(ym.slice(5, 7)) - 1] + '/' + ym.slice(2, 4);
+S.dash = { periodo: 'mes' };
+
+/* ---------- FIPE no cadastro do veículo ---------- */
+async function painelFipeVeiculo(veiculoId, alvo) {
+  alvo.innerHTML = 'Carregando...';
+  try {
+    const r = await api('historicoFipe', { veiculo_id: veiculoId });
+    const v = r.veiculo, d = r.depreciacao, h = r.historico;
+    const ed = pode('admin', 'gestor');
+    alvo.innerHTML = `
+      ${v.fipe_codigo ? `<div class="info">Vinculado ao código FIPE <b>${esc(v.fipe_codigo)}</b> · ano ${esc(v.fipe_ano_codigo)}. Atualização automática 1x por mês.</div>`
+        : '<div class="aviso">Veículo ainda não vinculado à FIPE. Vincule para acompanhar a desvalorização mês a mês.</div>'}
+      ${d.atual ? `<div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+        <div class="card" style="--c:var(--azul)"><div class="rot">FIPE atual</div><div class="num" style="font-size:20px">${dinheiro(d.atual)}</div><small style="color:var(--cinza)">${esc(d.referencia)}</small></div>
+        <div class="card" style="--c:${d.variacao < 0 ? 'var(--laranja)' : 'var(--verde)'}"><div class="rot">Variação vs ${esc(d.base_tipo || 'base')}</div><div class="num" style="font-size:20px">${d.variacao_pct != null ? pct(d.variacao_pct) : '—'}</div><small style="color:var(--cinza)">${d.variacao != null ? sinal(d.variacao) : 'informe valor pago / FIPE na compra'}</small></div>
+        <div class="card" style="--c:var(--roxo)"><div class="rot">Média por mês</div><div class="num" style="font-size:20px">${d.pct_mes != null ? pct(d.pct_mes) : '—'}</div><small style="color:var(--cinza)">${d.pct_mes != null ? 'desde a compra' : 'informe a data de aquisição'}</small></div>
+      </div>` : ''}
+      ${h.length ? tabelaSimples(['Mês', 'Referência FIPE', 'Valor', 'Variação no mês'], h.slice().reverse().map((x, i, arr) => {
+          const ant = arr[i + 1]; const dv = ant ? Number(x.valor) - Number(ant.valor) : null;
+          return [nomeMes(x.mes), esc(x.referencia), dinheiro(x.valor), dv == null ? '—' : sinal(dv)];
+        })) : ''}
+      ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${v.fipe_codigo ? 'Alterar vínculo' : '🔎 Vincular à FIPE'}</button>
+        ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}</div>` : ''}
+      <p style="font-size:12px;color:var(--cinza);margin-top:10px">FIPE é o preço médio de mercado (referência para venda e seguro), não a depreciação contábil.</p>`;
+    const b1 = alvo.querySelector('[data-f=vincular]'); if (b1) b1.onclick = () => vincularFipe(veiculoId, v, () => painelFipeVeiculo(veiculoId, alvo));
+    const b2 = alvo.querySelector('[data-f=atualizar]'); if (b2) b2.onclick = async () => {
+      b2.disabled = true;
+      try { const x = await api('atualizarFipe', { veiculo_id: veiculoId }); if (x.erros.length) toast(x.erros[0], 'erro'); else toast('FIPE atualizada.'); painelFipeVeiculo(veiculoId, alvo); }
+      catch (e) { toast(e.message, 'erro'); b2.disabled = false; }
+    };
+  } catch (e) { alvo.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
+}
+
+function vincularFipe(veiculoId, atual, depois) {
+  const lista = x => (Array.isArray(x) ? x : (x.models || x.modelos || [])).map(i => ({ v: i.code ?? i.codigo, t: i.name ?? i.nome }));
+  const md = abrirModal({
+    titulo: 'Vincular veículo à FIPE', peq: true,
+    corpo: `<form>
+      <div class="campo"><label>Tipo</label><select name="tipo">${opcoes([{ v: 'cars', t: 'Carro' }, { v: 'motorcycles', t: 'Moto' }, { v: 'trucks', t: 'Caminhão' }], atual.fipe_tipo || 'cars', '—')}</select></div>
+      <div class="campo"><label>Já sabe o código FIPE? (ex.: 004478-0)</label><div style="display:flex;gap:6px"><input name="codigo" value="${esc(atual.fipe_codigo || '')}" style="flex:1"><button class="btn btn-sec" type="button" id="fBuscarCod">Buscar anos</button></div></div>
+      <div style="text-align:center;color:var(--cinza);margin:6px 0">— ou procure —</div>
+      <div class="campo"><label>Marca</label><select name="marca"><option value="">Carregando...</option></select></div>
+      <div class="campo"><label>Modelo</label><select name="modelo" disabled><option value="">Escolha a marca</option></select></div>
+      <div class="campo"><label class="req">Ano / combustível</label><select name="ano" disabled><option value="">—</option></select></div>
+      <div id="fRes"></div>
+    </form>`,
+    rodape: `<span></span><button class="btn btn-pri" type="button" disabled>Vincular</button>`
+  });
+  const f = md.querySelector('form'), ok = md.querySelector('.modal-rodape .btn'), res = md.querySelector('#fRes');
+  let codigo = atual.fipe_codigo || '';
+  const carregar = async (sel, acao, dados, vazio) => {
+    sel.disabled = true; sel.innerHTML = '<option value="">Carregando...</option>';
+    try { const l = lista(await api(acao, dados)); sel.innerHTML = opcoes(l, '', l.length ? vazio : 'Nada encontrado'); sel.disabled = false; }
+    catch (e) { sel.innerHTML = '<option value="">Erro</option>'; toast(e.message, 'erro'); }
+  };
+  const marcas = () => carregar(f.marca, 'fipeMarcas', { tipo: f.tipo.value }, 'Selecione...');
+  f.tipo.onchange = marcas; marcas();
+  f.marca.onchange = () => { if (f.marca.value) carregar(f.modelo, 'fipeModelos', { tipo: f.tipo.value, marca: f.marca.value }, 'Selecione...'); };
+  f.modelo.onchange = () => { codigo = ''; if (f.modelo.value) carregar(f.ano, 'fipeAnos', { tipo: f.tipo.value, marca: f.marca.value, modelo: f.modelo.value }, 'Selecione...'); };
+  md.querySelector('#fBuscarCod').onclick = () => { codigo = f.codigo.value.trim(); if (!codigo) return toast('Informe o código.', 'erro'); carregar(f.ano, 'fipeAnos', { tipo: f.tipo.value, codigo }, 'Selecione...'); };
+  let consulta = null;
+  f.ano.onchange = async () => {
+    ok.disabled = true; res.innerHTML = ''; if (!f.ano.value) return;
+    res.innerHTML = '<div class="info">Consultando a FIPE...</div>';
+    try {
+      // sem código digitado, descobre o código pela marca/modelo/ano (a consulta por código é a que devolve o preço)
+      consulta = codigo
+        ? await api('fipeConsultar', { tipo: f.tipo.value, codigo, ano: f.ano.value })
+        : await api('fipeConsultarPorModelo', { tipo: f.tipo.value, marca: f.marca.value, modelo: f.modelo.value, ano: f.ano.value });
+      res.innerHTML = `<div class="info"><b>${esc(consulta.marca)} ${esc(consulta.modelo)}</b> · ${esc(consulta.ano_modelo)} · ${esc(consulta.combustivel)}<br>
+        Código ${esc(consulta.codigo)} · <b style="font-size:16px">${dinheiro(consulta.valor)}</b> <small>(${esc(consulta.referencia)})</small></div>`;
+      ok.disabled = false;
+    } catch (e) { res.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
+  };
+  ok.onclick = async () => {
+    ok.disabled = true;
+    try { await api('vincularFipe', { veiculo_id: veiculoId, tipo: f.tipo.value, codigo: consulta.codigo, ano: f.ano.value }); toast('Veículo vinculado à FIPE.'); md.remove(); depois(); }
+    catch (e) { toast(e.message, 'erro'); ok.disabled = false; }
+  };
+}
+
+/* ---------- Dashboard ---------- */
+function periodoDash() {
+  const hoje = new Date(), iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+  const y = hoje.getFullYear(), m = hoje.getMonth();
+  switch ($('dashPer').value) {
+    case 'mes': return [iso(new Date(y, m, 1)), iso(hoje)];
+    case 'mes_ant': return [iso(new Date(y, m - 1, 1)), iso(new Date(y, m, 0))];
+    case '3m': return [iso(new Date(y, m - 2, 1)), iso(hoje)];
+    case '12m': return [iso(new Date(y, m - 11, 1)), iso(hoje)];
+    case 'ano': return [iso(new Date(y, 0, 1)), iso(hoje)];
+    default: return [$('dashDe').value, $('dashAte').value];
+  }
+}
+
+async function carregarDashboard() {
+  $('dashCustom').classList.toggle('oculto', $('dashPer').value !== 'custom');
+  const [de, ate] = periodoDash();
+  if (!de || !ate) return;
+  $('dashConteudo').innerHTML = '<div class="painel vazio">Calculando...</div>';
+  try { renderDashboard(await api('dashboard', { de, ate })); }
+  catch (e) { $('dashConteudo').innerHTML = `<div class="painel vazio">${esc(e.message)}</div>`; }
+}
+
+function renderDashboard(r) {
+  const card = (rot, val, sub, cor) => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num" style="font-size:24px">${val}</div><small style="color:var(--cinza)">${sub || '&nbsp;'}</small></div>`;
+  const patr = r.patrimonio_fipe ? `${dinheiro(r.patrimonio_fipe)}` : '—';
+  const patrSub = r.patrimonio_fipe && r.investido_com_fipe ? `investido ${fmtK(r.investido_com_fipe)} (${pct((r.patrimonio_fipe - r.investido_com_fipe) / r.investido_com_fipe * 100)})` : (r.veiculos_sem_fipe ? r.veiculos_sem_fipe + ' carro(s) sem FIPE vinculada' : '');
+  $('dashConteudo').innerHTML = `
+    <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+      ${card('Receita recebida', dinheiro(r.receita) || 'R$ 0,00', dataBR(r.de) + ' a ' + dataBR(r.ate), 'var(--azul)')}
+      ${card('Despesas pagas', dinheiro(r.despesa) || 'R$ 0,00', 'manutenção, multas, impostos…', 'var(--laranja)')}
+      ${card('Resultado', sinal(r.resultado), r.margem != null ? 'margem ' + pct(r.margem) : '', r.resultado >= 0 ? 'var(--verde)' : 'var(--vermelho)')}
+      ${card('Ocupação da frota', pct(r.ocupacao), 'dias locados ÷ dias disponíveis', 'var(--roxo)')}
+      ${card('Inadimplência', pct(r.inadimplencia), 'em atraso hoje: ' + (dinheiro(r.atrasado_hoje) || 'R$ 0,00'), r.inadimplencia > 10 ? 'var(--vermelho)' : 'var(--azul)')}
+      ${card('Patrimônio (FIPE)', patr, patrSub, 'var(--azul)')}
+    </div>
+    <div class="grade" style="grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="painel" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <b>Receita × despesa (últimos 12 meses)</b>
+        <span style="font-size:12px;color:var(--texto)"><span class="lg" style="background:#257de0"></span>Receita <span class="lg" style="background:#f47230;margin-left:10px"></span>Despesa</span></div>
+        <div id="dashGraf" style="position:relative"></div>
+        <details style="margin-top:6px;font-size:12.5px"><summary style="cursor:pointer;color:var(--azul)">Ver em tabela</summary>
+          ${tabelaSimples(['Mês', 'Receita', 'Despesa', 'Resultado'], r.meses.map(m => [nomeMes(m.mes), dinheiro(m.receita) || 'R$ 0,00', dinheiro(m.despesa) || 'R$ 0,00', sinal(m.receita - m.despesa)]))}</details>
+      </div>
+      <div class="painel" style="padding:14px 16px"><b>Despesas por categoria</b>
+        <div style="margin-top:12px">${r.por_categoria.length ? (() => { const mx = Math.max(...r.por_categoria.map(c => c.valor)); return r.por_categoria.map(c => `
+          <div style="margin-bottom:10px" title="${esc(c.categoria)}: ${dinheiro(c.valor)}"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(c.categoria)}</span><b>${dinheiro(c.valor)}</b></div>
+          <div style="height:8px;background:#f2f4f7;border-radius:4px;margin-top:3px"><div style="height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:#f47230;border-radius:4px"></div></div></div>`).join(''); })()
+          : '<div class="vazio" style="padding:20px">Sem despesas no período.</div>'}</div>
+      </div>
+    </div>
+    <div class="painel"><h3>Por veículo</h3>
+      <div style="overflow-x:auto"><table><thead><tr><th>Veículo</th><th>Ocupação</th><th>Receita</th><th>Despesa</th><th>Resultado</th><th>Km no período*</th><th>Custo/km</th><th>FIPE atual</th><th>Desvalorização</th><th>Retorno acumulado**</th></tr></thead><tbody>
+      ${r.veiculos.map(v => `<tr onclick="formVeiculo('${v.id}')">
+        <td><span class="placa">${esc(v.placa)}</span><br><small style="color:var(--cinza)">${esc(v.modelo)}</small></td>
+        <td>${pct(v.ocupacao)}<div style="height:5px;background:#f2f4f7;border-radius:3px;margin-top:3px;width:70px"><div style="height:5px;width:${v.ocupacao || 0}%;background:#6a4ce2;border-radius:3px"></div></div></td>
+        <td>${dinheiro(v.receita) || 'R$ 0,00'}</td><td>${dinheiro(v.despesa) || 'R$ 0,00'}</td><td><b>${sinal(v.resultado)}</b></td>
+        <td>${v.km != null ? num(v.km) + ' km' : '—'}</td><td>${v.custo_km != null ? dinheiro(v.custo_km) : '—'}</td>
+        <td>${v.fipe_atual ? dinheiro(v.fipe_atual) : '<small style="color:var(--cinza)">não vinculado</small>'}</td>
+        <td>${v.dep_pct != null ? pct(v.dep_pct) : '—'}</td>
+        <td>${v.retorno_pct != null ? pct(v.retorno_pct) + '<br><small style="color:var(--cinza)">' + fmtK(v.resultado_total) + ' de ' + fmtK(v.investido) + '</small>' : '—'}</td></tr>`).join('') || '<tr><td colspan="10" class="vazio">Nenhum veículo.</td></tr>'}
+      </tbody></table></div>
+      <p style="font-size:11.5px;color:var(--cinza);padding:8px 14px">* Estimado pelas leituras de km registradas (vistorias, manutenções, "Atualizar km"). ** (receitas − despesas desde o início) ÷ valor pago pelo carro. Caução não entra como receita.</p>
+    </div>`;
+  graficoMensal($('dashGraf'), r.meses);
+}
+
+/** Barras agrupadas receita × despesa, com tooltip por mês */
+function graficoMensal(alvo, meses) {
+  const W = 720, H = 230, ml = 56, mr = 8, mt = 10, mb = 26;
+  const max = Math.max(1, ...meses.map(m => Math.max(m.receita, m.despesa)));
+  const bruto = max / 4, mag = Math.pow(10, Math.floor(Math.log10(bruto))), nrm = bruto / mag;
+  const passo = (nrm <= 1 ? 1 : nrm <= 2 ? 2 : nrm <= 2.5 ? 2.5 : nrm <= 5 ? 5 : 10) * mag, topo = Math.ceil(max / passo) * passo;
+  const y = v => mt + (H - mt - mb) * (1 - v / topo), bw = (W - ml - mr) / meses.length, barra = Math.min(18, (bw - 10) / 2);
+  const ticks = []; for (let t = 0; t <= topo + 1e-9; t += passo) ticks.push(t);
+  const barraPath = (x, v, cor) => { if (v <= 0) return ''; const y0 = H - mb, y1 = y(v), r = Math.min(4, (y0 - y1) / 2, barra / 2);
+    return `<path d="M${x},${y0} V${y1 + r} Q${x},${y1} ${x + r},${y1} H${x + barra - r} Q${x + barra},${y1} ${x + barra},${y1 + r} V${y0} Z" fill="${cor}"/>`; };
+  alvo.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:8px" role="img" aria-label="Receita e despesa por mês">
+    ${ticks.map(t => `<line x1="${ml}" x2="${W - mr}" y1="${y(t)}" y2="${y(t)}" stroke="#eef0f3"/><text x="${ml - 6}" y="${y(t) + 4}" text-anchor="end" font-size="10.5" fill="#667085">${fmtK(t)}</text>`).join('')}
+    ${meses.map((m, i) => { const x0 = ml + i * bw + (bw - (barra * 2 + 2)) / 2;
+      return `<g data-i="${i}">${barraPath(x0, m.receita, '#257de0')}${barraPath(x0 + barra + 2, m.despesa, '#f47230')}
+        <text x="${ml + i * bw + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="#667085">${nomeMes(m.mes)}</text>
+        <rect x="${ml + i * bw}" y="${mt}" width="${bw}" height="${H - mt - mb}" fill="transparent" class="hit"/></g>`; }).join('')}
+  </svg><div class="dica oculto"></div>`;
+  const dica = alvo.querySelector('.dica');
+  alvo.querySelectorAll('g[data-i]').forEach(g => {
+    const m = meses[g.dataset.i];
+    g.onmouseenter = g.ontouchstart = () => {
+      alvo.querySelectorAll('g[data-i]').forEach(o => o.style.opacity = o === g ? 1 : .45);
+      dica.innerHTML = `<b>${nomeMes(m.mes)}</b><br><span class="lg" style="background:#257de0"></span>Receita ${dinheiro(m.receita) || 'R$ 0,00'}<br><span class="lg" style="background:#f47230"></span>Despesa ${dinheiro(m.despesa) || 'R$ 0,00'}<br>Resultado ${sinal(m.receita - m.despesa)}`;
+      const i = Number(g.dataset.i); dica.style.left = Math.min(78, Math.max(0, (i + .5) / meses.length * 100 - 10)) + '%';
+      dica.classList.remove('oculto');
+    };
+  });
+  alvo.querySelector('svg').onmouseleave = () => { dica.classList.add('oculto'); alvo.querySelectorAll('g[data-i]').forEach(o => o.style.opacity = 1); };
 }
 </script>
 </body>
