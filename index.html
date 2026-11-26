@@ -713,6 +713,7 @@ async function carregarHistorico(id, alvo) {
 function abrirConfig() {
   const abas = [['planos', 'Planos'], ['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
   if (pode('admin', 'gestor')) abas.splice(1, 0, ['contrato', 'Modelo de contrato']);
+  if (pode('admin', 'gestor')) abas.push(['notif', 'Notificações']);
   abas.splice(abas.length, 0, ['planoManut', 'Plano de manutenção'], ['checklist', 'Checklist vistoria'], ['categorias', 'Categorias financeiras']);
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
   abas.push(['senha', 'Minha senha']);
@@ -721,7 +722,7 @@ function abrirConfig() {
     abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
-  const carregar = nome => ({ planoManut: cfgPlanoManut, categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  const carregar = nome => ({ notif: cfgNotificacoes, planoManut: cfgPlanoManut, categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
   md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
   carregar(abas[0][0]);
 }
@@ -1639,6 +1640,7 @@ function detalheLanc(id) {
         ${l.status === 'pago' && pode('admin') ? '<button class="btn btn-perigo" type="button" data-a="estornar">Estornar</button>' : ''}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
         ${aberto && pode('admin', 'gestor') ? '<button class="btn btn-sec" type="button" data-a="editar">Editar</button>' : ''}
+        ${aberto && l.tipo === 'receita' && l.motorista_id ? '<button class="btn btn-sec" type="button" data-a="wa">📲 WhatsApp</button>' : ''}
         ${l.comprovante_file_id ? '<button class="btn btn-sec" type="button" data-a="comp">Comprovante</button>' : ''}
         ${l.status === 'pago' && l.tipo === 'receita' ? '<button class="btn btn-sec" type="button" data-a="recibo">⬇ Recibo</button>' : ''}
         ${aberto ? `<button class="btn btn-ok" type="button" data-a="pagar">${l.tipo === 'receita' ? 'Receber' : 'Pagar'}</button>` : ''}</div>`
@@ -1647,6 +1649,7 @@ function detalheLanc(id) {
     pagar: () => { md.remove(); pagarLanc(id); },
     editar: () => { md.remove(); formLanc(l.tipo, l); },
     recibo: () => reciboLanc(id),
+    wa: () => waCobranca(l),
     comp: async () => { try { abrirArquivo(await api('verComprovante', { id })); } catch (e) { toast(e.message, 'erro'); } },
     cancelar: async () => { const motivo = prompt('Motivo do cancelamento:'); if (!motivo) return;
       try { await api('cancelarLancamento', { id, motivo }); toast('Cancelado.'); md.remove(); await recarregarFin(); } catch (e) { toast(e.message, 'erro'); } },
@@ -1723,7 +1726,7 @@ function textoBadgeAlerta(a) {
 }
 
 async function carregarManutencao() {
-  if (!S.veiculos.length) S.veiculos = await api('listarVeiculos');
+  if (!S.veiculos.length || !S.contratos.length || !S.motoristas.length) await carregarBaseContratos();
   const [sit, lista, itens] = await Promise.all([api('situacaoManutencao'), api('listarManutencoes'), api('listarItensManutencao')]);
   S.mn.situacao = sit; S.mn.lista = lista; S.mn.itens = itens;
 }
@@ -1872,11 +1875,13 @@ function detalheManut(id) {
       ${lin('Financeiro', m.lancamento_id ? 'Despesa lançada' : '')}${lin('Observação', esc(m.observacao))}</table>`,
     rodape: `<div>${m.status === 'agendada' ? '<button class="btn btn-perigo" type="button" data-a="cancelar">Cancelar</button>' : ''}</div>
       <div style="display:flex;gap:6px">${m.anexo_file_id ? '<button class="btn btn-sec" type="button" data-a="anexo">Ver anexo</button>' : ''}
+      ${m.status === 'agendada' && S.contratos.some(c => c.veiculo_id === m.veiculo_id && c.status === 'ativo') ? '<button class="btn btn-sec" type="button" data-a="wa">📲 Avisar</button>' : ''}
       ${m.status === 'agendada' ? '<button class="btn btn-sec" type="button" data-a="editar">Editar</button><button class="btn btn-ok" type="button" data-a="concluir">Concluir</button>' : ''}</div>`
   });
   const ac = {
     anexo: async () => { try { abrirArquivo(await api('verAnexoManutencao', { id })); } catch (e) { toast(e.message, 'erro'); } },
     editar: () => { md.remove(); formManut({ id }); },
+    wa: () => waManutencao(m),
     concluir: () => { md.remove(); formManut({ id, status: 'realizada' }); },
     cancelar: async () => { const motivo = prompt('Motivo do cancelamento:'); if (motivo === null) return;
       try { await api('cancelarManutencao', { id, motivo }); toast('Cancelada.'); md.remove(); await carregarManutencao(); renderManutencao(); } catch (e) { toast(e.message, 'erro'); } }
@@ -2041,6 +2046,7 @@ async function detalheInfracao(id) {
       <div class="secao">Histórico</div><div id="ifHist" style="color:var(--cinza)">Carregando...</div>`,
     rodape: `<div style="display:flex;gap:6px">${fin ? '' : '<button class="btn btn-perigo" type="button" data-a="arquivar">Arquivar</button><button class="btn btn-sec" type="button" data-a="editar">Editar</button>'}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        ${i.responsavel === 'motorista' && i.motorista_id && !fin ? '<button class="btn btn-sec" type="button" data-a="wa">📲 Avisar</button>' : ''}
         ${i.anexo_file_id ? '<button class="btn btn-sec" type="button" data-a="anexo">Notificação</button>' : ''}
         ${i.status === 'aberta' && i.responsavel === 'motorista' ? '<button class="btn btn-pri" type="button" data-a="indicar">✓ Condutor indicado</button>' : ''}
         ${['aberta', 'indicado', 'em_recurso'].includes(i.status) ? '<button class="btn btn-sec" type="button" data-a="penalidade">Penalidade recebida</button>' : ''}
@@ -2084,6 +2090,7 @@ async function detalheInfracao(id) {
   const hoje = new Date().toISOString().slice(0, 10);
   const ac = {
     editar: () => { md.remove(); formInfracao(i); },
+    wa: () => waInfracao(i),
     anexo: async () => { try { abrirArquivo(await api('verAnexoInfracao', { id })); } catch (e) { toast(e.message, 'erro'); } },
     indicar: () => etapa('Condutor indicado', `
       <div class="info">Faça a indicação no site/app do órgão (ou SNE / Carteira Digital de Trânsito) com o formulário assinado pelo motorista, e registre aqui.</div>
@@ -2113,6 +2120,81 @@ async function detalheInfracao(id) {
       { etapa: 'pagar', init: f => { f.valor_pago.oninput = () => { if (f.valor_cobrar) f.valor_cobrar.value = f.valor_pago.value; }; } })
   };
   md.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ac[b.dataset.a]());
+}
+
+/* =========================================================
+   NOTIFICAÇÕES + WHATSAPP (Fase 6)
+   ========================================================= */
+let WA_DADOS = null;
+async function abrirWhatsapp(motoristaId, montarTexto) {
+  const m = S.motoristas.find(x => x.id === motoristaId);
+  if (!m) return toast('Motorista não encontrado.', 'erro');
+  let tel = String(m.telefone || '').replace(/\D/g, '');
+  if (!tel) return toast('O motorista não tem telefone cadastrado.', 'erro');
+  if (tel.length <= 11) tel = '55' + tel;
+  try { if (!WA_DADOS) WA_DADOS = await api('dadosWhatsapp'); } catch (e) { WA_DADOS = { empresa: '', pix: '' }; }
+  const texto = montarTexto(m.nome.trim().split(/\s+/)[0], WA_DADOS);
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank');
+}
+const brl = n => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function waCobranca(l) {
+  const enc = calcEncargos(l);
+  abrirWhatsapp(l.motorista_id, (nome, d) =>
+    `Olá, ${nome}! Aqui é da ${d.empresa || 'locadora'}.\n` +
+    (l.situacao === 'atrasado'
+      ? `Não identificamos o pagamento de *${l.descricao}*, vencido em ${dataBR(l.vencimento)} (${l.dias_atraso} dia(s) de atraso).\nValor: ${brl(l.valor)}${enc ? `\nMulta + juros até hoje: ${brl(enc)}\n*Total atualizado: ${brl(Number(l.valor) + enc)}*` : ''}`
+      : `Lembrete do pagamento de *${l.descricao}*.\nVencimento: ${dataBR(l.vencimento)}\nValor: *${brl(l.valor)}*`) +
+    (d.pix ? `\n\nChave PIX: ${d.pix}` : '') + `\n\nSe já pagou, por favor envie o comprovante. Obrigado!`);
+}
+function waInfracao(i) {
+  abrirWhatsapp(i.motorista_id, (nome, d) =>
+    `Olá, ${nome}! Aqui é da ${d.empresa || 'locadora'}.\nRecebemos uma notificação de multa do período em que o carro *${(S.veiculos.find(v => v.id === i.veiculo_id) || {}).placa || ''}* estava com você:\n` +
+    `• Data: ${dataBR(i.data_infracao)} ${i.hora_infracao || ''}\n• Infração: ${i.descricao}\n• Local: ${i.local || '-'}\n• Pontos: ${i.pontos} · Valor: ${brl(i.valor)}\n\n` +
+    `Conforme o contrato, vamos indicar você como condutor${i.prazo_indicacao ? ' (prazo ' + dataBR(i.prazo_indicacao) + ')' : ''}. Precisamos da sua assinatura no formulário. Podemos combinar?`);
+}
+function waManutencao(m) {
+  const c = S.contratos.find(x => x.veiculo_id === m.veiculo_id && x.status === 'ativo');
+  if (!c) return toast('Este carro não está em contrato ativo.', 'erro');
+  abrirWhatsapp(c.motorista_id, (nome, d) =>
+    `Olá, ${nome}! Aqui é da ${d.empresa || 'locadora'}.\nAgendamos a manutenção do carro *${(S.veiculos.find(v => v.id === m.veiculo_id) || {}).placa || ''}*:\n` +
+    `• Data: *${dataBR(m.data_agendada)}*\n• Local: ${m.oficina || 'a combinar'}\n• Serviço: ${JSON.parse(m.itens || '[]').map(nomeItem).join(', ') || m.descricao}\n\nConsegue levar nesse dia? Se não puder, avise para remarcarmos.`);
+}
+
+/* ---------- ⚙️ Notificações ---------- */
+async function cfgNotificacoes(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const [cfg, log] = await Promise.all([api('obterConfigNotif'), api('listarNotificacoes')]);
+  alvo.innerHTML = `
+    <div class="info">Os e-mails saem automaticamente <b>todo dia às 7h</b> e também na hora de alguns eventos (recibo, multa, manutenção agendada). Cota do Google restante hoje: <b>${cfg.cota ?? '—'}</b> e-mails. O mesmo aviso nunca é enviado duas vezes.</div>
+    <form id="fNotif">${cfg.itens.map(i => i.bool
+      ? `<label style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f2f4f7"><input type="checkbox" name="${i.chave}" ${String(i.valor).toUpperCase() === 'TRUE' ? 'checked' : ''}> ${esc(i.descricao)}</label>`
+      : `<div class="campo" style="margin-top:8px"><label>${esc(i.descricao)}</label><input name="${i.chave}" value="${esc(i.valor)}" ${/email/.test(i.chave) ? 'type="email"' : ''}></div>`).join('')}
+    </form>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px">
+      <button class="btn btn-pri" type="button" id="nSalvar">Salvar</button>
+      <button class="btn btn-sec" type="button" id="nTeste">✉ Enviar e-mail de teste</button>
+      <button class="btn btn-sec" type="button" id="nRodar">▶ Rodar os avisos de hoje agora</button>
+    </div>
+    <div class="secao">Últimos envios</div>
+    ${tabelaSimples(['Data', 'Tipo', 'Para', 'Assunto', 'Status'], log.map(n => [dataBR(n.criado_em) + ' ' + String(n.criado_em).slice(11, 16), esc(n.tipo), esc(n.destinatario), esc(n.assunto),
+      n.status === 'enviado' ? '<span class="badge b-verde">enviado</span>' : `<span class="badge ${n.status === 'erro' ? 'b-vermelho' : 'b-cinza'}" title="${esc(n.erro)}">${esc(n.status)}</span><br><small>${esc(n.erro)}</small>`]))}`;
+  const f = alvo.querySelector('#fNotif');
+  alvo.querySelector('#nSalvar').onclick = async ev => {
+    ev.target.disabled = true;
+    try { await api('salvarConfigNotif', lerForm(f)); toast('Configurações salvas.'); } catch (e) { toast(e.message, 'erro'); }
+    ev.target.disabled = false;
+  };
+  alvo.querySelector('#nTeste').onclick = async ev => {
+    const email = prompt('Enviar o teste para qual e-mail?', S.usuario.email); if (!email) return;
+    ev.target.disabled = true;
+    try { const r = await api('testarEmail', { email }); toast('Teste enviado para ' + r.para + '.'); cfgNotificacoes(alvo); } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
+  alvo.querySelector('#nRodar').onclick = async ev => {
+    if (!confirm('Enviar agora os avisos de hoje? (os que já foram enviados não se repetem)')) return;
+    ev.target.disabled = true;
+    try { const r = await api('rodarNotificacoes'); toast(r.enviados + ' e-mail(s) enviado(s).'); cfgNotificacoes(alvo); } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
 }
 </script>
 </body>
