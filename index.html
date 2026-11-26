@@ -130,6 +130,12 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
   .modal-corpo{max-height:none}.g2{grid-template-columns:1fr}
   .modal-rodape{position:sticky;bottom:0;background:#fff}
 }
+.mn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.mn-card{display:flex;flex-direction:column}.mn-cab{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--borda)}
+.mn-km{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fafbfc;border-bottom:1px solid var(--borda)}
+.mn-item{display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid #f2f4f7}
+.mn-itens{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px;border:1px solid var(--borda);border-radius:9px;padding:10px}
+.mn-chk{display:flex;gap:8px;align-items:center;font-weight:400!important;font-size:13px!important;color:var(--texto)!important;cursor:pointer}
 .hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
 .hist-item small{color:var(--cinza)}
 
@@ -171,9 +177,9 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
       <a data-tela="contratos">📄 Contratos</a>
       <a data-tela="vistorias">📷 Vistorias</a>
+      <a data-tela="manutencao">🔧 Manutenção</a>
       <a data-tela="financeiro">💰 Financeiro</a>
       <div class="menu-titulo">Próximas fases</div>
-      <a class="breve">🔧 Manutenção <span class="tag">em breve</span></a>
       <a class="breve">🚨 Infrações <span class="tag">em breve</span></a>
     </nav>
     <div class="rodape-menu">
@@ -223,6 +229,16 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
         <table><thead><tr><th>Número</th><th>Motorista</th><th>Veículo</th><th>Início</th><th>Valor</th><th>Status</th></tr></thead>
           <tbody id="tbCt"></tbody></table>
       </div>
+    </section>
+
+    <!-- MANUTENÇÃO -->
+    <section id="tela-manutencao" class="oculto">
+      <div class="painel" style="margin-bottom:14px">
+        <div class="abas" id="mnAbas" style="padding:0 14px;border:none">
+          <button data-aba="situacao" type="button">Situação da frota</button><button data-aba="agendadas" type="button">Agendadas</button><button data-aba="historico" type="button">Histórico</button>
+        </div>
+      </div>
+      <div id="mnConteudo"></div>
     </section>
 
     <!-- FINANCEIRO -->
@@ -435,6 +451,7 @@ function reduzirImagem(file, maxW = 500, maxH = 250) {
    NAVEGAÇÃO
    ========================================================= */
 document.querySelectorAll('#menu a[data-tela]').forEach(a => a.onclick = () => irPara(a.dataset.tela));
+document.querySelectorAll('#mnAbas button').forEach(b => b.onclick = () => { S.mn.aba = b.dataset.aba; renderManutencao(); });
 document.querySelectorAll('#finAbas button').forEach(b => b.onclick = () => { S.fin.aba = b.dataset.aba; renderFinanceiro(); });
 $('finMes').onchange = () => { S.fin.mes = $('finMes').value || S.fin.mes; renderFinanceiro(); };
 $('finNovaRec').onclick = () => formLanc('receita');
@@ -442,18 +459,19 @@ $('finNovaDesp').onclick = () => formLanc('despesa');
 async function irPara(tela) {
   S.tela = tela;
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
-  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
-  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro' }[tela];
+  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro', manutencao: 'Manutenção' }[tela];
   const novo = $('btnNovo');
   novo.classList.toggle('oculto', tela === 'painel' || tela === 'financeiro');
-  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria' }[tela] || '';
-  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria })[tela]();
+  novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria', manutencao: '+ Registrar manutenção' }[tela] || '';
+  novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria, manutencao: () => formManut({ status: 'realizada' }) })[tela]();
   try {
     if (tela === 'painel') await carregarPainel();
     if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
     if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); renderMotoristas(); }
     if (tela === 'contratos') { await carregarBaseContratos(); renderContratos(); }
     if (tela === 'vistorias') { await carregarVistorias(); renderVistorias(); }
+    if (tela === 'manutencao') { await carregarManutencao(); renderManutencao(); }
     if (tela === 'financeiro') {
       $('finMes').value = S.fin.mes;
       ['finNovaRec', 'finNovaDesp'].forEach(i => $(i).classList.toggle('oculto', !pode('admin', 'gestor')));
@@ -479,7 +497,7 @@ async function carregarPainel() {
       card('Recebido no mês', dinheiro(r.financeiro.recebidoMes) || 'R$ 0,00', 'var(--verde)') +
       card('Despesas no mês', dinheiro(r.financeiro.despesasMes) || 'R$ 0,00', 'var(--laranja)') : '');
   $('alertas').innerHTML = r.alertas.length ? r.alertas.map(a => `
-    <div class="alerta"><span class="badge ${a.dias < 0 ? 'b-vermelho' : 'b-laranja'}">${a.dias < 0 ? (/atras|BLOQ/i.test(a.tipo) ? 'Atrasado ' : 'Vencido há ') + Math.abs(a.dias) + 'd' : 'Vence em ' + a.dias + 'd'}</span>
+    <div class="alerta">${(t => `<span class="badge ${t[1]}">${t[0]}</span>`)(textoBadgeAlerta(a))}
       <b style="${/BLOQUEAR/.test(a.tipo) ? 'color:var(--vermelho)' : ''}">${esc(a.tipo)}</b><span style="color:var(--cinza)">${esc(a.ref)}</span></div>`).join('')
     : '<div class="vazio">Nenhum vencimento nos próximos dias. 👍</div>';
 }
@@ -679,7 +697,7 @@ async function carregarHistorico(id, alvo) {
 function abrirConfig() {
   const abas = [['planos', 'Planos'], ['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
   if (pode('admin', 'gestor')) abas.splice(1, 0, ['contrato', 'Modelo de contrato']);
-  abas.splice(abas.length, 0, ['checklist', 'Checklist vistoria'], ['categorias', 'Categorias financeiras']);
+  abas.splice(abas.length, 0, ['planoManut', 'Plano de manutenção'], ['checklist', 'Checklist vistoria'], ['categorias', 'Categorias financeiras']);
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
   abas.push(['senha', 'Minha senha']);
   const md = abrirModal({
@@ -687,7 +705,7 @@ function abrirConfig() {
     abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
-  const carregar = nome => ({ categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  const carregar = nome => ({ planoManut: cfgPlanoManut, categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
   md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
   carregar(abas[0][0]);
 }
@@ -1665,6 +1683,228 @@ async function cfgCategorias(alvo) {
     try { await api('salvarCategorias', { receita: alvo.querySelector('#catRec').value, despesa: alvo.querySelector('#catDesp').value }); S.fin.cat = null; toast('Categorias salvas.'); }
     catch (e) { toast(e.message, 'erro'); } b.disabled = false;
   };
+}
+
+/* =========================================================
+   MANUTENÇÃO (Fase 4)
+   ========================================================= */
+const ST_ITEM = { vencida: ['Vencida', 'b-vermelho'], proxima: ['Próxima', 'b-laranja'], ok: ['Em dia', 'b-verde'], sem_historico: ['Sem histórico', 'b-cinza'] };
+const ST_MN = { agendada: ['Agendada', 'b-laranja'], realizada: ['Realizada', 'b-verde'] };
+S.mn = { aba: 'situacao', situacao: [], lista: [], itens: [] };
+
+function textoBadgeAlerta(a) {
+  if (a.grupo === 'km') return ['KM', 'b-laranja'];
+  if (a.grupo === 'manut') {
+    if (a.dias === 999) return ['Sem histórico', 'b-cinza'];
+    const dr = a.dias_reais;
+    if (a.km != null && a.km <= 0) return ['Passou ' + num(Math.abs(a.km)) + ' km', 'b-vermelho'];
+    if (dr != null && dr <= 0) return [dr === 0 ? 'Vence hoje' : 'Vencida há ' + Math.abs(dr) + 'd', 'b-vermelho'];
+    if (a.km != null) return ['Faltam ' + num(a.km) + ' km' + (dr != null ? ' / ' + dr + 'd' : ''), 'b-laranja'];
+    return ['Em ' + dr + 'd', 'b-laranja'];
+  }
+  if (a.dias < 0) return [(/atras|BLOQ/i.test(a.tipo) ? 'Atrasado ' : 'Vencido há ') + Math.abs(a.dias) + 'd', 'b-vermelho'];
+  return ['Vence em ' + a.dias + 'd', 'b-laranja'];
+}
+
+async function carregarManutencao() {
+  if (!S.veiculos.length) S.veiculos = await api('listarVeiculos');
+  const [sit, lista, itens] = await Promise.all([api('situacaoManutencao'), api('listarManutencoes'), api('listarItensManutencao')]);
+  S.mn.situacao = sit; S.mn.lista = lista; S.mn.itens = itens;
+}
+const nomeItem = id => (S.mn.itens.find(i => i.id === id) || {}).nome || '?';
+
+function renderManutencao() {
+  document.querySelectorAll('#mnAbas button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === S.mn.aba));
+  const alvo = $('mnConteudo');
+  if (S.mn.aba === 'situacao') {
+    alvo.innerHTML = S.mn.situacao.length ? `<div class="mn-grid">${S.mn.situacao.map(s => {
+      const venc = s.itens.filter(i => i.status === 'vencida').length, prox = s.itens.filter(i => i.status === 'proxima').length;
+      const kmVelho = s.dias_sem_km === null || s.dias_sem_km > 7;
+      return `<div class="painel mn-card">
+        <div class="mn-cab"><span class="placa">${esc(s.placa)}</span>${badge(STATUS_VEIC, s.status)}
+          ${venc ? `<span class="badge b-vermelho">${venc} vencida(s)</span>` : ''}${prox ? `<span class="badge b-laranja">${prox} próxima(s)</span>` : ''}</div>
+        <div class="mn-km"><div><b style="font-size:18px">${num(s.km_atual)} km</b><br>
+          <small style="color:${kmVelho ? 'var(--laranja)' : 'var(--cinza)'}">${s.km_atualizado_em ? 'atualizado há ' + s.dias_sem_km + ' dia(s)' : 'km nunca atualizado'}</small></div>
+          <button class="btn btn-sec" type="button" onclick="atualizarKmVeiculo('${s.veiculo_id}')">Atualizar km</button></div>
+        <div>${s.itens.map(i => `<div class="mn-item">
+          <div style="flex:1;min-width:0"><div style="font-weight:500">${esc(i.nome)}</div>
+            <small style="color:var(--cinza)">${i.status === 'sem_historico' ? 'Nunca registrado'
+              : 'Última: ' + dataBR(i.ultima_data) + ' · ' + num(i.ultima_km) + ' km' + ' → próxima: ' + [i.prox_km != null ? num(i.prox_km) + ' km' : '', i.prox_data ? dataBR(i.prox_data) : ''].filter(Boolean).join(' ou ')}
+              ${i.agendada ? ' · <b style="color:var(--laranja)">agendada ' + dataBR(i.agendada) + '</b>' : ''}</small></div>
+          ${i.status === 'sem_historico' ? `<button class="btn btn-sec" style="padding:5px 9px;font-size:12px" type="button" onclick="formManut({veiculo_id:'${s.veiculo_id}',itens:['${i.item_id}'],historico:true})">Registrar última</button>`
+            : `<span class="badge ${ST_ITEM[i.status][1]}">${i.status === 'vencida' ? 'Vencida' : i.status === 'proxima' ? (i.faltam_km != null && (i.faltam_dias == null || i.faltam_km <= 1000) ? num(i.faltam_km) + ' km' : i.faltam_dias + 'd') : 'Em dia'}</span>`}
+        </div>`).join('') || '<div class="vazio">Nenhum item no plano para este modelo.</div>'}</div>
+        <div style="display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--borda)">
+          <button class="btn btn-pri" type="button" onclick="formManut({veiculo_id:'${s.veiculo_id}',status:'realizada'})">+ Registrar</button>
+          <button class="btn btn-sec" type="button" onclick="formManut({veiculo_id:'${s.veiculo_id}',status:'agendada'})">Agendar</button></div>
+      </div>`;
+    }).join('')}</div>` : '<div class="painel vazio">Nenhum veículo ativo.</div>';
+    return;
+  }
+  const lista = S.mn.lista.filter(m => S.mn.aba === 'agendadas' ? m.status === 'agendada' : m.status === 'realizada')
+    .sort((a, b) => S.mn.aba === 'agendadas' ? String(a.data_agendada).localeCompare(b.data_agendada) : String(b.data_realizada).localeCompare(a.data_realizada));
+  alvo.innerHTML = `<div class="painel"><table><thead><tr><th>Nº</th><th>Data</th><th>Veículo</th><th>Tipo</th><th>Serviço</th><th>Oficina</th><th>Valor</th><th>Situação</th></tr></thead><tbody>
+    ${lista.length ? lista.map(m => `<tr onclick="detalheManut('${m.id}')">
+      <td><b>${esc(m.numero)}</b></td><td>${dataBR(m.status === 'agendada' ? m.data_agendada : m.data_realizada)}</td>
+      <td>${esc((S.veiculos.find(v => v.id === m.veiculo_id) || {}).placa || '')}</td>
+      <td>${m.tipo === 'preventiva' ? '<span class="badge b-azul">Preventiva</span>' : '<span class="badge b-roxo">Corretiva</span>'}</td>
+      <td style="max-width:300px">${esc([JSON.parse(m.itens || '[]').map(nomeItem).join(', '), m.descricao].filter(Boolean).join(' — ').slice(0, 120))}</td>
+      <td>${esc(m.oficina)}</td><td>${dinheiro(m.valor)}</td><td>${badge(ST_MN, m.status)}</td></tr>`).join('')
+    : '<tr><td colspan="8" class="vazio">Nada por aqui.</td></tr>'}</tbody></table></div>`;
+}
+
+async function atualizarKmVeiculo(vid) {
+  const v = S.veiculos.find(x => x.id === vid) || {};
+  const km = prompt(`KM atual do ${v.placa || 'veículo'} (último registrado: ${num(v.km_atual)} km):`);
+  if (km === null || km.trim() === '') return;
+  try {
+    let r = await api('atualizarKm', { veiculo_id: vid, km: km.replace(/\D/g, '') });
+    if (r.confirmar) { if (!confirm(r.confirmar)) return; r = await api('atualizarKm', { veiculo_id: vid, km: km.replace(/\D/g, ''), confirmado: true }); }
+    toast('KM atualizado.'); S.veiculos = await api('listarVeiculos'); await carregarManutencao(); renderManutencao();
+  } catch (e) { toast(e.message, 'erro'); }
+}
+
+function formManut(op = {}) {
+  const m = op.id ? S.mn.lista.find(x => x.id === op.id) : null;
+  const dados = m ? Object.assign({}, m, { itens: JSON.parse(m.itens || '[]'), status: op.status || m.status })
+    : { veiculo_id: op.veiculo_id || '', tipo: 'preventiva', status: op.status || 'realizada', itens: op.itens || [], data_realizada: op.historico ? '' : new Date().toISOString().slice(0, 10), responsavel_custo: 'locadora' };
+  const hist = !!op.historico;
+  const veics = S.veiculos.filter(v => v.ativo).map(v => ({ v: v.id, t: veicTxt(v.id) }));
+  const veic = () => S.veiculos.find(v => v.id === md.querySelector('[name=veiculo_id]').value) || {};
+  const itensDo = vid => { const v = S.veiculos.find(x => x.id === vid) || {}; return S.mn.itens.filter(i => i.ativo && (!i.modelo_id || i.modelo_id === v.modelo_id)); };
+  const realizada = () => md.querySelector('[name=status]').value === 'realizada';
+  const titulo = hist ? 'Registrar última realização (histórico)' : m ? (op.status === 'realizada' ? 'Concluir ' + m.numero : 'Editar ' + m.numero) : dados.status === 'agendada' ? 'Agendar manutenção' : 'Registrar manutenção';
+
+  const md = abrirModal({
+    titulo,
+    corpo: `<form>
+      ${hist ? '<div class="info">Informe <b>quando e com quantos km</b> cada item foi feito pela última vez. Serve só como ponto de partida do controle: <b>não gera despesa</b>.</div>' : ''}
+      <div class="grade g3">
+        <div class="campo" style="grid-column:span 2"><label class="req">Veículo</label><select name="veiculo_id" required ${m ? 'disabled' : ''}>${opcoes(veics, dados.veiculo_id)}</select></div>
+        <div class="campo"><label>Tipo</label><select name="tipo" ${hist ? 'disabled' : ''}>${opcoes([{ v: 'preventiva', t: 'Preventiva' }, { v: 'corretiva', t: 'Corretiva' }], dados.tipo, '—')}</select></div>
+      </div>
+      <div class="grade g3">
+        <div class="campo"><label>Situação</label><select name="status" ${hist || m ? 'disabled' : ''}>${opcoes([{ v: 'realizada', t: 'Realizada' }, { v: 'agendada', t: 'Agendada' }], dados.status, '—')}</select></div>
+        <div class="campo" data-so="agendada"><label class="req">Data agendada</label><input name="data_agendada" type="date" value="${esc(dados.data_agendada || '')}"></div>
+        <div class="campo" data-so="realizada"><label class="req">Data realizada</label><input name="data_realizada" type="date" value="${esc(dados.data_realizada || '')}"></div>
+        <div class="campo" data-so="realizada"><label class="req">KM no serviço</label><input name="km" type="number" min="0" value="${esc(dados.km ?? '')}"></div>
+      </div>
+      <div class="campo"><label id="lblItens">Itens do plano feitos ${'(marque todos que foram trocados/verificados)'}</label><div id="mnItens" class="mn-itens"></div></div>
+      <div class="campo"><label id="lblDesc">Descrição / observações do serviço</label><textarea name="descricao" rows="2">${esc(dados.descricao || '')}</textarea></div>
+      ${hist ? '' : `<div class="grade g3">
+        <div class="campo"><label>Oficina / fornecedor</label><input name="oficina" value="${esc(dados.oficina || '')}"></div>
+        <div class="campo"><label>Valor total (R$)</label><input name="valor" type="number" step="0.01" min="0" value="${esc(dados.valor || '')}"></div>
+        <div class="campo"><label>Custo de quem?</label><select name="responsavel_custo">${opcoes([{ v: 'locadora', t: 'Locadora' }, { v: 'locatario', t: 'Locatário (mau uso)' }], dados.responsavel_custo, '—')}</select></div>
+      </div>
+      <div class="grade g3" data-so="realizada">
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="ja_pago"> Já está pago</label>
+        <div class="campo"><label>Forma (se pago)</label><select name="forma_pagamento">${opcoes(['PIX', 'Dinheiro', 'Cartão', 'Transferência', 'Boleto'].map(f => ({ v: f, t: f })), 'PIX', '—')}</select></div>
+        <div class="campo"><label>Vencimento (se não pago)</label><input name="vencimento_pagamento" type="date"></div>
+      </div>
+      <div class="campo" id="mnCobrar" class="oculto"><label>Valor a cobrar do motorista (R$)</label><input name="valor_cobrar" type="number" step="0.01" min="0" value="${esc(dados.valor_cobrar || '')}" placeholder="padrão: valor total"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px" data-so="agendada"><input type="checkbox" name="veiculo_parado" ${dados.veiculo_parado ? 'checked' : ''}> Veículo fica parado (muda o status para Manutenção)</label>
+      <div class="campo"><label>Nota fiscal / orçamento (PDF, JPG, PNG)</label><input type="file" name="anexo" accept="application/pdf,image/jpeg,image/png"></div>`}
+    </form>`,
+    rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+  });
+  const f = md.querySelector('form');
+  const desenharItens = () => {
+    const lista = itensDo(f.veiculo_id.value);
+    md.querySelector('#mnItens').innerHTML = lista.length ? lista.map(i => `<label class="mn-chk"><input type="checkbox" value="${i.id}" ${dados.itens.includes(i.id) ? 'checked' : ''}> ${esc(i.nome)}</label>`).join('')
+      : '<small style="color:var(--cinza)">Selecione o veículo.</small>';
+    md.querySelectorAll('#mnItens input').forEach(c => c.onchange = () => { dados.itens = [...md.querySelectorAll('#mnItens input:checked')].map(x => x.value); });
+  };
+  const ajustar = () => {
+    const r = realizada();
+    md.querySelectorAll('[data-so]').forEach(el => el.classList.toggle('oculto', el.dataset.so !== (r ? 'realizada' : 'agendada')));
+    md.querySelector('#lblItens').classList.toggle('req', f.tipo.value === 'preventiva');
+    md.querySelector('#lblDesc').classList.toggle('req', f.tipo.value === 'corretiva');
+    const cob = md.querySelector('#mnCobrar'); if (cob) cob.classList.toggle('oculto', !f.responsavel_custo || f.responsavel_custo.value !== 'locatario');
+  };
+  f.veiculo_id.onchange = () => { dados.itens = []; desenharItens(); };
+  f.status.onchange = f.tipo.onchange = ajustar;
+  if (f.responsavel_custo) f.responsavel_custo.onchange = ajustar;
+  desenharItens(); ajustar();
+
+  md.querySelector('.modal-rodape .btn').onclick = async ev => {
+    const d = lerForm(f); delete d.anexo;
+    d.veiculo_id = f.veiculo_id.value; d.status = f.status.value; d.tipo = f.tipo.value; d.itens = dados.itens;
+    if (m) d.id = m.id;
+    if (hist) d.historico = true;
+    const arq = f.anexo && f.anexo.files[0];
+    if (arq) { if (arq.size > 8 * 1024 * 1024) return toast('Anexo maior que 8 MB.', 'erro'); d.anexo64 = await lerArquivoBase64(arq); d.anexo_mime = arq.type; }
+    ev.target.disabled = true;
+    try {
+      await api('salvarManutencao', d);
+      toast(d.status === 'agendada' ? 'Manutenção agendada.' : 'Manutenção registrada' + (Number(d.valor) > 0 && !hist ? ' e despesa lançada no Financeiro.' : '.'));
+      md.remove(); S.veiculos = await api('listarVeiculos'); await carregarManutencao(); if (S.tela === 'manutencao') renderManutencao();
+    } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
+}
+
+function detalheManut(id) {
+  const m = S.mn.lista.find(x => x.id === id); if (!m) return;
+  const lin = (k, v) => v ? `<tr><td style="color:var(--cinza);width:35%;padding:6px 0">${k}</td><td>${v}</td></tr>` : '';
+  const md = abrirModal({
+    titulo: `${esc(m.numero)} ${badge(ST_MN, m.status)}`, peq: true,
+    corpo: `<table style="width:100%">
+      ${lin('Veículo', esc(veicTxt(m.veiculo_id)))}${lin('Tipo', m.tipo === 'preventiva' ? 'Preventiva' : 'Corretiva')}
+      ${lin(m.status === 'agendada' ? 'Agendada para' : 'Realizada em', dataBR(m.status === 'agendada' ? m.data_agendada : m.data_realizada))}
+      ${lin('KM', m.km !== '' ? num(m.km) + ' km' : '')}${lin('Itens', esc(JSON.parse(m.itens || '[]').map(nomeItem).join(', ')))}
+      ${lin('Descrição', esc(m.descricao))}${lin('Oficina', esc(m.oficina))}${lin('Valor', dinheiro(m.valor))}
+      ${lin('Custo', m.responsavel_custo === 'locatario' ? 'Locatário — cobrança ' + dinheiro(m.valor_cobrar) : 'Locadora')}
+      ${lin('Financeiro', m.lancamento_id ? 'Despesa lançada' : '')}${lin('Observação', esc(m.observacao))}</table>`,
+    rodape: `<div>${m.status === 'agendada' ? '<button class="btn btn-perigo" type="button" data-a="cancelar">Cancelar</button>' : ''}</div>
+      <div style="display:flex;gap:6px">${m.anexo_file_id ? '<button class="btn btn-sec" type="button" data-a="anexo">Ver anexo</button>' : ''}
+      ${m.status === 'agendada' ? '<button class="btn btn-sec" type="button" data-a="editar">Editar</button><button class="btn btn-ok" type="button" data-a="concluir">Concluir</button>' : ''}</div>`
+  });
+  const ac = {
+    anexo: async () => { try { abrirArquivo(await api('verAnexoManutencao', { id })); } catch (e) { toast(e.message, 'erro'); } },
+    editar: () => { md.remove(); formManut({ id }); },
+    concluir: () => { md.remove(); formManut({ id, status: 'realizada' }); },
+    cancelar: async () => { const motivo = prompt('Motivo do cancelamento:'); if (motivo === null) return;
+      try { await api('cancelarManutencao', { id, motivo }); toast('Cancelada.'); md.remove(); await carregarManutencao(); renderManutencao(); } catch (e) { toast(e.message, 'erro'); } }
+  };
+  md.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ac[b.dataset.a]());
+}
+
+/* ---------- ⚙️ Plano de manutenção ---------- */
+async function cfgPlanoManut(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const itens = await api('listarItensManutencao'); S.mn.itens = itens;
+  const ed = pode('admin', 'gestor');
+  const lista = itens.slice().sort((a, b) => a.nome.localeCompare(b.nome));
+  alvo.innerHTML = `<div class="aviso">Os intervalos instalados são <b>genéricos</b>. Confira o manual de cada modelo, principalmente correia dentada e óleo. Para um intervalo diferente num modelo específico, crie um item só para aquele modelo.</div>
+    ${ed ? '<button class="btn btn-pri" style="margin-bottom:12px" data-novo type="button">+ Item</button>' : ''}` +
+    tabelaSimples(['Item', 'A cada km', 'A cada meses', 'Avisar antes', 'Modelo', 'Situação'], lista.map(i => [esc(i.nome),
+      Number(i.intervalo_km) ? num(i.intervalo_km) : '—', Number(i.intervalo_meses) ? i.intervalo_meses : '—',
+      `${num(i.alerta_km)} km / ${i.alerta_dias}d`, i.modelo_id ? esc(nomeModelo(i.modelo_id)) : 'Todos', ativoBadge(i.ativo)]));
+  const editar = i => {
+    const md = abrirModal({
+      titulo: i.id ? 'Editar item' : 'Novo item do plano', peq: true,
+      corpo: `<form>
+        <div class="campo"><label class="req">Item</label><input name="nome" value="${esc(i.nome || '')}" required></div>
+        <div class="grade g2">
+          <div class="campo"><label>A cada (km)</label><input name="intervalo_km" type="number" min="0" value="${esc(i.intervalo_km || '')}"></div>
+          <div class="campo"><label>A cada (meses)</label><input name="intervalo_meses" type="number" min="0" value="${esc(i.intervalo_meses || '')}"></div>
+          <div class="campo"><label>Avisar com (km de antecedência)</label><input name="alerta_km" type="number" min="0" value="${esc(i.alerta_km ?? 1000)}"></div>
+          <div class="campo"><label>Avisar com (dias de antecedência)</label><input name="alerta_dias" type="number" min="0" value="${esc(i.alerta_dias ?? 15)}"></div>
+        </div>
+        <div class="campo"><label>Vale para</label><select name="modelo_id">${opcoes(S.cat.modelos.filter(x => x.ativo).map(x => ({ v: x.id, t: nomeModelo(x.id) })), i.modelo_id, 'Todos os modelos')}</select></div>
+        <div class="campo"><label>Observação</label><input name="observacao" value="${esc(i.observacao || '')}"></div>
+        ${i.id ? `<label style="display:flex;gap:8px"><input type="checkbox" name="ativo" ${i.ativo ? 'checked' : ''}> Ativo</label>` : ''}
+      </form>`,
+      rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+    });
+    md.querySelector('.modal-rodape .btn').onclick = async ev => {
+      const f = md.querySelector('form'); if (!f.reportValidity()) return;
+      const d = lerForm(f); if (i.id) d.id = i.id;
+      ev.target.disabled = true;
+      try { await api('salvarItemManutencao', d); toast('Item salvo.'); md.remove(); cfgPlanoManut(alvo); } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+    };
+  };
+  alvo.querySelector('[data-novo]')?.addEventListener('click', () => editar({}));
+  if (ed) alvo.querySelectorAll('tbody tr[data-i]').forEach(tr => tr.onclick = () => editar(lista[tr.dataset.i]));
 }
 </script>
 </body>
