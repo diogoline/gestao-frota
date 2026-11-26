@@ -108,6 +108,28 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
 .chip{display:inline-block;background:var(--fundo);border:1px solid var(--borda);border-radius:6px;padding:2px 6px;margin:2px;font-size:11.5px;cursor:pointer}
 .chip:hover{background:var(--azul-claro)}
+.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.foto-card{border:2px dashed var(--borda);border-radius:12px;overflow:hidden;background:#fafbfc}
+.foto-card.tem{border-style:solid;border-color:var(--verde)}
+.foto-area{height:110px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--azul);font-weight:600;cursor:pointer;position:relative}
+.foto-area>img:first-child{width:100%;height:100%;object-fit:cover}
+.foto-ret{position:absolute;right:4px;bottom:4px;width:54px;height:40px;object-fit:cover;border:2px solid #fff;border-radius:5px;box-shadow:var(--sombra)}
+.foto-nome{padding:6px 8px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;background:#fff}
+.foto-x{margin-left:auto;border:none;background:var(--vermelho-claro);color:var(--vermelho);border-radius:6px;cursor:pointer;padding:2px 7px}
+.ck-item{padding:10px 0;border-bottom:1px solid #f2f4f7}.ck-nome{font-weight:500;margin-bottom:6px}
+.seg{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden}
+.seg button{border:none;background:#fff;padding:8px 14px;cursor:pointer;font-weight:600;color:var(--cinza);border-right:1px solid var(--borda)}
+.seg button:last-child{border-right:none}
+.seg .sel-ok{background:var(--verde);color:#fff}.seg .sel-problema{background:var(--vermelho);color:#fff}.seg .sel-na{background:#98a2b3;color:#fff}
+.ck-obs{display:block;width:100%;margin-top:6px;border:1px solid var(--borda);border-radius:8px;padding:8px}
+.av-item{border:1px solid var(--borda);border-radius:12px;padding:12px;margin-bottom:10px}
+.ass-box{position:relative;border:2px dashed var(--borda);border-radius:12px;overflow:hidden;touch-action:none}
+.ass-box canvas{display:block;width:100%;touch-action:none}
+@media(max-width:700px){
+  .fundo-modal{padding:0}.modal{border-radius:0;min-height:100vh;max-width:none}
+  .modal-corpo{max-height:none}.g2{grid-template-columns:1fr}
+  .modal-rodape{position:sticky;bottom:0;background:#fff}
+}
 .hist-item{border-left:3px solid var(--azul-claro);padding:6px 12px;margin-bottom:10px}
 .hist-item small{color:var(--cinza)}
 
@@ -148,6 +170,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <a data-tela="veiculos">🚗 Veículos</a>
       <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
       <a data-tela="contratos">📄 Contratos</a>
+      <a data-tela="vistorias">📷 Vistorias</a>
       <div class="menu-titulo">Próximas fases</div>
       <a class="breve">🔧 Manutenção <span class="tag">em breve</span></a>
       <a class="breve">🚨 Infrações <span class="tag">em breve</span></a>
@@ -202,6 +225,15 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       </div>
     </section>
 
+    <!-- VISTORIAS -->
+    <section id="tela-vistorias" class="oculto">
+      <div class="painel">
+        <div class="filtros"><input id="buscaVs" placeholder="Buscar por número, contrato, placa ou motorista..." oninput="renderVistorias()"></div>
+        <table><thead><tr><th>Número</th><th>Tipo</th><th>Contrato</th><th>Veículo</th><th>Motorista</th><th>Data</th><th>Status</th></tr></thead>
+          <tbody id="tbVs"></tbody></table>
+      </div>
+    </section>
+
     <!-- MOTORISTAS -->
     <section id="tela-motoristas" class="oculto">
       <div class="painel">
@@ -222,7 +254,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
 /* =========================================================
    ESTADO
    ========================================================= */
-const S = { token: null, usuario: null, cat: { marcas: [], modelos: [], cores: [] }, veiculos: [], motoristas: [], planos: [], contratos: [], tela: 'painel' };
+const S = { token: null, usuario: null, cat: { marcas: [], modelos: [], cores: [] }, veiculos: [], motoristas: [], planos: [], contratos: [], vistorias: [], tela: 'painel' };
 
 const STATUS_VEIC = {
   disponivel: ['Disponível', 'b-verde'], locado: ['Locado', 'b-azul'], manutencao: ['Manutenção', 'b-laranja'],
@@ -386,10 +418,10 @@ document.querySelectorAll('#menu a[data-tela]').forEach(a => a.onclick = () => i
 async function irPara(tela) {
   S.tela = tela;
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
-  ['painel', 'veiculos', 'motoristas', 'contratos'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
-  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos' }[tela];
+  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias' }[tela];
   const novo = $('btnNovo');
-  novo.classList.toggle('oculto', tela === 'painel');
+  novo.classList.toggle('oculto', tela === 'painel' || tela === 'vistorias');
   novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato' }[tela] || '';
   novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato })[tela]();
   try {
@@ -397,6 +429,7 @@ async function irPara(tela) {
     if (tela === 'veiculos') { S.veiculos = await api('listarVeiculos'); renderVeiculos(); }
     if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); renderMotoristas(); }
     if (tela === 'contratos') { await carregarBaseContratos(); renderContratos(); }
+    if (tela === 'vistorias') { await carregarVistorias(); renderVistorias(); }
   } catch (e) { toast(e.message, 'erro'); }
 }
 
@@ -613,6 +646,7 @@ async function carregarHistorico(id, alvo) {
 function abrirConfig() {
   const abas = [['planos', 'Planos'], ['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
   if (pode('admin', 'gestor')) abas.splice(1, 0, ['contrato', 'Modelo de contrato']);
+  abas.splice(abas.length, 0, ['checklist', 'Checklist vistoria']);
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
   abas.push(['senha', 'Minha senha']);
   const md = abrirModal({
@@ -620,7 +654,7 @@ function abrirConfig() {
     abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
-  const carregar = nome => ({ planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  const carregar = nome => ({ checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
   md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
   carregar(abas[0][0]);
 }
@@ -862,7 +896,7 @@ async function formContrato(id) {
     esq = btn('ctCancelar', 'Cancelar contrato', 'btn-perigo');
     dir = btn('ctBaixar', '⬇ PDF para assinar') + btn('ctReemitir', '↻ Regerar PDF') + btn('ctAnexar', '📎 Anexar assinado', 'btn-ok');
   } else {
-    if (st === 'ativo' && pode('admin', 'gestor')) esq = btn('ctEncerrar', 'Encerrar contrato', 'btn-perigo');
+    if (st === 'ativo' && pode('admin')) esq = btn('ctEncerrar', 'Encerrar sem vistoria', 'btn-perigo');
     dir = (c.pdf_file_id ? btn('ctBaixar', '⬇ PDF emitido') : '') + (c.pdf_assinado_file_id ? btn('ctBaixarAss', '⬇ Contrato assinado', 'btn-pri') : '');
   }
 
@@ -889,12 +923,14 @@ async function formContrato(id) {
           <div class="campo"><label>Fim do prazo mínimo</label><input value="${dataBR(c.data_fim_minima)}" disabled placeholder="calculado ao salvar"></div>
         </div>
         <div class="campo"><label>Observação (pode ir no contrato com o marcador {{contrato.observacao}})</label><textarea name="observacao" rows="2" ${dis}>${esc(c.observacao || '')}</textarea></div>
+        <div id="ctVistorias"></div>
         ${c.data_emissao ? `<p style="color:var(--cinza);font-size:12px">Emitido em ${dataBR(c.data_emissao)} · modelo v${esc(c.modelo_versao)}${c.data_assinatura ? ' · assinado/anexado em ' + dataBR(c.data_assinatura) : ''}</p>` : ''}
       </form>`,
     rodape: `<div style="display:flex;gap:8px">${esq}</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${dir}</div>`
   });
 
   const f = md.querySelector('#fCt');
+  if (id) blocoVistoriasContrato(c, md.querySelector('#ctVistorias'), () => md.remove());
   // Ao escolher plano: preenche as condições
   f.plano_id.onchange = () => {
     const p = S.planos.find(x => x.id === f.plano_id.value); if (!p) return;
@@ -933,7 +969,8 @@ async function formContrato(id) {
     await api('cancelarContrato', { id, motivo }); toast('Contrato cancelado.'); await recarregar();
   });
   on('ctEncerrar', async () => {
-    const motivo = prompt('Motivo do encerramento (ex.: fim do contrato, devolução antecipada, inadimplência):'); if (!motivo) return;
+    if (!confirm('Encerrar SEM vistoria de devolução? Use só em casos como roubo, perda total ou apreensão. O normal é fazer a vistoria de devolução.')) return;
+    const motivo = prompt('Motivo do encerramento sem vistoria:'); if (!motivo) return;
     await api('encerrarContrato', { id, motivo }); toast('Contrato encerrado. Veículo disponível.'); await recarregar();
   });
 }
@@ -1019,6 +1056,336 @@ async function cfgModeloContrato(alvo) {
     try { await api('salvarModeloContrato', { texto: ta.value }); toast('Nova versão salva.'); cfgModeloContrato(alvo); }
     catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
   };
+}
+
+/* =========================================================
+   VISTORIAS (Fase 2B)
+   ========================================================= */
+const TIPO_VS = { retirada: ['Retirada', 'b-azul'], devolucao: ['Devolução', 'b-roxo'] };
+const STATUS_VS = { rascunho: ['Em andamento', 'b-laranja'], concluida: ['Concluída', 'b-verde'] };
+const COMBUSTIVEL_NIVEIS = [[0, 'Reserva'], [1, '1/8'], [2, '1/4'], [3, '3/8'], [4, '1/2'], [5, '5/8'], [6, '3/4'], [7, '7/8'], [8, 'Cheio']];
+const combTxt = n => (COMBUSTIVEL_NIVEIS.find(x => x[0] === Number(n)) || [0, '—'])[1];
+const LOCAIS_AVARIA = ['Para-choque dianteiro', 'Para-choque traseiro', 'Capô', 'Teto', 'Porta-malas', 'Porta dianteira esquerda', 'Porta traseira esquerda',
+  'Porta dianteira direita', 'Porta traseira direita', 'Paralama dianteiro esquerdo', 'Paralama dianteiro direito', 'Lateral traseira esquerda',
+  'Lateral traseira direita', 'Retrovisor esquerdo', 'Retrovisor direito', 'Para-brisa', 'Vidro', 'Farol', 'Lanterna', 'Roda / calota', 'Pneu', 'Banco', 'Painel', 'Forro / carpete'];
+
+/** Reduz foto para JPEG (máx. lado maior) */
+function fotoParaJpeg(file, max, qualidade) {
+  return new Promise((ok, erro) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      ok(cv.toDataURL('image/jpeg', qualidade).split(',')[1]);
+    };
+    img.onerror = () => erro(new Error('Não foi possível ler a foto.'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* ---------- Lista (menu Vistorias) ---------- */
+async function carregarVistorias() {
+  if (!S.contratos.length) await carregarBaseContratos();
+  S.vistorias = await api('listarVistorias', {});
+}
+function renderVistorias() {
+  const q = $('buscaVs').value.toLowerCase();
+  const ctNum = id => (S.contratos.find(c => c.id === id) || {}).numero || '';
+  const lista = (S.vistorias || []).filter(v => [v.numero, ctNum(v.contrato_id), motTxt(v.motorista_id), veicTxt(v.veiculo_id)].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
+  $('tbVs').innerHTML = lista.length ? lista.map(v => `
+    <tr onclick="abrirVistoria('${v.id}')">
+      <td><b>${esc(v.numero)}</b></td><td>${badge(TIPO_VS, v.tipo)}</td><td>${esc(ctNum(v.contrato_id))}</td>
+      <td>${esc(veicTxt(v.veiculo_id))}</td><td>${esc(motTxt(v.motorista_id))}</td>
+      <td>${dataBR(v.concluida_em || v.criado_em)}</td><td>${badge(STATUS_VS, v.status)}</td></tr>`).join('')
+    : `<tr><td colspan="7" class="vazio">Nenhuma vistoria. Elas são abertas pela tela do contrato.</td></tr>`;
+}
+
+/* ---------- Bloco de vistorias dentro do contrato ---------- */
+async function blocoVistoriasContrato(c, alvo, fecharContrato) {
+  if (!['aguardando_assinatura', 'ativo', 'encerrado'].includes(c.status)) { alvo.innerHTML = ''; return; }
+  alvo.innerHTML = '<div class="secao">Vistorias</div><div style="color:var(--cinza)">Carregando...</div>';
+  try {
+    const vs = await api('listarVistorias', { contrato_id: c.id });
+    const tem = t => vs.find(v => v.tipo === t);
+    const ret = tem('retirada'), dev = tem('devolucao');
+    let botoes = '';
+    if (!ret || ret.status === 'rascunho') botoes += `<button class="btn btn-pri" type="button" data-vs="retirada">📷 ${ret ? 'Continuar' : 'Iniciar'} vistoria de retirada</button>`;
+    if (c.status === 'ativo' && (!dev || dev.status === 'rascunho')) botoes += `<button class="btn btn-sec" type="button" data-vs="devolucao">🔁 ${dev ? 'Continuar' : 'Iniciar'} devolução (encerra o contrato)</button>`;
+    alvo.innerHTML = `<div class="secao">Vistorias</div>
+      ${vs.map(v => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f2f4f7;cursor:pointer" data-abrir="${v.id}">
+        ${badge(TIPO_VS, v.tipo)} <b>${esc(v.numero)}</b> ${badge(STATUS_VS, v.status)}
+        <span style="color:var(--cinza);margin-left:auto">${v.km !== '' ? num(v.km) + ' km · ' : ''}${dataBR(v.concluida_em || v.criado_em)}</span></div>`).join('')}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${botoes}</div>`;
+    alvo.querySelectorAll('[data-abrir]').forEach(el => el.onclick = () => { fecharContrato(); abrirVistoria(el.dataset.abrir); });
+    alvo.querySelectorAll('[data-vs]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { const r = await api('iniciarVistoria', { contrato_id: c.id, tipo: b.dataset.vs }); fecharContrato(); abrirVistoria(r.id); }
+      catch (e) { toast(e.message, 'erro'); b.disabled = false; }
+    });
+  } catch (e) { alvo.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
+}
+
+/* ---------- Passo a passo da vistoria ---------- */
+async function abrirVistoria(id) {
+  let r;
+  try { r = await api('obterVistoria', { id }); } catch (e) { return toast(e.message, 'erro'); }
+  const v = r.vistoria, dev = v.tipo === 'devolucao', fechada = v.status !== 'rascunho', ret = r.retirada;
+  const dis = fechada ? 'disabled' : '';
+  const fotoRet = pos => ret ? ret.fotos.find(f => f.posicao === pos) : null;
+  const passos = [['dados', '1. Dados'], ['fotos', '2. Fotos'], ['check', '3. Checklist'], ['avarias', '4. Avarias'], ['fim', fechada ? '5. Termo' : '5. Assinar']];
+
+  const md = abrirModal({
+    titulo: `${dev ? 'Devolução' : 'Retirada'} ${esc(v.numero)} ${badge(STATUS_VS, v.status)}`,
+    abas: `<div class="abas" style="overflow-x:auto">${passos.map((p, i) => `<button data-aba="${p[0]}" class="${i ? '' : 'ativo'}" type="button">${p[1]}</button>`).join('')}</div>`,
+    corpo: `
+      <div class="info" style="margin-bottom:12px"><b>${esc(r.veiculo)}</b> · ${esc(r.motorista)} · contrato ${esc(r.contrato.numero)}</div>
+      <div data-painel="dados">
+        <div class="grade g2">
+          <div class="campo"><label class="req">KM atual (no painel)</label><input id="vsKm" type="number" min="0" inputmode="numeric" value="${esc(v.km)}" ${dis}>
+            ${ret ? `<small style="color:var(--cinza)">Na retirada: ${num(ret.km)} km</small>` : ''}</div>
+          <div class="campo"><label class="req">Combustível</label><select id="vsComb" ${dis}>${opcoes(COMBUSTIVEL_NIVEIS.map(([n, t]) => ({ v: n, t })), v.combustivel, 'Selecione...')}</select>
+            ${ret ? `<small style="color:var(--cinza)">Na retirada: ${combTxt(ret.combustivel)}</small>` : ''}</div>
+        </div>
+        ${dev ? `<div class="grade g2">
+          <div class="campo"><label class="req">Motivo do encerramento</label><input id="vsMotivo" list="motivosEnc" value="${esc(v.motivo_encerramento || '')}" ${dis}>
+            <datalist id="motivosEnc"><option>Fim do contrato</option><option>Devolução antecipada pelo motorista</option><option>Inadimplência</option><option>Descumprimento de contrato</option><option>Troca de veículo</option></datalist></div>
+          <div class="campo"><label>Depois da devolução, o veículo vai para</label><select id="vsSit" ${dis}>${opcoes([{ v: 'disponivel', t: 'Disponível para locação' }, { v: 'manutencao', t: 'Manutenção' }], v.situacao_veiculo || 'disponivel', '—')}</select></div>
+        </div>` : ''}
+        <div class="campo"><label>Observações gerais</label><textarea id="vsObs" rows="2" ${dis}>${esc(v.observacao || '')}</textarea></div>
+      </div>
+
+      <div data-painel="fotos" class="oculto">
+        <p style="color:var(--cinza);margin-bottom:10px">Toque em cada posição para tirar a foto. <span style="color:var(--vermelho)">*</span> = obrigatória.${dev && ret ? ' A miniatura menor é a foto da retirada.' : ''}</p>
+        <div class="foto-grid" id="vsFotos"></div>
+      </div>
+
+      <div data-painel="check" class="oculto">
+        ${fechada ? '' : '<button class="btn btn-sec" type="button" id="vsTodosOk" style="margin-bottom:10px">✓ Marcar todos como OK</button>'}
+        <div id="vsCheck"></div>
+      </div>
+
+      <div data-painel="avarias" class="oculto">
+        ${dev && ret && ret.avarias.length ? `<div class="aviso"><b>Já existiam na retirada:</b><br>${ret.avarias.map(a => '• ' + esc(a.local) + ': ' + esc(a.descricao)).join('<br>')}</div>` : ''}
+        <div id="vsAvarias"></div>
+        ${fechada ? '' : '<button class="btn btn-sec" type="button" id="vsAddAv">+ Registrar avaria</button>'}
+        <datalist id="locaisAv">${LOCAIS_AVARIA.map(l => `<option>${l}</option>`).join('')}</datalist>
+      </div>
+
+      <div data-painel="fim" class="oculto" id="vsFim"></div>`,
+    rodape: `<div>${fechada ? '' : '<button class="btn btn-perigo" type="button" id="vsCancelar">Descartar</button>'}</div>
+      <div style="display:flex;gap:8px"><button class="btn btn-sec" type="button" id="vsAnt">‹ Anterior</button><button class="btn btn-pri" type="button" id="vsProx">Próximo ›</button></div>`
+  });
+  md.classList.add('modal-vistoria');
+
+  // ---------- estado ----------
+  let fotos = r.fotos.slice();
+  const checklist = Object.assign({}, v.checklist);
+  let avarias = (v.avarias || []).slice();
+  let passo = 0;
+
+  const coletar = () => {
+    const d = { id };
+    if (fechada) return d;
+    d.km = md.querySelector('#vsKm').value; d.combustivel = md.querySelector('#vsComb').value;
+    d.observacao = md.querySelector('#vsObs').value;
+    if (dev) { d.motivo_encerramento = md.querySelector('#vsMotivo').value; d.situacao_veiculo = md.querySelector('#vsSit').value; }
+    d.checklist = checklist; d.avarias = avarias;
+    const n = md.querySelector('#vsAssNome'); if (n) d.assinante_nome = n.value;
+    return d;
+  };
+  const salvar = async () => { if (!fechada) await api('salvarVistoria', coletar()); };
+
+  // ---------- fotos ----------
+  const desenharFotos = () => {
+    md.querySelector('#vsFotos').innerHTML = r.posicoes.map(([pos, nome, obrig]) => {
+      const f = fotos.find(x => x.posicao === pos), fr = fotoRet(pos);
+      return `<div class="foto-card ${f ? 'tem' : ''}" data-pos="${pos}">
+        <div class="foto-area">${f ? `<img src="${f.thumb}" data-ver="${f.id}">` : `<span>📷<br>${fechada ? 'sem foto' : 'Tirar foto'}</span>`}
+          ${fr ? `<img class="foto-ret" src="${fr.thumb}" data-ver="${fr.id}" title="Retirada">` : ''}</div>
+        <div class="foto-nome">${esc(nome)}${obrig ? ' <span style="color:var(--vermelho)">*</span>' : ''}
+          ${f && !fechada ? `<button type="button" class="foto-x" data-rem="${f.id}" title="Remover">✕</button>` : ''}</div>
+        <input type="file" accept="image/*" capture="environment" class="oculto"></div>`;
+    }).join('');
+    md.querySelectorAll('#vsFotos .foto-card').forEach(card => {
+      const inp = card.querySelector('input');
+      card.querySelector('.foto-area').onclick = ev => {
+        if (ev.target.dataset.ver) return verFoto(ev.target.dataset.ver);
+        if (!fechada) inp.click();
+      };
+      inp.onchange = () => enviarFoto(inp.files[0], card.dataset.pos, '', card);
+      const rem = card.querySelector('[data-rem]');
+      if (rem) rem.onclick = async ev => {
+        ev.stopPropagation(); if (!confirm('Remover esta foto?')) return;
+        try { await api('removerFotoVistoria', { id: rem.dataset.rem }); fotos = fotos.filter(x => x.id !== rem.dataset.rem); desenharFotos(); } catch (e) { toast(e.message, 'erro'); }
+      };
+    });
+  };
+  const enviarFoto = async (file, pos, legenda, card) => {
+    if (!file) return null;
+    if (card) card.querySelector('.foto-area').innerHTML = '<span>Enviando...</span>';
+    try {
+      const [base64, thumb64] = await Promise.all([fotoParaJpeg(file, 1280, 0.75), fotoParaJpeg(file, 420, 0.6)]);
+      const f = await api('enviarFotoVistoria', { vistoria_id: id, posicao: pos, legenda, base64, thumb64 });
+      if (pos !== 'avaria') fotos = fotos.filter(x => x.posicao !== pos);
+      fotos.push(f); if (card) desenharFotos();
+      return f;
+    } catch (e) { toast(e.message, 'erro'); if (card) desenharFotos(); return null; }
+  };
+  const verFoto = async fid => { try { abrirArquivo(await api('verFotoVistoria', { id: fid })); } catch (e) { toast(e.message, 'erro'); } };
+
+  // ---------- checklist ----------
+  const desenharCheck = () => {
+    md.querySelector('#vsCheck').innerHTML = r.checklistItens.map((item, i) => {
+      const c = checklist[item] || {}, rc = ret && ret.checklist[item];
+      return `<div class="ck-item">
+        <div class="ck-nome">${esc(item)}${rc && rc.s && rc.s !== 'ok' ? ` <small style="color:var(--laranja)">(retirada: ${rc.s === 'problema' ? 'problema' : 'N/A'})</small>` : ''}</div>
+        <div class="seg" data-i="${i}">${[['ok', 'OK'], ['problema', 'Problema'], ['na', 'N/A']].map(([k, t]) =>
+          `<button type="button" data-s="${k}" class="${c.s === k ? 'sel-' + k : ''}" ${dis}>${t}</button>`).join('')}</div>
+        <input class="ck-obs ${c.s === 'problema' || c.obs ? '' : 'oculto'}" data-i="${i}" placeholder="Descreva o problema" value="${esc(c.obs || '')}" ${dis}>
+      </div>`;
+    }).join('');
+    md.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+      const item = r.checklistItens[b.parentElement.dataset.i];
+      checklist[item] = Object.assign({}, checklist[item], { s: b.dataset.s });
+      desenharCheck();
+      if (b.dataset.s === 'problema') md.querySelector(`.ck-obs[data-i="${b.parentElement.dataset.i}"]`).focus();
+    });
+    md.querySelectorAll('.ck-obs').forEach(inp => inp.oninput = () => {
+      const item = r.checklistItens[inp.dataset.i]; checklist[item] = Object.assign({}, checklist[item], { obs: inp.value });
+    });
+  };
+  const todosOk = md.querySelector('#vsTodosOk');
+  if (todosOk) todosOk.onclick = () => { r.checklistItens.forEach(i => { if (!checklist[i] || !checklist[i].s) checklist[i] = { s: 'ok', obs: '' }; }); desenharCheck(); };
+
+  // ---------- avarias ----------
+  const desenharAvarias = () => {
+    md.querySelector('#vsAvarias').innerHTML = avarias.length ? avarias.map((a, i) => {
+      const f = fotos.find(x => x.id === a.foto_id);
+      return `<div class="av-item" data-i="${i}">
+        <div class="grade g2">
+          <div class="campo"><label class="req">Local</label><input data-k="local" list="locaisAv" value="${esc(a.local || '')}" ${dis}></div>
+          <div class="campo"><label class="req">Descrição</label><input data-k="descricao" value="${esc(a.descricao || '')}" placeholder="ex.: risco de 10 cm" ${dis}></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          ${f ? `<img src="${f.thumb}" data-ver="${f.id}" style="height:60px;border-radius:6px;cursor:pointer">` : ''}
+          ${fechada ? '' : `<button type="button" class="btn btn-sec" data-foto>📷 ${f ? 'Trocar foto' : 'Foto da avaria'}</button><input type="file" accept="image/*" capture="environment" class="oculto">`}
+          ${dev ? `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-k="nova" ${a.nova ? 'checked' : ''} ${dis}> Avaria nova</label>
+            <input data-k="valor" type="number" step="0.01" min="0" placeholder="Valor estimado R$" value="${esc(a.valor || '')}" style="width:150px;border:1px solid var(--borda);border-radius:8px;padding:7px" ${dis}>` : ''}
+          ${fechada ? '' : '<button type="button" class="btn btn-perigo" data-del style="margin-left:auto">Excluir</button>'}
+        </div></div>`;
+    }).join('') : '<div class="vazio" style="padding:20px">Nenhuma avaria registrada.</div>';
+    md.querySelectorAll('.av-item').forEach(el => {
+      const i = Number(el.dataset.i);
+      el.querySelectorAll('[data-k]').forEach(inp => inp.oninput = inp.onchange = () => {
+        avarias[i][inp.dataset.k] = inp.type === 'checkbox' ? inp.checked : inp.value;
+      });
+      const img = el.querySelector('[data-ver]'); if (img) img.onclick = () => verFoto(img.dataset.ver);
+      const bf = el.querySelector('[data-foto]');
+      if (bf) { const inp = el.querySelector('input[type=file]'); bf.onclick = () => inp.click();
+        inp.onchange = async () => { bf.textContent = 'Enviando...'; const f = await enviarFoto(inp.files[0], 'avaria', avarias[i].local || 'avaria'); if (f) avarias[i].foto_id = f.id; desenharAvarias(); }; }
+      const del = el.querySelector('[data-del]'); if (del) del.onclick = () => { if (confirm('Excluir esta avaria?')) { avarias.splice(i, 1); desenharAvarias(); } };
+    });
+  };
+  const add = md.querySelector('#vsAddAv');
+  if (add) add.onclick = () => { avarias.push({ local: '', descricao: '', nova: dev, valor: '' }); desenharAvarias(); };
+
+  // ---------- final: assinatura ou termo ----------
+  let canvasVazio = true;
+  const desenharFim = () => {
+    const alvo = md.querySelector('#vsFim');
+    if (fechada) {
+      alvo.innerHTML = `<div class="info">Vistoria concluída em ${dataBR(v.concluida_em)} por ${esc(v.realizada_por)}. Assinada por ${esc(v.assinante_nome)}.</div>
+        <button class="btn btn-pri" type="button" id="vsPdf">⬇ Baixar Termo de Vistoria (PDF)</button>`;
+      alvo.querySelector('#vsPdf').onclick = async ev => { ev.target.disabled = true; try { abrirArquivo(await api('baixarVistoriaPdf', { id })); } catch (e) { toast(e.message, 'erro'); } ev.target.disabled = false; };
+      return;
+    }
+    const pend = [];
+    if (md.querySelector('#vsKm').value === '') pend.push('KM');
+    if (md.querySelector('#vsComb').value === '') pend.push('combustível');
+    const faltaFoto = r.posicoes.filter(p => p[2] && !fotos.some(f => f.posicao === p[0])).map(p => p[1]);
+    if (faltaFoto.length) pend.push('fotos: ' + faltaFoto.join(', '));
+    const faltaCk = r.checklistItens.filter(i => !checklist[i] || !checklist[i].s).length;
+    if (faltaCk) pend.push(faltaCk + ' item(ns) do checklist');
+    if (dev && !md.querySelector('#vsMotivo').value) pend.push('motivo do encerramento');
+    alvo.innerHTML = `
+      ${pend.length ? `<div class="aviso"><b>Pendências antes de concluir:</b><br>${pend.map(p => '• ' + esc(p)).join('<br>')}</div>`
+        : `<div class="info">Tudo preenchido. ${dev ? '<b>Ao concluir, o contrato será encerrado.</b>' : 'Peça ao motorista para conferir e assinar.'}</div>`}
+      <div class="campo"><label class="req">Nome de quem assina (motorista)</label><input id="vsAssNome" value="${esc(v.assinante_nome || r.motorista)}"></div>
+      <label style="font-size:12px;font-weight:600;color:#475467">Assinatura do motorista</label>
+      <div class="ass-box"><canvas id="vsCanvas"></canvas><button type="button" class="btn btn-sec" id="vsLimpar" style="position:absolute;right:8px;top:8px;padding:5px 10px">Limpar</button></div>
+      <p style="font-size:12px;color:var(--cinza);margin-top:6px">Ao assinar, o motorista declara que conferiu ${dev ? 'a devolução' : 'o estado do veículo'} conforme fotos, checklist e avarias registrados.</p>`;
+    prepararCanvas(md.querySelector('#vsCanvas'), () => canvasVazio = false);
+    canvasVazio = true;
+    md.querySelector('#vsLimpar').onclick = () => { prepararCanvas(md.querySelector('#vsCanvas'), () => canvasVazio = false); canvasVazio = true; };
+  };
+
+  // ---------- navegação ----------
+  const irPasso = async (n, semSalvar) => {
+    if (!semSalvar) { try { await salvar(); } catch (e) { toast(e.message, 'erro'); return; } }
+    passo = Math.max(0, Math.min(passos.length - 1, n));
+    trocarAba(md, passos[passo][0]);
+    if (passos[passo][0] === 'fim') desenharFim();
+    md.querySelector('#vsAnt').style.visibility = passo ? 'visible' : 'hidden';
+    const prox = md.querySelector('#vsProx');
+    prox.textContent = passo === passos.length - 1 ? (fechada ? 'Fechar' : (dev ? '✓ Concluir e encerrar contrato' : '✓ Concluir vistoria')) : 'Próximo ›';
+    prox.className = 'btn ' + (passo === passos.length - 1 && !fechada ? 'btn-ok' : 'btn-pri');
+    md.querySelector('.modal-corpo').scrollTop = 0;
+  };
+  md.querySelectorAll('.abas button').forEach((b, i) => b.onclick = () => irPasso(i));
+  md.querySelector('#vsAnt').onclick = () => irPasso(passo - 1);
+  md.querySelector('#vsProx').onclick = async ev => {
+    if (passo < passos.length - 1) return irPasso(passo + 1);
+    if (fechada) return md.remove();
+    if (canvasVazio) return toast('Falta a assinatura do motorista.', 'erro');
+    if (!confirm(dev ? 'Concluir a devolução e ENCERRAR o contrato?' : 'Concluir a vistoria? Depois não será possível alterar.')) return;
+    const b = ev.target; b.disabled = true; b.textContent = 'Gerando termo...';
+    try {
+      const d = coletar(); d.assinatura64 = md.querySelector('#vsCanvas').toDataURL('image/png').split(',')[1];
+      await api('concluirVistoria', d);
+      toast(dev ? 'Devolução concluída. Contrato encerrado.' : 'Vistoria concluída.');
+      md.remove(); abrirArquivo(await api('baixarVistoriaPdf', { id }));
+      if (S.tela === 'contratos') irPara('contratos'); if (S.tela === 'vistorias') irPara('vistorias');
+    } catch (e) { toast(e.message, 'erro'); b.disabled = false; irPasso(passo); }
+  };
+  const canc = md.querySelector('#vsCancelar');
+  if (canc) canc.onclick = async () => {
+    if (!confirm('Descartar esta vistoria em andamento? (as fotos enviadas ficam na lixeira do Drive)')) return;
+    try { await api('cancelarVistoria', { id }); toast('Vistoria descartada.'); md.remove(); } catch (e) { toast(e.message, 'erro'); }
+  };
+  // salva ao fechar no "×"
+  md.querySelector('.fechar').onclick = async () => { try { await salvar(); } catch (e) {} md.remove(); };
+
+  desenharFotos(); desenharCheck(); desenharAvarias(); irPasso(0, true);
+}
+
+/** Assinatura com o dedo ou mouse */
+function prepararCanvas(cv, aoDesenhar) {
+  const box = cv.parentElement;
+  cv.width = box.clientWidth; cv.height = 180;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b1f4d';
+  let ativo = false;
+  const pt = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.onpointerdown = e => { ativo = true; cv.setPointerCapture(e.pointerId); ctx.beginPath(); ctx.moveTo(...pt(e)); };
+  cv.onpointermove = e => { if (!ativo) return; ctx.lineTo(...pt(e)); ctx.stroke(); aoDesenhar(); };
+  cv.onpointerup = cv.onpointercancel = () => { ativo = false; };
+}
+
+/* ---------- ⚙️ Checklist da vistoria ---------- */
+async function cfgChecklist(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const txt = await api('obterChecklistVistoria');
+  const ed = pode('admin', 'gestor');
+  alvo.innerHTML = `<div class="info">Um item por linha. Vale para as próximas vistorias (as concluídas não mudam).</div>
+    <textarea id="txtCk" style="width:100%;height:300px;border:1px solid var(--borda);border-radius:9px;padding:10px;line-height:1.6" ${ed ? '' : 'disabled'}>${esc(txt)}</textarea>
+    ${ed ? '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-pri" type="button">Salvar checklist</button></div>' : ''}`;
+  const b = alvo.querySelector('button');
+  if (b) b.onclick = async () => { b.disabled = true; try { await api('salvarChecklistVistoria', { texto: alvo.querySelector('#txtCk').value }); toast('Checklist salvo.'); } catch (e) { toast(e.message, 'erro'); } b.disabled = false; };
 }
 </script>
 </body>
