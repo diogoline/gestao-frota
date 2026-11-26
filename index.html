@@ -171,10 +171,10 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
       <a data-tela="motoristas">🧑‍✈️ Motoristas</a>
       <a data-tela="contratos">📄 Contratos</a>
       <a data-tela="vistorias">📷 Vistorias</a>
+      <a data-tela="financeiro">💰 Financeiro</a>
       <div class="menu-titulo">Próximas fases</div>
       <a class="breve">🔧 Manutenção <span class="tag">em breve</span></a>
       <a class="breve">🚨 Infrações <span class="tag">em breve</span></a>
-      <a class="breve">💰 Financeiro <span class="tag">em breve</span></a>
     </nav>
     <div class="rodape-menu">
       <div class="usuario-box">
@@ -198,7 +198,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
     <!-- PAINEL -->
     <section id="tela-painel">
       <div class="cards" id="cards"></div>
-      <div class="painel"><h3>⚠️ Vencimentos próximos</h3><div class="lista-alertas" id="alertas"></div></div>
+      <div class="painel"><h3>⚠️ Alertas: vencimentos e atrasos</h3><div class="lista-alertas" id="alertas"></div></div>
     </section>
 
     <!-- VEÍCULOS -->
@@ -222,6 +222,26 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f8faff}
         </div>
         <table><thead><tr><th>Número</th><th>Motorista</th><th>Veículo</th><th>Início</th><th>Valor</th><th>Status</th></tr></thead>
           <tbody id="tbCt"></tbody></table>
+      </div>
+    </section>
+
+    <!-- FINANCEIRO -->
+    <section id="tela-financeiro" class="oculto">
+      <div class="cards" id="finCards"></div>
+      <div class="painel">
+        <div class="abas" id="finAbas" style="padding:0 14px">
+          <button data-aba="receber" type="button">A receber</button><button data-aba="pagar" type="button">A pagar</button>
+          <button data-aba="extrato" type="button">Extrato do mês</button><button data-aba="todos" type="button">Todos do mês</button>
+        </div>
+        <div class="filtros" style="flex-wrap:wrap">
+          <input id="buscaFin" placeholder="Buscar descrição, motorista, placa ou contrato..." oninput="renderFinanceiro()">
+          <span id="finMesBox"><input type="month" id="finMes" style="border:1px solid var(--borda);border-radius:9px;padding:8px"></span>
+          <button class="btn btn-sec" type="button" id="finNovaRec">+ Receita</button>
+          <button class="btn btn-sec" type="button" id="finNovaDesp">+ Despesa</button>
+        </div>
+        <div style="padding:8px 14px;color:var(--cinza);font-size:12.5px" id="finTotal"></div>
+        <table><thead><tr><th>Data</th><th>Descrição</th><th>Motorista / veículo</th><th>Valor</th><th>Situação</th><th></th></tr></thead>
+          <tbody id="tbFin"></tbody></table>
       </div>
     </section>
 
@@ -415,13 +435,17 @@ function reduzirImagem(file, maxW = 500, maxH = 250) {
    NAVEGAÇÃO
    ========================================================= */
 document.querySelectorAll('#menu a[data-tela]').forEach(a => a.onclick = () => irPara(a.dataset.tela));
+document.querySelectorAll('#finAbas button').forEach(b => b.onclick = () => { S.fin.aba = b.dataset.aba; renderFinanceiro(); });
+$('finMes').onchange = () => { S.fin.mes = $('finMes').value || S.fin.mes; renderFinanceiro(); };
+$('finNovaRec').onclick = () => formLanc('receita');
+$('finNovaDesp').onclick = () => formLanc('despesa');
 async function irPara(tela) {
   S.tela = tela;
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
-  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
-  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias' }[tela];
+  ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
+  $('tituloTela').textContent = { painel: 'Painel', veiculos: 'Veículos', motoristas: 'Motoristas', contratos: 'Contratos', vistorias: 'Vistorias', financeiro: 'Financeiro' }[tela];
   const novo = $('btnNovo');
-  novo.classList.toggle('oculto', tela === 'painel');
+  novo.classList.toggle('oculto', tela === 'painel' || tela === 'financeiro');
   novo.textContent = { veiculos: '+ Novo veículo', motoristas: '+ Novo motorista', contratos: '+ Novo contrato', vistorias: '+ Nova vistoria' }[tela] || '';
   novo.onclick = () => ({ veiculos: formVeiculo, motoristas: formMotorista, contratos: formContrato, vistorias: novaVistoria })[tela]();
   try {
@@ -430,6 +454,11 @@ async function irPara(tela) {
     if (tela === 'motoristas') { S.motoristas = await api('listarMotoristas'); renderMotoristas(); }
     if (tela === 'contratos') { await carregarBaseContratos(); renderContratos(); }
     if (tela === 'vistorias') { await carregarVistorias(); renderVistorias(); }
+    if (tela === 'financeiro') {
+      $('finMes').value = S.fin.mes;
+      ['finNovaRec', 'finNovaDesp'].forEach(i => $(i).classList.toggle('oculto', !pode('admin', 'gestor')));
+      await carregarFinanceiro(); renderFinanceiro();
+    }
   } catch (e) { toast(e.message, 'erro'); }
 }
 
@@ -444,10 +473,14 @@ async function carregarPainel() {
     card('Veículos na frota', r.totalVeiculos, 'var(--azul)') +
     card('Locados', ps.locado || 0, 'var(--verde)') +
     card('Disponíveis', ps.disponivel || 0, 'var(--roxo)') +
-    card('Em manutenção', ps.manutencao || 0, 'var(--laranja)');
+    card('Em manutenção', ps.manutencao || 0, 'var(--laranja)') +
+    (r.financeiro ? card('A receber em 7 dias', dinheiro(r.financeiro.receber7) || 'R$ 0,00', 'var(--azul)') +
+      card('Em atraso', dinheiro(r.financeiro.atrasado) || 'R$ 0,00', 'var(--vermelho)') +
+      card('Recebido no mês', dinheiro(r.financeiro.recebidoMes) || 'R$ 0,00', 'var(--verde)') +
+      card('Despesas no mês', dinheiro(r.financeiro.despesasMes) || 'R$ 0,00', 'var(--laranja)') : '');
   $('alertas').innerHTML = r.alertas.length ? r.alertas.map(a => `
-    <div class="alerta"><span class="badge ${a.dias < 0 ? 'b-vermelho' : 'b-laranja'}">${a.dias < 0 ? 'Vencido há ' + Math.abs(a.dias) + 'd' : 'Vence em ' + a.dias + 'd'}</span>
-      <b>${esc(a.tipo)}</b><span style="color:var(--cinza)">${esc(a.ref)}</span></div>`).join('')
+    <div class="alerta"><span class="badge ${a.dias < 0 ? 'b-vermelho' : 'b-laranja'}">${a.dias < 0 ? (/atras|BLOQ/i.test(a.tipo) ? 'Atrasado ' : 'Vencido há ') + Math.abs(a.dias) + 'd' : 'Vence em ' + a.dias + 'd'}</span>
+      <b style="${/BLOQUEAR/.test(a.tipo) ? 'color:var(--vermelho)' : ''}">${esc(a.tipo)}</b><span style="color:var(--cinza)">${esc(a.ref)}</span></div>`).join('')
     : '<div class="vazio">Nenhum vencimento nos próximos dias. 👍</div>';
 }
 
@@ -646,7 +679,7 @@ async function carregarHistorico(id, alvo) {
 function abrirConfig() {
   const abas = [['planos', 'Planos'], ['marcas', 'Marcas'], ['modelos', 'Modelos'], ['cores', 'Cores']];
   if (pode('admin', 'gestor')) abas.splice(1, 0, ['contrato', 'Modelo de contrato']);
-  abas.splice(abas.length, 0, ['checklist', 'Checklist vistoria']);
+  abas.splice(abas.length, 0, ['checklist', 'Checklist vistoria'], ['categorias', 'Categorias financeiras']);
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
   abas.push(['senha', 'Minha senha']);
   const md = abrirModal({
@@ -654,7 +687,7 @@ function abrirConfig() {
     abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${a[1]}</button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
-  const carregar = nome => ({ checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  const carregar = nome => ({ categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
   md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
   carregar(abas[0][0]);
 }
@@ -924,6 +957,7 @@ async function formContrato(id) {
         </div>
         <div class="campo"><label>Observação (pode ir no contrato com o marcador {{contrato.observacao}})</label><textarea name="observacao" rows="2" ${dis}>${esc(c.observacao || '')}</textarea></div>
         <div id="ctVistorias"></div>
+        <div id="ctFinanceiro"></div>
         ${c.data_emissao ? `<p style="color:var(--cinza);font-size:12px">Emitido em ${dataBR(c.data_emissao)} · modelo v${esc(c.modelo_versao)}${c.data_assinatura ? ' · assinado/anexado em ' + dataBR(c.data_assinatura) : ''}</p>` : ''}
       </form>`,
     rodape: `<div style="display:flex;gap:8px">${esq}</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${dir}</div>`
@@ -931,6 +965,7 @@ async function formContrato(id) {
 
   const f = md.querySelector('#fCt');
   if (id) blocoVistoriasContrato(c, md.querySelector('#ctVistorias'), () => md.remove());
+  if (id) blocoFinanceiroContrato(c, md.querySelector('#ctFinanceiro'));
   // Ao escolher plano: preenche as condições
   f.plano_id.onchange = () => {
     const p = S.planos.find(x => x.id === f.plano_id.value); if (!p) return;
@@ -1412,6 +1447,223 @@ async function novaVistoria() {
     b.disabled = true;
     try { const r = await api('iniciarVistoria', { contrato_id, tipo }); md.remove(); abrirVistoria(r.id); }
     catch (e) { toast(e.message, 'erro'); b.disabled = false; }
+  };
+}
+
+/* =========================================================
+   FINANCEIRO (Fase 3)
+   ========================================================= */
+const SIT_FIN = { aberto: ['Em aberto', 'b-azul'], atrasado: ['Atrasado', 'b-vermelho'], pago: ['Pago', 'b-verde'], cancelado: ['Cancelado', 'b-cinza'] };
+S.fin = { lanc: [], cat: null, aba: 'receber', mes: new Date().toISOString().slice(0, 7) };
+
+async function carregarFinanceiro() {
+  if (!S.contratos.length || !S.veiculos.length) await carregarBaseContratos();
+  const [l, cat] = await Promise.all([api('listarLancamentos', {}), S.fin.cat ? Promise.resolve(S.fin.cat) : api('obterCategorias')]);
+  S.fin.lanc = l; S.fin.cat = cat;
+}
+const ctNumero = id => (S.contratos.find(c => c.id === id) || {}).numero || '';
+const refLanc = l => [l.motorista_id ? motTxt(l.motorista_id) : '', l.veiculo_id ? (S.veiculos.find(v => v.id === l.veiculo_id) || {}).placa || '' : ''].filter(Boolean).join(' · ');
+
+function calcEncargos(l) {
+  if (l.situacao !== 'atrasado' || l.tipo !== 'receita') return 0;
+  const c = S.contratos.find(x => x.id === l.contrato_id); if (!c) return 0;
+  const v = Number(l.valor);
+  return Math.round((v * Number(c.multa_atraso_pct || 0) / 100 + v * Number(c.juros_dia_pct || 0) / 100 * l.dias_atraso) * 100) / 100;
+}
+
+function renderFinanceiro() {
+  const L = S.fin.lanc, mes = S.fin.mes, q = ($('buscaFin').value || '').toLowerCase();
+  const soma = (lista, k) => lista.reduce((s, l) => s + Number(l[k] || 0), 0);
+  const rec = L.filter(l => l.tipo === 'receita'), desp = L.filter(l => l.tipo === 'despesa');
+  const pagosMes = t => L.filter(l => l.tipo === t && l.status === 'pago' && String(l.data_pagamento).slice(0, 7) === mes);
+  const recMes = soma(pagosMes('receita'), 'valor_pago'), despMes = soma(pagosMes('despesa'), 'valor_pago');
+  const card = (rot, n, cor, sub = '') => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num" style="font-size:22px">${dinheiro(n) || 'R$ 0,00'}</div>${sub ? `<small style="color:var(--cinza)">${sub}</small>` : ''}</div>`;
+  const atr = rec.filter(l => l.situacao === 'atrasado');
+  $('finCards').innerHTML =
+    card('A receber (em aberto)', soma(rec.filter(l => l.situacao === 'aberto'), 'valor'), 'var(--azul)') +
+    card('Em atraso', soma(atr, 'valor'), 'var(--vermelho)', atr.length + ' cobrança(s)') +
+    card('Recebido no mês', recMes, 'var(--verde)') +
+    card('Saldo do mês', recMes - despMes, recMes - despMes >= 0 ? 'var(--roxo)' : 'var(--laranja)', 'despesas: ' + (dinheiro(despMes) || 'R$ 0,00'));
+
+  document.querySelectorAll('#finAbas button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === S.fin.aba));
+  $('finMesBox').classList.toggle('oculto', S.fin.aba !== 'extrato' && S.fin.aba !== 'todos');
+  let lista;
+  if (S.fin.aba === 'receber') lista = rec.filter(l => ['aberto', 'atrasado'].includes(l.situacao));
+  else if (S.fin.aba === 'pagar') lista = desp.filter(l => ['aberto', 'atrasado'].includes(l.situacao));
+  else if (S.fin.aba === 'extrato') lista = L.filter(l => l.status === 'pago' && String(l.data_pagamento).slice(0, 7) === mes);
+  else lista = L.filter(l => String(l.vencimento).slice(0, 7) === mes);
+  lista = lista.filter(l => [l.descricao, l.categoria, refLanc(l), ctNumero(l.contrato_id)].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => S.fin.aba === 'extrato' ? String(b.data_pagamento).localeCompare(a.data_pagamento) : String(a.vencimento).localeCompare(b.vencimento));
+
+  const tot = S.fin.aba === 'extrato'
+    ? `Entradas ${dinheiro(soma(lista.filter(l => l.tipo === 'receita'), 'valor_pago')) || 'R$ 0,00'} · Saídas ${dinheiro(soma(lista.filter(l => l.tipo === 'despesa'), 'valor_pago')) || 'R$ 0,00'}`
+    : `${lista.length} lançamento(s) · ${dinheiro(soma(lista, 'valor')) || 'R$ 0,00'}`;
+  $('finTotal').textContent = tot;
+  $('tbFin').innerHTML = lista.length ? lista.map(l => `
+    <tr onclick="detalheLanc('${l.id}')">
+      <td>${S.fin.aba === 'extrato' ? dataBR(l.data_pagamento) : dataBR(l.vencimento)}${l.situacao === 'atrasado' ? `<br><small style="color:var(--vermelho)">${l.dias_atraso} dia(s)</small>` : ''}</td>
+      <td><b>${esc(l.descricao)}</b><br><small style="color:var(--cinza)">${esc(l.categoria)}</small></td>
+      <td>${esc(refLanc(l))}</td>
+      <td style="white-space:nowrap;font-weight:600;color:${l.tipo === 'receita' ? '#027a48' : '#b42318'}">${l.tipo === 'receita' ? '+' : '−'} ${dinheiro(l.status === 'pago' ? l.valor_pago : l.valor)}</td>
+      <td>${badge(SIT_FIN, l.situacao)}</td>
+      <td style="white-space:nowrap">${['aberto', 'atrasado'].includes(l.situacao) ? `<button class="btn btn-ok" style="padding:6px 12px" onclick="event.stopPropagation();pagarLanc('${l.id}')">${l.tipo === 'receita' ? 'Receber' : 'Pagar'}</button>` : ''}
+        ${l.status === 'pago' && l.tipo === 'receita' ? `<button class="btn btn-sec" style="padding:6px 10px" onclick="event.stopPropagation();reciboLanc('${l.id}',this)">Recibo</button>` : ''}</td></tr>`).join('')
+    : `<tr><td colspan="6" class="vazio">Nada por aqui.</td></tr>`;
+}
+
+async function reciboLanc(id, btn) {
+  if (btn) btn.disabled = true;
+  try { abrirArquivo(await api('reciboLancamento', { id })); } catch (e) { toast(e.message, 'erro'); }
+  if (btn) btn.disabled = false;
+}
+
+async function recarregarFin() { await carregarFinanceiro(); if (S.tela === 'financeiro') renderFinanceiro(); }
+
+function pagarLanc(id) {
+  const l = S.fin.lanc.find(x => x.id === id); if (!l) return;
+  const enc = calcEncargos(l);
+  const formas = S.fin.cat.formas.filter(f => l.tipo === 'receita' || f !== 'Desconto da caução');
+  const md = abrirModal({
+    titulo: (l.tipo === 'receita' ? 'Registrar recebimento' : 'Registrar pagamento'), peq: true,
+    corpo: `<form>
+      <div class="info"><b>${esc(l.descricao)}</b><br>Vencimento ${dataBR(l.vencimento)} · ${dinheiro(l.valor)}${l.situacao === 'atrasado' ? ` · <b style="color:var(--vermelho)">${l.dias_atraso} dia(s) de atraso</b>` : ''}</div>
+      <div class="grade g2">
+        <div class="campo"><label class="req">Data do pagamento</label><input name="data_pagamento" type="date" value="${new Date().toISOString().slice(0, 10)}" required></div>
+        <div class="campo"><label class="req">Forma</label><select name="forma_pagamento" required>${opcoes(formas.map(f => ({ v: f, t: f })), 'PIX')}</select></div>
+        <div class="campo"><label>Multa + juros (R$)</label><input name="encargos" type="number" step="0.01" min="0" value="${enc || ''}" ${l.tipo === 'despesa' ? 'disabled' : ''}>
+          ${enc ? '<small style="color:var(--cinza)">calculado pelo contrato — pode ajustar ou zerar</small>' : ''}</div>
+        <div class="campo"><label class="req">Valor pago (R$)</label><input name="valor_pago" type="number" step="0.01" min="0" value="${(Number(l.valor) + enc).toFixed(2)}" required></div>
+      </div>
+      <div class="campo"><label>Comprovante (opcional: PDF, JPG ou PNG)</label><input type="file" name="comp" accept="application/pdf,image/jpeg,image/png"></div>
+      <div class="campo"><label>Observação</label><input name="observacao" value="${esc(l.observacao || '')}"></div>
+    </form>`,
+    rodape: `<span></span><button class="btn btn-ok" type="button">Confirmar</button>`
+  });
+  const f = md.querySelector('form');
+  f.encargos.oninput = () => { f.valor_pago.value = (Number(l.valor) + Number(f.encargos.value || 0)).toFixed(2); };
+  md.querySelector('.modal-rodape .btn').onclick = async ev => {
+    if (!f.reportValidity()) return;
+    const d = { id, data_pagamento: f.data_pagamento.value, forma_pagamento: f.forma_pagamento.value, encargos: f.encargos.value || 0,
+                valor_pago: f.valor_pago.value, observacao: f.observacao.value };
+    const arq = f.comp.files[0];
+    if (arq) { if (arq.size > 5 * 1024 * 1024) return toast('Comprovante maior que 5 MB.', 'erro'); d.comprovante64 = await lerArquivoBase64(arq); d.comprovante_mime = arq.type; }
+    ev.target.disabled = true;
+    try {
+      const r = await api('pagarLancamento', d);
+      toast(l.tipo === 'receita' ? 'Recebimento registrado.' : 'Pagamento registrado.'); md.remove();
+      await recarregarFin();
+      if (r.recibo && confirm('Recebimento registrado (recibo ' + r.recibo + '). Abrir o recibo agora?')) reciboLanc(id);
+    } catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
+}
+
+function formLanc(tipo, l = {}) {
+  const cats = S.fin.cat[tipo] || [];
+  const veics = S.veiculos.filter(v => v.ativo || v.id === l.veiculo_id).map(v => ({ v: v.id, t: veicTxt(v.id) }));
+  const cts = S.contratos.filter(c => ['ativo', 'encerrado'].includes(c.status) || c.id === l.contrato_id).map(c => ({ v: c.id, t: `${c.numero} · ${motTxt(c.motorista_id)}` }));
+  const manual = !l.id || l.origem === 'manual';
+  const md = abrirModal({
+    titulo: (l.id ? 'Editar ' : 'Nova ') + (tipo === 'receita' ? 'receita' : 'despesa'), peq: true,
+    corpo: `<form>
+      <div class="campo"><label class="req">Categoria</label><select name="categoria" required ${manual ? '' : 'disabled'}>${opcoes(cats.map(c => ({ v: c, t: c })), l.categoria)}</select></div>
+      <div class="campo"><label class="req">Descrição</label><input name="descricao" value="${esc(l.descricao || '')}" required placeholder="${tipo === 'despesa' ? 'ex.: Troca de óleo e filtro' : 'ex.: Reembolso de multa AIT 123'}"></div>
+      <div class="grade g2">
+        <div class="campo"><label class="req">Vencimento</label><input name="vencimento" type="date" value="${esc(l.vencimento || new Date().toISOString().slice(0, 10))}" required></div>
+        <div class="campo"><label class="req">Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" value="${esc(l.valor || '')}" required></div>
+      </div>
+      <div class="campo"><label>Contrato (opcional — liga ao motorista e ao carro)</label><select name="contrato_id" ${manual ? '' : 'disabled'}>${opcoes(cts, l.contrato_id, '— nenhum —')}</select></div>
+      <div class="campo"><label>Veículo (se não tiver contrato)</label><select name="veiculo_id">${opcoes(veics, l.veiculo_id, '— nenhum —')}</select></div>
+      <div class="campo"><label>Observação</label><input name="observacao" value="${esc(l.observacao || '')}"></div>
+    </form>`,
+    rodape: `<span></span><button class="btn btn-pri" type="button">Salvar</button>`
+  });
+  md.querySelector('.modal-rodape .btn').onclick = async ev => {
+    const f = md.querySelector('form'); if (!f.reportValidity()) return;
+    const d = lerForm(f); d.tipo = tipo; if (l.id) d.id = l.id;
+    ev.target.disabled = true;
+    try { await api('salvarLancamento', d); toast('Lançamento salvo.'); md.remove(); await recarregarFin(); }
+    catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
+  };
+}
+
+function detalheLanc(id) {
+  const l = S.fin.lanc.find(x => x.id === id); if (!l) return;
+  const aberto = ['aberto', 'atrasado'].includes(l.situacao);
+  const lin = (k, v) => v ? `<tr><td style="color:var(--cinza);width:38%;padding:6px 0">${k}</td><td>${v}</td></tr>` : '';
+  const md = abrirModal({
+    titulo: esc(l.descricao) + ' ' + badge(SIT_FIN, l.situacao), peq: true,
+    corpo: `<table style="width:100%">
+      ${lin('Tipo', l.tipo === 'receita' ? 'Receita' : 'Despesa')}${lin('Categoria', esc(l.categoria))}
+      ${lin('Contrato', esc(ctNumero(l.contrato_id)))}${lin('Motorista / veículo', esc(refLanc(l)))}
+      ${lin('Período', l.periodo_inicio ? dataBR(l.periodo_inicio) + ' a ' + dataBR(l.periodo_fim) : '')}
+      ${lin('Vencimento', dataBR(l.vencimento))}${lin('Valor', dinheiro(l.valor))}
+      ${lin('Pago em', l.status === 'pago' ? dataBR(l.data_pagamento) + ' · ' + esc(l.forma_pagamento) : '')}
+      ${lin('Multa + juros', Number(l.encargos) ? dinheiro(l.encargos) : '')}${lin('Valor pago', l.status === 'pago' ? dinheiro(l.valor_pago) : '')}
+      ${lin('Recibo', esc(l.recibo_numero))}${lin('Observação', esc(l.observacao))}</table>`,
+    rodape: `<div style="display:flex;gap:6px">
+        ${aberto && pode('admin', 'gestor') ? '<button class="btn btn-perigo" type="button" data-a="cancelar">Cancelar</button>' : ''}
+        ${l.status === 'pago' && pode('admin') ? '<button class="btn btn-perigo" type="button" data-a="estornar">Estornar</button>' : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        ${aberto && pode('admin', 'gestor') ? '<button class="btn btn-sec" type="button" data-a="editar">Editar</button>' : ''}
+        ${l.comprovante_file_id ? '<button class="btn btn-sec" type="button" data-a="comp">Comprovante</button>' : ''}
+        ${l.status === 'pago' && l.tipo === 'receita' ? '<button class="btn btn-sec" type="button" data-a="recibo">⬇ Recibo</button>' : ''}
+        ${aberto ? `<button class="btn btn-ok" type="button" data-a="pagar">${l.tipo === 'receita' ? 'Receber' : 'Pagar'}</button>` : ''}</div>`
+  });
+  const acoes = {
+    pagar: () => { md.remove(); pagarLanc(id); },
+    editar: () => { md.remove(); formLanc(l.tipo, l); },
+    recibo: () => reciboLanc(id),
+    comp: async () => { try { abrirArquivo(await api('verComprovante', { id })); } catch (e) { toast(e.message, 'erro'); } },
+    cancelar: async () => { const motivo = prompt('Motivo do cancelamento:'); if (!motivo) return;
+      try { await api('cancelarLancamento', { id, motivo }); toast('Cancelado.'); md.remove(); await recarregarFin(); } catch (e) { toast(e.message, 'erro'); } },
+    estornar: async () => { const motivo = prompt('Motivo do estorno (o lançamento volta a ficar em aberto):'); if (!motivo) return;
+      try { await api('estornarLancamento', { id, motivo }); toast('Estornado.'); md.remove(); await recarregarFin(); } catch (e) { toast(e.message, 'erro'); } }
+  };
+  md.querySelectorAll('[data-a]').forEach(b => b.onclick = () => acoes[b.dataset.a]());
+}
+
+/* ---------- Bloco financeiro dentro do contrato ---------- */
+async function blocoFinanceiroContrato(c, alvo) {
+  if (!['ativo', 'encerrado'].includes(c.status)) { alvo.innerHTML = ''; return; }
+  alvo.innerHTML = '<div class="secao">Financeiro do contrato</div><div style="color:var(--cinza)">Carregando...</div>';
+  try {
+    const L = (await api('listarLancamentos', { contrato_id: c.id })).filter(l => l.status !== 'cancelado')
+      .sort((a, b) => String(a.vencimento).localeCompare(b.vencimento));
+    if (!S.fin.cat) S.fin.cat = await api('obterCategorias');
+    const emAberto = L.filter(l => l.tipo === 'receita' && l.status === 'aberto').reduce((s, l) => s + Number(l.valor), 0);
+    const atras = L.filter(l => l.situacao === 'atrasado');
+    const cau = L.find(l => l.origem === 'caucao');
+    alvo.innerHTML = `<div class="secao">Financeiro do contrato</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="badge ${atras.length ? 'b-vermelho' : 'b-verde'}">${atras.length ? atras.length + ' em atraso' : 'Em dia'}</span>
+        <span class="badge b-azul">Em aberto: ${dinheiro(emAberto) || 'R$ 0,00'}</span>
+        ${cau ? `<span class="badge ${cau.status === 'pago' ? 'b-verde' : 'b-laranja'}">Caução ${cau.status === 'pago' ? 'paga' : 'pendente'}</span>` : ''}</div>
+      <div style="max-height:220px;overflow:auto;border:1px solid var(--borda);border-radius:10px">
+      <table><tbody>${L.map(l => `<tr data-l="${l.id}"><td style="padding:7px 10px">${dataBR(l.vencimento)}</td><td style="padding:7px 10px">${esc(l.descricao)}</td>
+        <td style="padding:7px 10px;white-space:nowrap;color:${l.tipo === 'receita' ? '#027a48' : '#b42318'}">${l.tipo === 'receita' ? '+' : '−'} ${dinheiro(l.status === 'pago' ? l.valor_pago : l.valor)}</td>
+        <td style="padding:7px 10px">${badge(SIT_FIN, l.situacao)}</td></tr>`).join('') || '<tr><td class="vazio">Sem lançamentos.</td></tr>'}</tbody></table></div>`;
+    alvo.querySelectorAll('[data-l]').forEach(tr => tr.onclick = async () => {
+      S.fin.lanc = await api('listarLancamentos', {}); detalheLanc(tr.dataset.l);
+    });
+  } catch (e) { alvo.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
+}
+
+/* ---------- ⚙️ Categorias financeiras ---------- */
+async function cfgCategorias(alvo) {
+  alvo.innerHTML = 'Carregando...';
+  const cat = await api('obterCategorias'); S.fin.cat = cat;
+  const ed = pode('admin', 'gestor');
+  alvo.innerHTML = `<div class="info">Uma categoria por linha.</div>
+    <div class="grade g2">
+      <div class="campo"><label>Receitas</label><textarea id="catRec" rows="12" ${ed ? '' : 'disabled'}>${esc(cat.receita.join('\n'))}</textarea></div>
+      <div class="campo"><label>Despesas</label><textarea id="catDesp" rows="12" ${ed ? '' : 'disabled'}>${esc(cat.despesa.join('\n'))}</textarea></div>
+    </div>
+    ${ed ? '<div style="display:flex;justify-content:flex-end"><button class="btn btn-pri" type="button">Salvar categorias</button></div>' : ''}`;
+  const b = alvo.querySelector('button');
+  if (b) b.onclick = async () => {
+    b.disabled = true;
+    try { await api('salvarCategorias', { receita: alvo.querySelector('#catRec').value, despesa: alvo.querySelector('#catDesp').value }); S.fin.cat = null; toast('Categorias salvas.'); }
+    catch (e) { toast(e.message, 'erro'); } b.disabled = false;
   };
 }
 </script>
