@@ -2813,8 +2813,10 @@ async function painelFipeVeiculo(veiculoId, alvo) {
     const r = await api('historicoFipe', { veiculo_id: veiculoId });
     const v = r.veiculo, d = r.depreciacao, h = r.historico;
     const ed = pode('admin', 'gestor');
+    const vinculado = !!(v.fipe_codigo && v.fipe_ano_codigo && h.length);
     alvo.innerHTML = `
-      ${v.fipe_codigo ? `<div class="info">Vinculado ao código FIPE <b>${esc(v.fipe_codigo)}</b> · ano ${esc(v.fipe_ano_codigo)}. Atualização automática 1x por mês.</div>`
+      ${!vinculado && v.fipe_codigo ? `<div class="aviso">O código <b>${esc(v.fipe_codigo)}</b> foi digitado à mão e o veículo <b>não está vinculado</b>. Clique em <b>Vincular à FIPE</b> e escolha o ano.</div>`
+      : vinculado ? `<div class="info">Vinculado ao código FIPE <b>${esc(v.fipe_codigo)}</b> · ano ${esc(v.fipe_ano_codigo)}. Atualização automática 1x por mês.</div>`
         : '<div class="aviso">Veículo ainda não vinculado à FIPE. Vincule para acompanhar a desvalorização mês a mês.</div>'}
       ${d.atual ? `<div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
         <div class="card" style="--c:var(--azul)"><div class="rot">FIPE atual</div><div class="num" style="font-size:20px">${dinheiro(d.atual)}</div><small style="color:var(--cinza)">${esc(d.referencia)}</small></div>
@@ -2825,9 +2827,9 @@ async function painelFipeVeiculo(veiculoId, alvo) {
           const ant = arr[i + 1]; const dv = ant ? Number(x.valor) - Number(ant.valor) : null;
           return [nomeMes(x.mes), esc(x.referencia), dinheiro(x.valor), dv == null ? '—' : sinal(dv)];
         })) : ''}
-      ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${v.fipe_codigo ? 'Alterar vínculo' : 'Vincular à FIPE'}</button>
-        ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}</div>` : ''}
-      ${v.fipe_codigo ? `<p style="font-size:12.5px;margin-top:10px">FIPE na compra: <b>${Number(v.fipe_na_aquisicao) > 0 ? dinheiro(v.fipe_na_aquisicao) : 'não informada'}</b>${v.data_aquisicao ? ' · compra em ' + dataBR(v.data_aquisicao) : ' · <span style="color:var(--laranja)">informe a data de aquisição na aba Dados</span>'}.
+      ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${vinculado ? 'Alterar vínculo' : 'Vincular à FIPE'}</button>
+        ${vinculado ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}</div>` : ''}
+      ${vinculado ? `<p style="font-size:12.5px;margin-top:10px">FIPE na compra: <b>${Number(v.fipe_na_aquisicao) > 0 ? dinheiro(v.fipe_na_aquisicao) : 'não informada'}</b>${v.data_aquisicao ? ' · compra em ' + dataBR(v.data_aquisicao) : ' · <span style="color:var(--laranja)">informe a data de aquisição na aba Dados</span>'}.
         <span style="color:var(--cinza)">Deve ser o valor da tabela do <b>mês da compra</b>, não o de hoje; senão a desvalorização aparece como 0%.
         Consulte em <a href="https://veiculos.fipe.org.br/" target="_blank" rel="noopener">veiculos.fipe.org.br</a> (escolha o <b>mês de referência</b> da compra e informe o código <b>${esc(v.fipe_codigo)}</b>) e digite o valor na aba <b>Dados</b>.</span></p>` : ''}
       <p style="font-size:12px;color:var(--cinza);margin-top:10px">FIPE é o preço médio de mercado (referência para venda e seguro), não a depreciação contábil.</p>`;
@@ -2848,13 +2850,14 @@ async function painelFipeVeiculo(veiculoId, alvo) {
   } catch (e) { alvo.innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
 }
 
+const codValido = c => /^\d{6}-\d$/.test(String(c || '').trim());
 function vincularFipe(veiculoId, atual, depois) {
   const lista = x => (Array.isArray(x) ? x : (x.models || x.modelos || [])).map(i => ({ v: i.code ?? i.codigo, t: i.name ?? i.nome }));
   const md = abrirModal({
     titulo: 'Vincular veículo à FIPE', peq: true,
     corpo: `<form>
       <div class="campo"><label>Tipo</label><select name="tipo">${opcoes([{ v: 'cars', t: 'Carro' }, { v: 'motorcycles', t: 'Moto' }, { v: 'trucks', t: 'Caminhão' }], atual.fipe_tipo || 'cars', '—')}</select></div>
-      <div class="campo"><label>Já sabe o código FIPE? (ex.: 004478-0)</label><div style="display:flex;gap:6px"><input name="codigo" value="${esc(atual.fipe_codigo || '')}" style="flex:1"><button class="btn btn-sec" type="button" id="fBuscarCod">Buscar anos</button></div></div>
+      <div class="campo"><label>Já sabe o código FIPE? (ex.: 004478-0)</label><div style="display:flex;gap:6px"><input name="codigo" value="${esc(codValido(atual.fipe_codigo) ? atual.fipe_codigo : '')}" placeholder="000000-0" style="flex:1"><button class="btn btn-sec" type="button" id="fBuscarCod">Buscar anos</button></div></div>
       <div style="text-align:center;color:var(--cinza);margin:6px 0">— ou procure —</div>
       <div class="campo"><label>Marca</label><select name="marca"><option value="">Carregando...</option></select></div>
       <div class="campo"><label>Modelo</label><select name="modelo" disabled><option value="">Escolha a marca</option></select></div>
@@ -2864,7 +2867,7 @@ function vincularFipe(veiculoId, atual, depois) {
     rodape: `<span></span><button class="btn btn-pri" type="button" disabled>Vincular</button>`
   });
   const f = md.querySelector('form'), ok = md.querySelector('.modal-rodape .btn'), res = md.querySelector('#fRes');
-  let codigo = atual.fipe_codigo || '';
+  let codigo = codValido(atual.fipe_codigo) ? atual.fipe_codigo : '';
   const carregar = async (sel, acao, dados, vazio) => {
     sel.disabled = true; sel.innerHTML = '<option value="">Carregando...</option>';
     try { const l = lista(await api(acao, dados)); sel.innerHTML = opcoes(l, '', l.length ? vazio : 'Nada encontrado'); sel.disabled = false; }
@@ -2874,7 +2877,8 @@ function vincularFipe(veiculoId, atual, depois) {
   f.tipo.onchange = marcas; marcas();
   f.marca.onchange = () => { if (f.marca.value) carregar(f.modelo, 'fipeModelos', { tipo: f.tipo.value, marca: f.marca.value }, 'Selecione...'); };
   f.modelo.onchange = () => { codigo = ''; if (f.modelo.value) carregar(f.ano, 'fipeAnos', { tipo: f.tipo.value, marca: f.marca.value, modelo: f.modelo.value }, 'Selecione...'); };
-  md.querySelector('#fBuscarCod').onclick = () => { codigo = f.codigo.value.trim(); if (!codigo) return toast('Informe o código.', 'erro'); carregar(f.ano, 'fipeAnos', { tipo: f.tipo.value, codigo }, 'Selecione...'); };
+  md.querySelector('#fBuscarCod').onclick = () => { codigo = f.codigo.value.trim(); if (!codValido(codigo)) return toast('Código FIPE no formato 000000-0.', 'erro'); carregar(f.ano, 'fipeAnos', { tipo: f.tipo.value, codigo }, 'Selecione...'); };
+  if (codigo) md.querySelector('#fBuscarCod').click();          // já traz os anos do código cadastrado
   let consulta = null;
   f.ano.onchange = async () => {
     ok.disabled = true; res.innerHTML = ''; if (!f.ano.value) return;
