@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Área do Motorista</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  /* ===== mesma URL do App da Web usada no index.html ===== */
+  const API_URL = 'https://script.google.com/macros/s/AKfycbz_c2TP-ZqOxUV-tJgdAIhnSDQwwUSlfEUGkhwDkYRZwEKHU9hjFS6dfye0PtaI_WpnwA/exec';
+</script>
+<style>
+:root{--azul:#1a73e8;--azul-claro:#e8f0fe;--verde:#12b76a;--verde-claro:#e7f8ef;--laranja:#f79009;--laranja-claro:#fef4e6;
+  --vermelho:#f04438;--vermelho-claro:#feeceb;--cinza:#667085;--borda:#e4e7ec;--fundo:#f5f7fb;--texto:#1d2939}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--fundo);color:var(--texto);font-size:15px;padding-bottom:30px}
+button,input,select{font-family:inherit;font-size:15px}
+.oculto{display:none!important}
+.topo{background:#fff;border-bottom:1px solid var(--borda);padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+.topo img{max-height:42px;max-width:140px}.topo .nome{font-weight:700;color:var(--azul)}
+main{max-width:560px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--borda);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+.card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.placa{font-family:monospace;font-weight:700;border:2px solid #1d2939;border-radius:5px;padding:2px 8px;letter-spacing:1px}
+.btn{border:none;border-radius:12px;padding:13px 16px;font-weight:600;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-pri{background:var(--azul);color:#fff}.btn-sec{background:#fff;color:var(--texto);border:1px solid var(--borda)}.btn-ok{background:var(--verde);color:#fff}
+.btn:disabled{opacity:.6}
+.linha{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f2f4f7}
+.linha:last-child{border:none}
+.muted{color:var(--cinza);font-size:13px}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.b-verde{background:var(--verde-claro);color:#027a48}.b-laranja{background:var(--laranja-claro);color:#b54708}.b-vermelho{background:var(--vermelho-claro);color:#b42318}
+.b-azul{background:var(--azul-claro);color:var(--azul)}.b-cinza{background:#f2f4f7;color:var(--cinza)}
+.total{font-size:26px;font-weight:700}
+.pix{display:flex;gap:8px;align-items:center;background:var(--azul-claro);border-radius:12px;padding:10px 12px;margin:10px 0}
+.pix code{flex:1;font-size:14px;word-break:break-all}
+.pix button{border:none;background:var(--azul);color:#fff;border-radius:8px;padding:8px 12px;font-weight:600}
+.campo{margin-bottom:12px}.campo label{display:block;font-size:13px;font-weight:600;color:#475467;margin-bottom:5px}
+.campo input{width:100%;border:1px solid var(--borda);border-radius:10px;padding:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--borda);border-radius:10px;margin-bottom:8px}
+.chk input{margin-top:3px;width:18px;height:18px}
+.fundo-modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.modal{background:#fff;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto}
+.modal h3{margin-bottom:12px;display:flex;justify-content:space-between}
+.fechar{background:none;border:none;font-size:24px;color:var(--cinza)}
+.foto-prev{width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--borda);margin-bottom:10px}
+.aviso{background:var(--laranja-claro);color:#b54708;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:10px}
+.info{background:var(--azul-claro);color:#1849a9;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:10px}
+.erro{color:var(--vermelho);font-size:13.5px;min-height:18px;margin:6px 0}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--verde);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;z-index:99;opacity:0;transition:.3s;max-width:90%;text-align:center}
+#toast.show{opacity:1}
+.login{max-width:400px;margin:40px auto;text-align:center}
+.login img{max-width:220px;max-height:100px;margin-bottom:12px}
+a.dl{color:var(--azul);font-weight:600;text-decoration:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<section id="telaCpf" class="oculto"><main><div class="card login">
+  <div id="logoLogin"></div>
+  <h2 style="justify-content:center;margin:6px 0 4px">Área do Motorista</h2>
+  <p class="muted" style="margin-bottom:16px">Para sua segurança, confirme seu CPF.</p>
+  <div class="campo" style="text-align:left"><label>CPF</label><input id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00"></div>
+  <label class="muted" style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" id="lembrar" checked> Lembrar neste celular</label>
+  <div class="erro" id="erroCpf"></div>
+  <button class="btn btn-pri" id="btnEntrar">Entrar</button>
+</div></main></section>
+
+<section id="telaErro" class="oculto"><main><div class="card login"><h2 style="justify-content:center">Link inválido</h2>
+  <p class="muted" id="msgErro">Peça um novo link à locadora.</p></div></main></section>
+
+<section id="telaApp" class="oculto">
+  <div class="topo"><div id="logoTopo"></div><div style="flex:1;text-align:right" class="muted" id="ola"></div></div>
+  <main id="conteudo"></main>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const brl = n => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const dataBR = iso => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '';
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+const CHAVE = 'portal_cpf_' + TOKEN.slice(0, 10);
+let CPF = '', D = null;
+
+function toast(msg, erro) { const t = $('toast'); t.textContent = msg; t.style.background = erro ? 'var(--vermelho)' : 'var(--verde)'; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 4000); }
+
+async function api(acao, dados = {}) {
+  const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, dados: Object.assign({ t: TOKEN, cpf: CPF }, dados) }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.erro);
+  return j.dados;
+}
+
+function mostrar(tela) { ['telaCpf', 'telaErro', 'telaApp'].forEach(t => $(t).classList.toggle('oculto', t !== tela)); }
+
+async function entrar(cpf, silencioso) {
+  CPF = cpf.replace(/\D/g, '');
+  try {
+    D = await api('portalEntrar');
+    if ($('lembrar').checked) { try { localStorage.setItem(CHAVE, CPF); } catch (e) {} }
+    mostrar('telaApp'); render();
+    if (location.hash === '#km' && D.contrato) abrirKm();
+  } catch (e) {
+    try { localStorage.removeItem(CHAVE); } catch (x) {}
+    if (/Link|expirado|indisponível/i.test(e.message)) { $('msgErro').textContent = e.message; mostrar('telaErro'); return; }
+    mostrar('telaCpf'); if (!silencioso) $('erroCpf').textContent = e.message;
+  }
+}
+
+$('cpf').oninput = e => { let v = e.target.value.replace(/\D/g, '').slice(0, 11); e.target.value = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); };
+$('btnEntrar').onclick = async () => { $('erroCpf').textContent = ''; $('btnEntrar').disabled = true; await entrar($('cpf').value); $('btnEntrar').disabled = false; };
+
+(function inicio() {
+  if (!TOKEN) { mostrar('telaErro'); return; }
+  let salvo = ''; try { salvo = localStorage.getItem(CHAVE) || ''; } catch (e) {}
+  if (salvo) entrar(salvo, true); else mostrar('telaCpf');
+})();
+
+async function recarregar() { D = await api('portalDados'); render(); }
+
+function render() {
+  const e = D.empresa;
+  const logo = e.logo ? `<img src="${e.logo}" alt="${esc(e.nome)}">` : `<span class="nome">${esc(e.nome)}</span>`;
+  $('logoTopo').innerHTML = logo; $('logoLogin').innerHTML = logo;
+  $('ola').innerHTML = `Olá, <b>${esc(D.motorista.nome.split(' ')[0])}</b>`;
+  document.title = 'Área do Motorista · ' + (e.nome || '');
+  const abertos = D.abertos, atrasados = abertos.filter(a => a.situacao === 'atrasado');
+  const totalAtraso = atrasados.reduce((s, a) => s + Number(a.valor) + Number(a.encargos), 0);
+  const proximo = abertos.find(a => a.situacao !== 'atrasado' && !a.em_conferencia);
+  const diasKm = D.veiculo && D.veiculo.km_em ? Math.round((Date.now() - new Date(D.veiculo.km_em)) / 864e5) : null;
+
+  $('conteudo').innerHTML = `
+    ${D.veiculo ? `<div class="card"><h2>🚗 Meu carro</h2>
+      <div class="linha"><div><span class="placa">${esc(D.veiculo.placa)}</span><div class="muted" style="margin-top:6px">${esc(D.veiculo.modelo)}</div></div>
+        <div style="text-align:right"><b>${Number(D.veiculo.km || 0).toLocaleString('pt-BR')} km</b><div class="muted">${diasKm == null ? 'km não informado' : diasKm === 0 ? 'atualizado hoje' : 'atualizado há ' + diasKm + ' dia(s)'}</div></div></div>
+      <button class="btn btn-pri" style="margin-top:10px" onclick="abrirKm()">📷 Informar km do painel</button></div>`
+      : '<div class="card"><h2>🚗 Meu carro</h2><p class="muted">Nenhum contrato ativo no momento.</p></div>'}
+
+    <div class="card"><h2>💳 Pagamentos</h2>
+      ${atrasados.length ? `<div class="aviso"><b>Em atraso: ${brl(totalAtraso)}</b> (com multa e juros até hoje). Regularize para evitar o bloqueio do veículo.</div>` : ''}
+      ${proximo ? `<div class="muted">Próximo vencimento</div><div class="total">${brl(proximo.valor)}</div><div class="muted">${dataBR(proximo.vencimento)} · ${esc(proximo.descricao)}</div>` : (!atrasados.length ? '<p class="muted">Nenhum pagamento em aberto. 👍</p>' : '')}
+      ${D.pix ? `<div class="pix"><div><div class="muted" style="font-size:12px">Chave PIX</div><code>${esc(D.pix)}</code></div><button onclick="copiarPix()">Copiar</button></div>` : ''}
+      ${abertos.length ? `<div style="margin-top:6px">${abertos.map(a => `<div class="linha"><div><b>${esc(a.descricao)}</b><div class="muted">vence ${dataBR(a.vencimento)}${a.encargos ? ' · + ' + brl(a.encargos) + ' de multa/juros' : ''}</div></div>
+        <div style="text-align:right;white-space:nowrap"><b>${brl(Number(a.valor) + Number(a.encargos || 0))}</b><br>${a.em_conferencia ? '<span class="badge b-azul">em conferência</span>' : a.situacao === 'atrasado' ? `<span class="badge b-vermelho">${a.dias_atraso}d atraso</span>` : '<span class="badge b-cinza">a vencer</span>'}</div></div>`).join('')}</div>
+        <button class="btn btn-ok" style="margin-top:10px" onclick="abrirComprovante()">📎 Enviar comprovante de pagamento</button>` : ''}
+      ${D.comprovantes.length ? `<div class="muted" style="margin-top:14px;font-weight:600">Comprovantes enviados</div>${D.comprovantes.map(c => `<div class="linha"><div class="muted">${dataBR(c.data)}${c.valor ? ' · ' + brl(c.valor) : ''}${c.motivo ? '<br><span style="color:var(--vermelho)">' + esc(c.motivo) + '</span>' : ''}</div>
+        <span class="badge ${c.status === 'aprovado' ? 'b-verde' : c.status === 'recusado' ? 'b-vermelho' : 'b-azul'}">${c.status === 'pendente' ? 'em conferência' : c.status}</span></div>`).join('')}` : ''}
+    </div>
+
+    ${D.pagos.length ? `<div class="card"><h2>🧾 Recibos</h2>${D.pagos.map(p => `<div class="linha"><div><b>${esc(p.descricao)}</b><div class="muted">pago em ${dataBR(p.data_pagamento)}</div></div>
+      <div style="text-align:right;white-space:nowrap"><b>${brl(p.valor_pago)}</b><br>${p.recibo ? `<a class="dl" onclick="baixar('recibo','${p.id}',this)">⬇ recibo</a>` : ''}</div></div>`).join('')}</div>` : ''}
+
+    ${D.multas.length ? `<div class="card"><h2>🚨 Multas no seu nome</h2>${D.multas.map(m => `<div class="linha"><div><b>${esc(m.descricao)}</b><div class="muted">${dataBR(m.data)} ${esc(m.hora || '')} · ${esc(m.local || '')} · ${esc(m.pontos)} pontos</div></div>
+      <div style="text-align:right;white-space:nowrap"><b>${brl(m.valor)}</b><br><span class="badge ${m.status === 'paga' ? 'b-verde' : 'b-laranja'}">${{ aberta: 'aberta', indicado: 'indicado', a_pagar: 'a pagar', em_recurso: 'em recurso', paga: 'paga' }[m.status] || m.status}</span></div></div>`).join('')}</div>` : ''}
+
+    <div class="card"><h2>📄 Documentos</h2>
+      ${D.documentos.map(c => `<div class="linha"><div><b>Contrato ${esc(c.numero)}</b><div class="muted">${c.status === 'ativo' ? 'ativo' : c.status === 'encerrado' ? 'encerrado' : 'aguardando assinatura'}</div></div>
+        ${c.emitido || c.assinado ? `<a class="dl" onclick="baixar('contrato','${c.id}',this)">⬇ ${c.assinado ? 'assinado' : 'PDF'}</a>` : ''}</div>`).join('') || '<p class="muted">Nenhum contrato.</p>'}
+      ${D.vistorias.map(v => `<div class="linha"><div><b>Vistoria de ${v.tipo === 'devolucao' ? 'devolução' : 'retirada'}</b><div class="muted">${esc(v.numero)} · ${dataBR(v.data)}</div></div><a class="dl" onclick="baixar('vistoria','${v.id}',this)">⬇ termo</a></div>`).join('')}
+    </div>
+
+    <div class="card" style="text-align:center"><div class="muted">Dúvidas? Fale com a ${esc(e.nome)}</div>
+      ${e.telefone ? `<a class="dl" href="https://wa.me/55${e.telefone.replace(/\D/g, '').replace(/^55/, '')}" target="_blank">📲 ${esc(e.telefone)}</a>` : ''}
+      ${e.email ? `<div><a class="dl" href="mailto:${esc(e.email)}">${esc(e.email)}</a></div>` : ''}
+      <div style="margin-top:12px"><a class="dl muted" onclick="sair()">Sair deste celular</a></div></div>`;
+}
+
+async function copiarPix() { try { await navigator.clipboard.writeText(D.pix); toast('Chave PIX copiada!'); } catch (e) { toast('Copie manualmente: ' + D.pix); } }
+function sair() { try { localStorage.removeItem(CHAVE); } catch (e) {} CPF = ''; $('cpf').value = ''; mostrar('telaCpf'); }
+
+async function baixar(tipo, id, el) {
+  const txt = el.textContent; el.textContent = 'abrindo...';
+  try {
+    const r = await api('portalArquivo', { tipo, id });
+    const bytes = Uint8Array.from(atob(r.base64), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
+    const a = document.createElement('a'); a.href = url; a.download = r.nome; a.target = '_blank'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) { toast(e.message, true); }
+  el.textContent = txt;
+}
+
+function modal(titulo, html) {
+  const d = document.createElement('div'); d.className = 'fundo-modal';
+  d.innerHTML = `<div class="modal"><h3>${titulo}<button class="fechar" type="button">×</button></h3>${html}</div>`;
+  d.querySelector('.fechar').onclick = () => d.remove();
+  d.addEventListener('click', e => { if (e.target === d) d.remove(); });
+  document.body.appendChild(d); return d;
+}
+
+function reduzirFoto(file, max = 1400, q = 0.75) {
+  return new Promise((ok, erro) => {
+    const img = new Image();
+    img.onload = () => { const k = Math.min(1, max / Math.max(img.width, img.height)); const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      ok(cv.toDataURL('image/jpeg', q)); };
+    img.onerror = () => erro(new Error('Não foi possível ler a foto.'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function abrirKm() {
+  if (!D.contrato) return toast('Você não tem contrato ativo.', true);
+  const m = modal('Informar km', `
+    <div class="info">Tire uma foto do painel mostrando o <b>hodômetro (km total)</b> e digite o número.</div>
+    <input type="file" id="kmFoto" accept="image/*" capture="environment" class="oculto">
+    <img id="kmPrev" class="foto-prev oculto">
+    <button class="btn btn-sec" id="kmTirar" style="margin-bottom:12px">📷 Tirar foto do painel</button>
+    <div class="campo"><label>KM do painel</label><input id="kmVal" inputmode="numeric" placeholder="ex.: 45230"></div>
+    <div class="erro" id="kmErro"></div>
+    <button class="btn btn-pri" id="kmEnviar">Enviar</button>`);
+  let foto = '';
+  m.querySelector('#kmTirar').onclick = () => m.querySelector('#kmFoto').click();
+  m.querySelector('#kmFoto').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    try { foto = await reduzirFoto(f); const p = m.querySelector('#kmPrev'); p.src = foto; p.classList.remove('oculto'); m.querySelector('#kmTirar').textContent = '📷 Trocar foto'; }
+    catch (e) { m.querySelector('#kmErro').textContent = e.message; }
+  };
+  m.querySelector('#kmVal').oninput = e => { e.target.value = e.target.value.replace(/\D/g, ''); };
+  m.querySelector('#kmEnviar').onclick = async ev => {
+    const km = m.querySelector('#kmVal').value;
+    if (!foto) return m.querySelector('#kmErro').textContent = 'Tire a foto do painel.';
+    if (!km) return m.querySelector('#kmErro').textContent = 'Digite o km.';
+    ev.target.disabled = true; ev.target.textContent = 'Enviando...';
+    try { const r = await api('portalKm', { km, foto64: foto.split(',')[1] }); m.remove(); toast(r.mensagem, !r.aplicada); await recarregar(); }
+    catch (e) { m.querySelector('#kmErro').textContent = e.message; ev.target.disabled = false; ev.target.textContent = 'Enviar'; }
+  };
+}
+
+function abrirComprovante() {
+  const lista = D.abertos.filter(a => !a.em_conferencia);
+  if (!lista.length) return toast('Os pagamentos em aberto já estão em conferência.');
+  const m = modal('Enviar comprovante', `
+    <div class="muted" style="margin-bottom:8px">Marque o que este pagamento quita:</div>
+    ${lista.map(a => `<label class="chk"><input type="checkbox" value="${a.id}" data-v="${Number(a.valor) + Number(a.encargos || 0)}" ${a.situacao === 'atrasado' || a === lista[0] ? 'checked' : ''}>
+      <div style="flex:1"><b>${esc(a.descricao)}</b><div class="muted">vence ${dataBR(a.vencimento)}</div></div><b>${brl(Number(a.valor) + Number(a.encargos || 0))}</b></label>`).join('')}
+    <div class="campo"><label>Valor pago</label><input id="cpValor" inputmode="decimal"></div>
+    <div class="campo"><label>Data do pagamento</label><input id="cpData" type="date" value="${new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10)}"></div>
+    <div class="campo"><label>Comprovante (foto ou PDF)</label><input type="file" id="cpArq" accept="image/*,application/pdf"></div>
+    <div class="erro" id="cpErro"></div>
+    <button class="btn btn-ok" id="cpEnviar">Enviar comprovante</button>`);
+  const somar = () => { const t = [...m.querySelectorAll('.chk input:checked')].reduce((s, c) => s + Number(c.dataset.v), 0); m.querySelector('#cpValor').value = t.toFixed(2).replace('.', ','); };
+  m.querySelectorAll('.chk input').forEach(c => c.onchange = somar); somar();
+  m.querySelector('#cpEnviar').onclick = async ev => {
+    const ids = [...m.querySelectorAll('.chk input:checked')].map(c => c.value);
+    const f = m.querySelector('#cpArq').files[0];
+    if (!ids.length) return m.querySelector('#cpErro').textContent = 'Marque pelo menos um pagamento.';
+    if (!f) return m.querySelector('#cpErro').textContent = 'Anexe o comprovante.';
+    ev.target.disabled = true; ev.target.textContent = 'Enviando...';
+    try {
+      let mime = f.type, b64;
+      if (/^image\//.test(mime)) { b64 = (await reduzirFoto(f, 1600, 0.8)).split(',')[1]; mime = 'image/jpeg'; }
+      else { if (f.size > 5 * 1024 * 1024) throw new Error('PDF maior que 5 MB.');
+        b64 = await new Promise((ok, er) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = () => er(new Error('Erro ao ler o arquivo.')); r.readAsDataURL(f); }); }
+      const valor = m.querySelector('#cpValor').value.replace(/\./g, '').replace(',', '.');
+      const r = await api('portalComprovante', { lancamento_ids: ids, valor, data_pagamento: m.querySelector('#cpData').value, mime, arquivo64: b64 });
+      m.remove(); toast(r.mensagem); await recarregar();
+    } catch (e) { m.querySelector('#cpErro').textContent = e.message; ev.target.disabled = false; ev.target.textContent = 'Enviar comprovante'; }
+  };
+}
+</script>
+</body>
+</html>
