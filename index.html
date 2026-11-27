@@ -500,17 +500,39 @@ const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO R
 /* =========================================================
    API
    ========================================================= */
+/* Proteção contra sobrescrita: guarda a última versão de cada registro que veio do servidor.
+   Ao salvar, envia junto "_orig" (como o registro estava quando a tela carregou); o servidor
+   só grava os campos que VOCÊ mudou e avisa se outra pessoa mudou o mesmo campo. */
+const REG = {};
+const ACOES_PROTEGIDAS = ['salvarVeiculo', 'salvarMotorista', 'salvarContrato', 'salvarPlano', 'salvarLancamento',
+  'salvarManutencao', 'salvarInfracao', 'salvarUsuario', 'salvarMarca', 'salvarModelo', 'salvarCor', 'salvarItemManutencao'];
+function registrarVersoes(x, nivel = 0) {
+  if (!x || typeof x !== 'object' || nivel > 4) return;
+  if (Array.isArray(x)) { x.forEach(i => registrarVersoes(i, nivel + 1)); return; }
+  if (typeof x.id === 'string' && 'atualizado_em' in x) REG[x.id] = Object.assign({}, x);
+  for (const k in x) if (x[k] && typeof x[k] === 'object') registrarVersoes(x[k], nivel + 1);
+}
+
 async function api(acao, dados) {
   const bar = document.getElementById('carregando');
   bar.style.width = '70%';
+  const protegida = ACOES_PROTEGIDAS.includes(acao) && dados && dados.id && REG[dados.id];
+  let envio = dados;
+  if (protegida) {
+    const orig = {};
+    Object.keys(dados).forEach(k => { if (k in REG[dados.id]) orig[k] = REG[dados.id][k]; });
+    envio = Object.assign({}, dados, { _orig: orig });
+  }
   try {
     // Sem header Content-Type de propósito: evita bloqueio de CORS do Apps Script
-    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, token: S.token, dados }) });
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, token: S.token, dados: envio }) });
     const j = await r.json();
     if (!j.ok) {
       if (j.erro === 'SESSAO_EXPIRADA') { toast('Sessão expirada. Entre novamente.', 'erro'); sair(true); }
       throw new Error(j.erro);
     }
+    if (protegida) Object.assign(REG[dados.id], dados);   // o servidor agora tem estes valores
+    registrarVersoes(j.dados);
     return j.dados;
   } finally {
     bar.style.width = '100%'; setTimeout(() => bar.style.width = '0', 300);
@@ -836,7 +858,7 @@ function formVeiculo(id) {
         <div class="campo"><label>Data aquisição</label><input name="data_aquisicao" type="date" value="${val('data_aquisicao')}"></div>
         <div class="campo"><label>Valor pago (R$)</label><input name="valor_aquisicao" type="number" step="0.01" value="${val('valor_aquisicao')}"></div>
         <div class="campo"><label>FIPE na compra (R$)</label><input name="fipe_na_aquisicao" type="number" step="0.01" value="${val('fipe_na_aquisicao')}"></div>
-        <div class="campo"><label>Código FIPE</label><input name="fipe_codigo" value="${val('fipe_codigo')}" placeholder="000000-0"></div>
+        <div class="campo"><label>Código FIPE</label><input value="${v.fipe_codigo ? esc(v.fipe_codigo) : (id ? 'Vincule na aba FIPE' : 'Vincule após salvar')}" disabled title="O código é definido pelo botão de vínculo na aba FIPE"></div>
       </div>
       <div class="secao">Operação e documentos</div>
       <div class="grade g4">
