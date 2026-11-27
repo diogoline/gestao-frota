@@ -1241,7 +1241,7 @@ const AJUDA = [
     <ul>
       <li>No cadastro do veículo, abra a aba <b>FIPE › Vincular à FIPE</b> e escolha o modelo e o ano. Não digite o código à mão.</li>
       <li>O valor é atualizado sozinho uma vez por mês, e o Dashboard mostra a desvalorização da frota.</li>
-      <li>Para o cálculo ficar certo, preencha a <b>data de aquisição</b> e o <b>valor pago</b>. A <b>FIPE na compra</b> é o valor da tabela no <b>mês da compra</b>, não o de hoje. Use o botão <b>Buscar FIPE do mês da compra</b> e o sistema consulta a tabela histórica sozinho. Ao vincular um carro que tem data de aquisição, isso já é feito automaticamente.</li>
+      <li>Para o cálculo ficar certo, preencha a <b>data de aquisição</b> e o <b>valor pago</b>. A <b>FIPE na compra</b> é o valor da tabela no <b>mês da compra</b>, não o de hoje. Consulte no site oficial <b>veiculos.fipe.org.br</b>: escolha o <b>mês de referência</b> da compra, faça a busca pelo código FIPE (aparece na aba FIPE do veículo) e digite o valor na aba Dados.</li>
       <li>Se o Dashboard mostrar "desatualizada", abra o veículo › FIPE › <b>Consultar agora</b>.</li>
     </ul>` },
   { t: 'Portal do motorista', h: `
@@ -2826,10 +2826,10 @@ async function painelFipeVeiculo(veiculoId, alvo) {
           return [nomeMes(x.mes), esc(x.referencia), dinheiro(x.valor), dv == null ? '—' : sinal(dv)];
         })) : ''}
       ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${v.fipe_codigo ? 'Alterar vínculo' : 'Vincular à FIPE'}</button>
-        ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}
-        ${v.fipe_codigo && v.data_aquisicao ? '<button class="btn btn-sec" type="button" data-f="compra">Buscar FIPE do mês da compra</button>' : ''}</div>` : ''}
+        ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}</div>` : ''}
       ${v.fipe_codigo ? `<p style="font-size:12.5px;margin-top:10px">FIPE na compra: <b>${Number(v.fipe_na_aquisicao) > 0 ? dinheiro(v.fipe_na_aquisicao) : 'não informada'}</b>${v.data_aquisicao ? ' · compra em ' + dataBR(v.data_aquisicao) : ' · <span style="color:var(--laranja)">informe a data de aquisição na aba Dados</span>'}.
-        <span style="color:var(--cinza)">Deve ser o valor da tabela do <b>mês da compra</b>, não o de hoje; senão a desvalorização aparece como 0%.</span></p>` : ''}
+        <span style="color:var(--cinza)">Deve ser o valor da tabela do <b>mês da compra</b>, não o de hoje; senão a desvalorização aparece como 0%.
+        Consulte em <a href="https://veiculos.fipe.org.br/" target="_blank" rel="noopener">veiculos.fipe.org.br</a> (escolha o <b>mês de referência</b> da compra e informe o código <b>${esc(v.fipe_codigo)}</b>) e digite o valor na aba <b>Dados</b>.</span></p>` : ''}
       <p style="font-size:12px;color:var(--cinza);margin-top:10px">FIPE é o preço médio de mercado (referência para venda e seguro), não a depreciação contábil.</p>`;
     const b1 = alvo.querySelector('[data-f=vincular]'); if (b1) b1.onclick = () => vincularFipe(veiculoId, v, () => painelFipeVeiculo(veiculoId, alvo));
     const campoCompra = document.querySelector('#fVeic [name=fipe_na_aquisicao]');
