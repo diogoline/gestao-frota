@@ -300,7 +300,14 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
 .anim .card,.anim>.painel,.anim>.grade>.painel,.anim>.aviso{animation:entrarCima .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 60ms)}
 .anim .bh{transform-origin:left center;animation:crescerX .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:.25s}
 .anim #dashGraf g[data-i] path{transform-box:fill-box;transform-origin:center bottom;animation:crescerY .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(.2s + var(--i,0) * 45ms)}
-@media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
+/* brilho discreto passando pelas barras (sensação de "enchendo") */
+@keyframes brilho{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}
+@keyframes brilhoSvg{0%{transform:translateX(0)}55%,100%{transform:translateX(860px)}}
+.bh{position:relative;overflow:hidden}
+.bh::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);transform:translateX(-100%);animation:brilho 3.6s ease-in-out infinite;animation-delay:var(--d,1.2s)}
+[data-theme=dark] .bh::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+.brilho-svg{animation:brilhoSvg 4.2s ease-in-out infinite;animation-delay:1.4s}
+@media (prefers-reduced-motion:reduce){.anim *{animation:none!important}.bh::after,.brilho-svg{animation:none!important;display:none}}
 </style>
 </head>
 <body>
@@ -2989,17 +2996,17 @@ function renderDashboard(r) {
           ${tabelaSimples(['Mês', 'Receita', 'Despesa', 'Resultado'], r.meses.map(m => [nomeMes(m.mes), dinheiro(m.receita) || 'R$ 0,00', dinheiro(m.despesa) || 'R$ 0,00', sinal(m.receita - m.despesa)]))}</details>
       </div>
       <div class="painel" style="padding:14px 16px"><b>Despesas por categoria</b>
-        <div style="margin-top:12px">${r.por_categoria.length ? (() => { const mx = Math.max(...r.por_categoria.map(c => c.valor)); return r.por_categoria.map(c => `
+        <div style="margin-top:12px">${r.por_categoria.length ? (() => { const mx = Math.max(...r.por_categoria.map(c => c.valor)); return r.por_categoria.map((c, i) => `
           <div style="margin-bottom:10px" title="${esc(c.categoria)}: ${dinheiro(c.valor)}"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(c.categoria)}</span><b>${dinheiro(c.valor)}</b></div>
-          <div style="height:8px;background:var(--surface-3);border-radius:4px;margin-top:3px"><div class="bh" style="height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:var(--serie-2);border-radius:4px"></div></div></div>`).join(''); })()
+          <div style="height:8px;background:var(--surface-3);border-radius:4px;margin-top:3px"><div class="bh" style="--d:${1.2 + i * .25}s;height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:var(--serie-2);border-radius:4px"></div></div></div>`).join(''); })()
           : '<div class="vazio" style="padding:20px">Sem despesas no período.</div>'}</div>
       </div>
     </div>
     <div class="painel"><h3>Por veículo</h3>
       <div style="overflow-x:auto"><table><thead><tr><th>Veículo</th><th>Ocupação</th><th>Receita</th><th>Despesa</th><th>Resultado</th><th>Km no período*</th><th>Custo/km</th><th>FIPE atual</th><th>Desvalorização</th><th>Retorno acumulado**</th></tr></thead><tbody>
-      ${r.veiculos.map(v => `<tr onclick="formVeiculo('${v.id}')">
+      ${r.veiculos.map((v, i) => `<tr onclick="formVeiculo('${v.id}')">
         <td><span class="placa">${esc(v.placa)}</span><br><small style="color:var(--cinza)">${esc(v.modelo)}</small></td>
-        <td>${pct(v.ocupacao)}<div style="height:5px;background:var(--surface-3);border-radius:3px;margin-top:3px;width:70px"><div class="bh" style="height:5px;width:${v.ocupacao || 0}%;background:var(--roxo);border-radius:3px"></div></div></td>
+        <td>${pct(v.ocupacao)}<div style="height:5px;background:var(--surface-3);border-radius:3px;margin-top:3px;width:70px"><div class="bh" style="--d:${1.4 + i * .2}s;height:5px;width:${v.ocupacao || 0}%;background:var(--roxo);border-radius:3px"></div></div></td>
         <td>${dinheiro(v.receita) || 'R$ 0,00'}</td><td>${dinheiro(v.despesa) || 'R$ 0,00'}</td><td><b>${sinal(v.resultado)}</b></td>
         <td>${v.km != null ? num(v.km) + ' km' : '—'}</td><td>${v.custo_km != null ? dinheiro(v.custo_km) : '—'}</td>
         <td>${v.fipe_atual ? dinheiro(v.fipe_atual) + (v.fipe_velha ? `<br><small style="color:var(--laranja)">desatualizada (${nomeMes(v.fipe_mes)})</small>` : `<br><small style="color:var(--cinza)">${esc(v.fipe_ref)}</small>`) : '<small style="color:var(--cinza)">não vinculado</small>'}</td>
@@ -3022,12 +3029,16 @@ function graficoMensal(alvo, meses) {
   const ticks = []; for (let t = 0; t <= topo + 1e-9; t += passo) ticks.push(t);
   const barraPath = (x, v, cor) => { if (v <= 0) return ''; const y0 = H - mb, y1 = y(v), r = Math.min(4, (y0 - y1) / 2, barra / 2);
     return `<path d="M${x},${y0} V${y1 + r} Q${x},${y1} ${x + r},${y1} H${x + barra - r} Q${x + barra},${y1} ${x + barra},${y1 + r} V${y0} Z" style="fill:${cor}"/>`; };
+  const todas = meses.map((m, i) => { const x0 = ml + i * bw + (bw - (barra * 2 + 2)) / 2; return barraPath(x0, m.receita, '#000') + barraPath(x0 + barra + 2, m.despesa, '#000'); }).join('');
   alvo.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:8px" role="img" aria-label="Receita e despesa por mês">
+    <defs><clipPath id="clipBarras">${todas}</clipPath>
+      <linearGradient id="gradBrilho" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".4"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
     ${ticks.map(t => `<line x1="${ml}" x2="${W - mr}" y1="${y(t)}" y2="${y(t)}" style="stroke:var(--borda)"/><text x="${ml - 6}" y="${y(t) + 4}" text-anchor="end" font-size="10.5" style="fill:var(--cinza)">${fmtK(t)}</text>`).join('')}
     ${meses.map((m, i) => { const x0 = ml + i * bw + (bw - (barra * 2 + 2)) / 2;
       return `<g data-i="${i}">${barraPath(x0, m.receita, 'var(--serie-1)')}${barraPath(x0 + barra + 2, m.despesa, 'var(--serie-2)')}
         <text x="${ml + i * bw + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10.5" style="fill:var(--cinza)">${nomeMes(m.mes)}</text>
         <rect x="${ml + i * bw}" y="${mt}" width="${bw}" height="${H - mt - mb}" fill="transparent" class="hit"/></g>`; }).join('')}
+    <g clip-path="url(#clipBarras)" style="pointer-events:none"><rect class="brilho-svg" x="${ml - 140}" y="${mt}" width="140" height="${H - mt - mb}" fill="url(#gradBrilho)"/></g>
   </svg><div class="dica oculto"></div>`;
   const dica = alvo.querySelector('.dica');
   alvo.querySelectorAll('g[data-i]').forEach(g => {
