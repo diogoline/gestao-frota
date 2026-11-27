@@ -293,6 +293,14 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
   .conf-grid{grid-template-columns:1fr!important}
   td,th{padding:10px 10px}
 }
+/* ---------- Animação de entrada (painel e dashboard) ---------- */
+@keyframes entrarCima{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes crescerX{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes crescerY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.anim .card,.anim>.painel,.anim>.grade>.painel,.anim>.aviso{animation:entrarCima .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 60ms)}
+.anim .bh{transform-origin:left center;animation:crescerX .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:.25s}
+.anim #dashGraf g[data-i] path{transform-box:fill-box;transform-origin:center bottom;animation:crescerY .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(.2s + var(--i,0) * 45ms)}
+@media (prefers-reduced-motion:reduce){.anim *{animation:none!important}}
 </style>
 </head>
 <body>
@@ -813,7 +821,7 @@ $('finMes').onchange = () => { S.fin.mes = $('finMes').value || S.fin.mes; rende
 $('finNovaRec').onclick = () => formLanc('receita');
 $('finNovaDesp').onclick = () => formLanc('despesa');
 async function irPara(tela) {
-  S.tela = tela;
+  S.tela = tela; ANIMAR[tela] = true;
   $('app').classList.remove('menu-aberto');
   document.querySelectorAll('#menu a[data-tela]').forEach(a => a.classList.toggle('ativo', a.dataset.tela === tela));
   ['painel', 'veiculos', 'motoristas', 'contratos', 'vistorias', 'financeiro', 'manutencao', 'infracoes', 'dashboard'].forEach(t => $('tela-' + t).classList.toggle('oculto', t !== tela));
@@ -859,6 +867,34 @@ async function carregarPainel() {
   S.resumo = await api('resumo'); S.resumoEm = Date.now();
   if (S.tela === 'painel') renderPainel(S.resumo);
 }
+/* Animação só na abertura da tela (ou troca de período); atualizações em segundo plano não animam */
+const ANIMAR = {};
+const semMovimento = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+function contarNumero(el, dur = 900) {
+  const txt = el.textContent, m = txt.match(/\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:,\d+)?/);
+  if (!m) return;
+  const dec = (m[0].split(',')[1] || '').length, alvo = Number(m[0].replace(/\./g, '').replace(',', '.'));
+  if (!(alvo > 0)) return;
+  const ini = performance.now(), fmt = v => v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  const passo = t => {
+    const k = Math.min(1, (t - ini) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = txt.replace(m[0], fmt(alvo * e));
+    if (k < 1 && el.isConnected) requestAnimationFrame(passo); else el.textContent = txt;
+  };
+  requestAnimationFrame(passo);
+}
+function animarEntrada(cont, tela) {
+  if (!cont || !ANIMAR[tela]) return;
+  ANIMAR[tela] = false;
+  if (semMovimento()) return;
+  cont.querySelectorAll('.card').forEach((c, i) => c.style.setProperty('--i', i));
+  [...cont.children].forEach((c, i) => { if (!c.classList.contains('card')) c.style.setProperty('--i', i + 2); });
+  cont.querySelectorAll('#dashGraf g[data-i]').forEach(g => g.style.setProperty('--i', g.dataset.i));
+  cont.classList.add('anim');
+  cont.querySelectorAll('.card .num, td b').forEach(el => contarNumero(el));
+  clearTimeout(cont._anim); cont._anim = setTimeout(() => cont.classList.remove('anim'), 2000);
+}
+
 function renderPainel(r) {
   const ps = r.porStatus || {};
   const card = (rot, n, cor) => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num">${n}</div></div>`;
@@ -875,6 +911,7 @@ function renderPainel(r) {
     <div class="alerta">${(t => `<span class="badge ${t[1]}">${t[0]}</span>`)(textoBadgeAlerta(a))}
       <b style="${/BLOQUEAR/.test(a.tipo) ? 'color:var(--vermelho)' : ''}">${esc(a.tipo)}</b><span style="color:var(--cinza)">${esc(a.ref)}</span></div>`).join('')
     : '<div class="vazio">Nenhum vencimento nos próximos dias. </div>';
+  animarEntrada($('cards'), 'painel');
 }
 
 /* =========================================================
@@ -2919,6 +2956,7 @@ async function carregarDashboard() {
   const [de, ate] = periodoDash();
   if (!de || !ate) return;
   $('dashConteudo').innerHTML = '<div class="painel vazio">Calculando...</div>';
+  ANIMAR.dashboard = true;
   try { renderDashboard(await api('dashboard', { de, ate })); }
   catch (e) { $('dashConteudo').innerHTML = `<div class="painel vazio">${esc(e.message)}</div>`; }
 }
@@ -2953,7 +2991,7 @@ function renderDashboard(r) {
       <div class="painel" style="padding:14px 16px"><b>Despesas por categoria</b>
         <div style="margin-top:12px">${r.por_categoria.length ? (() => { const mx = Math.max(...r.por_categoria.map(c => c.valor)); return r.por_categoria.map(c => `
           <div style="margin-bottom:10px" title="${esc(c.categoria)}: ${dinheiro(c.valor)}"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(c.categoria)}</span><b>${dinheiro(c.valor)}</b></div>
-          <div style="height:8px;background:var(--surface-3);border-radius:4px;margin-top:3px"><div style="height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:var(--serie-2);border-radius:4px"></div></div></div>`).join(''); })()
+          <div style="height:8px;background:var(--surface-3);border-radius:4px;margin-top:3px"><div class="bh" style="height:8px;width:${Math.max(2, c.valor / mx * 100)}%;background:var(--serie-2);border-radius:4px"></div></div></div>`).join(''); })()
           : '<div class="vazio" style="padding:20px">Sem despesas no período.</div>'}</div>
       </div>
     </div>
@@ -2961,7 +2999,7 @@ function renderDashboard(r) {
       <div style="overflow-x:auto"><table><thead><tr><th>Veículo</th><th>Ocupação</th><th>Receita</th><th>Despesa</th><th>Resultado</th><th>Km no período*</th><th>Custo/km</th><th>FIPE atual</th><th>Desvalorização</th><th>Retorno acumulado**</th></tr></thead><tbody>
       ${r.veiculos.map(v => `<tr onclick="formVeiculo('${v.id}')">
         <td><span class="placa">${esc(v.placa)}</span><br><small style="color:var(--cinza)">${esc(v.modelo)}</small></td>
-        <td>${pct(v.ocupacao)}<div style="height:5px;background:var(--surface-3);border-radius:3px;margin-top:3px;width:70px"><div style="height:5px;width:${v.ocupacao || 0}%;background:var(--roxo);border-radius:3px"></div></div></td>
+        <td>${pct(v.ocupacao)}<div style="height:5px;background:var(--surface-3);border-radius:3px;margin-top:3px;width:70px"><div class="bh" style="height:5px;width:${v.ocupacao || 0}%;background:var(--roxo);border-radius:3px"></div></div></td>
         <td>${dinheiro(v.receita) || 'R$ 0,00'}</td><td>${dinheiro(v.despesa) || 'R$ 0,00'}</td><td><b>${sinal(v.resultado)}</b></td>
         <td>${v.km != null ? num(v.km) + ' km' : '—'}</td><td>${v.custo_km != null ? dinheiro(v.custo_km) : '—'}</td>
         <td>${v.fipe_atual ? dinheiro(v.fipe_atual) + (v.fipe_velha ? `<br><small style="color:var(--laranja)">desatualizada (${nomeMes(v.fipe_mes)})</small>` : `<br><small style="color:var(--cinza)">${esc(v.fipe_ref)}</small>`) : '<small style="color:var(--cinza)">não vinculado</small>'}</td>
@@ -2971,6 +3009,7 @@ function renderDashboard(r) {
       <p style="font-size:11.5px;color:var(--cinza);padding:8px 14px">* Estimado pelas leituras de km registradas (vistorias, manutenções, "Atualizar km"). ** (receitas − despesas desde o início) ÷ valor pago pelo carro. Caução não entra como receita.</p>
     </div>`;
   graficoMensal($('dashGraf'), r.meses);
+  animarEntrada($('dashConteudo'), 'dashboard');
 }
 
 /** Barras agrupadas receita × despesa, com tooltip por mês */
