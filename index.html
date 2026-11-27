@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DMA SYS · Gestão de Frotas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3b63f6">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Frota">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script>try{var m=localStorage.getItem('frota_tema')||'auto';document.documentElement.dataset.theme=m==='auto'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m;
 var c=localStorage.getItem('frota_cor');if(c&&c!=='indigo')document.documentElement.dataset.accent=c;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -175,6 +183,21 @@ tbody tr{cursor:pointer;transition:background .1s}tbody tr:hover{background:var(
 #toast.show{opacity:1;transform:none}
 #carregando{position:fixed;top:0;left:0;height:3px;background:var(--azul);z-index:100;width:0;transition:width .4s}
 .erro-login{color:var(--vermelho);font-size:13px;min-height:18px;margin-bottom:8px}
+.foto-mini{width:56px;height:38px;border-radius:6px;object-fit:cover;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--muted-2)}
+.foto-veic{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+.foto-veic .quadro{width:190px;height:124px;flex:none;border-radius:10px;background:var(--surface-2);border:1.5px dashed var(--borda-forte);overflow:hidden;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;cursor:pointer;color:var(--cinza);font-size:12.5px}
+.foto-veic .quadro.com{border-style:solid}
+.foto-veic .quadro img{width:100%;height:100%;object-fit:cover}
+@media (max-width:600px){.foto-veic{flex-direction:column;align-items:stretch}.foto-veic .quadro{width:100%;height:180px}}
+.aj-item{border:1px solid var(--borda);border-radius:10px;margin-bottom:8px;background:var(--surface)}
+.aj-item summary{padding:12px 14px;cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.aj-item summary::-webkit-details-marker{display:none}
+.aj-item summary::after{content:'+';font-size:18px;color:var(--cinza);font-weight:400}
+.aj-item[open] summary::after{content:'−'}
+.aj-item[open] summary{border-bottom:1px solid var(--borda)}
+.aj-corpo{padding:10px 16px 14px;line-height:1.6;font-size:14px;color:var(--texto-2)}
+.aj-corpo ol,.aj-corpo ul{padding-left:20px;margin:6px 0}.aj-corpo li{margin:3px 0}.aj-corpo b{color:var(--texto)}
+.manter{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--texto-2);margin:4px 0 10px;cursor:pointer;font-weight:400}.manter input{width:16px;height:16px;accent-color:var(--azul)}
 .aviso{background:var(--laranja-claro);color:var(--t-laranja);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
 .info{background:var(--azul-claro);color:var(--t-azul);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
@@ -295,6 +318,8 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
   <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
   <symbol id="i-sino" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
   <symbol id="i-lista" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-celular" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></symbol>
   <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
   <symbol id="i-paleta" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.56-2.5 5.56-5.55C21.97 6.01 17.46 2 12 2z"/></symbol>
@@ -311,6 +336,7 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
     <div class="sub" style="text-align:center">Acesse com seu e-mail e senha</div>
     <div class="campo"><label>E-mail</label><input id="lgEmail" type="email" required autocomplete="username"></div>
     <div class="campo"><label>Senha</label><input id="lgSenha" type="password" required autocomplete="current-password"></div>
+    <label class="manter"><input type="checkbox" id="lgManter" checked> Manter conectado neste aparelho</label>
     <div class="erro-login" id="lgErro"></div>
     <button class="btn btn-pri" style="width:100%;padding:11px" id="lgBtn">Entrar</button>
   </form>
@@ -382,7 +408,7 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
           <input id="buscaVeic" placeholder="Buscar por placa, modelo, renavam ou chassi..." oninput="renderVeiculos()">
           <select id="filtroStatus" onchange="renderVeiculos()"><option value="">Todos os status</option></select>
         </div>
-        <table><thead><tr><th>Placa</th><th>Modelo</th><th>Ano</th><th>KM</th><th>Status</th><th>Licenciamento</th></tr></thead>
+        <table><thead><tr><th style="width:72px"></th><th>Placa</th><th>Modelo</th><th>Ano</th><th>KM</th><th>Status</th><th>Licenciamento</th></tr></thead>
           <tbody id="tbVeic"></tbody></table>
       </div>
     </section>
@@ -533,6 +559,7 @@ async function api(acao, dados) {
     }
     if (protegida) Object.assign(REG[dados.id], dados);   // o servidor agora tem estes valores
     registrarVersoes(j.dados);
+    if (acao !== 'logout') salvarDadosLocais();
     return j.dados;
   } finally {
     bar.style.width = '100%'; setTimeout(() => bar.style.width = '0', 300);
@@ -587,6 +614,54 @@ function lerForm(form) {
   form.querySelectorAll('[name]').forEach(el => { o[el.name] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
   return o;
 }
+/* ---------- SESSÃO GUARDADA NO APARELHO ----------
+   "Manter conectado": localStorage (sobrevive a fechar o navegador, 30 dias).
+   Sem marcar: sessionStorage (só esta aba, 12 h). Ao sair, tudo é apagado. */
+const CHAVES_SESSAO = ['frota_token', 'frota_usuario', 'frota_expira', 'frota_dados'];
+function armazem() { try { return localStorage.getItem('frota_token') ? localStorage : sessionStorage; } catch (e) { return sessionStorage; } }
+function guardarSessao(token, usuario, expira, manter) {
+  limparSessao();
+  const a = manter ? localStorage : sessionStorage;
+  try { a.setItem('frota_token', token); a.setItem('frota_usuario', JSON.stringify(usuario)); a.setItem('frota_expira', String(expira || '')); } catch (e) {}
+}
+function lerSessao() {
+  try {
+    const a = armazem(), t = a.getItem('frota_token'), exp = Number(a.getItem('frota_expira') || 0);
+    if (!t || (exp && exp < Date.now())) { limparSessao(); return null; }
+    return { token: t, usuario: JSON.parse(a.getItem('frota_usuario') || 'null') };
+  } catch (e) { return null; }
+}
+function limparSessao() {
+  [localStorage, sessionStorage].forEach(a => { try { CHAVES_SESSAO.forEach(k => a.removeItem(k)); } catch (e) {} });
+}
+/* Cópia dos dados no aparelho: ao atualizar a página o sistema abre na hora
+   com o que já tinha e busca a versão nova em segundo plano. */
+let _snapT = null;
+function salvarDadosLocais() {
+  clearTimeout(_snapT);
+  _snapT = setTimeout(() => {
+    if (!S.token || !S.usuario) return;
+    const d = { u: S.usuario.id, em: Date.now(), cat: S.cat, veiculos: S.veiculos, motoristas: S.motoristas, planos: S.planos,
+      contratos: S.contratos, vistorias: S.vistorias, resumo: S.resumo,
+      inf: S.inf && S.inf.lista, mn: S.mn && { situacao: S.mn.situacao, lista: S.mn.lista, itens: S.mn.itens },
+      fin: S.fin && { lanc: S.fin.lanc, cat: S.fin.cat } };
+    try { armazem().setItem('frota_dados', JSON.stringify(d)); } catch (e) { try { armazem().removeItem('frota_dados'); } catch (x) {} }
+  }, 1500);
+}
+function restaurarDadosLocais() {
+  try {
+    const d = JSON.parse(armazem().getItem('frota_dados') || 'null');
+    if (!d || !S.usuario || d.u !== S.usuario.id) return false;
+    Object.assign(S, { cat: d.cat || S.cat, veiculos: d.veiculos || [], motoristas: d.motoristas || [], planos: d.planos || [],
+      contratos: d.contratos || [], vistorias: d.vistorias || [], resumo: d.resumo || null });
+    if (d.inf) S.inf.lista = d.inf;
+    if (d.mn) Object.assign(S.mn, d.mn);
+    if (d.fin) Object.assign(S.fin, d.fin);
+    registrarVersoes([d.veiculos, d.motoristas, d.planos, d.contratos, d.vistorias, d.inf, d.mn, d.fin, d.cat]);
+    return !!d.resumo;
+  } catch (e) { return false; }
+}
+
 const nomeModelo = id => { const m = S.cat.modelos.find(x => x.id === id); if (!m) return '—'; const mc = S.cat.marcas.find(x => x.id === m.marca_id); return (mc ? mc.nome + ' ' : '') + m.nome; };
 const pode = (...perfis) => perfis.includes(S.usuario?.perfil);
 
@@ -595,7 +670,7 @@ const pode = (...perfis) => perfis.includes(S.usuario?.perfil);
    ========================================================= */
 const ico = (n, t = 18) => `<svg class="i" style="width:${t}px;height:${t}px"><use href="#i-${n}"/></svg>`;
 const ICONE_CFG = { empresa: 'empresa', usuarios: 'motoristas', planos: 'tag', contrato: 'contratos', marcas: 'camadas', modelos: 'veiculos', cores: 'gota',
-  notif: 'sino', planoManut: 'manutencao', checklist: 'vistorias', categorias: 'lista', senha: 'chave' };
+  notif: 'sino', planoManut: 'manutencao', checklist: 'vistorias', categorias: 'lista', senha: 'chave', ajuda: 'ajuda' };
 const CORES_TEMA = [['indigo', 'Índigo', '#3b63f6'], ['oceano', 'Oceano', '#0369a1'], ['teal', 'Turquesa', '#0f766e'], ['violeta', 'Violeta', '#7c3aed'],
   ['rosa', 'Rosa', '#db2777'], ['laranja', 'Laranja', '#c2410c'], ['grafite', 'Grafite', '#334155'], ['marinho', 'Marinho', '#0b1f4d']];
 const lerPref = (k, p) => { try { return localStorage.getItem(k) || p; } catch (e) { return p; } };
@@ -673,16 +748,17 @@ async function entrar(e) {
   e.preventDefault();
   const btn = $('lgBtn'); btn.disabled = true; $('lgErro').textContent = '';
   try {
-    const r = await api('login', { email: $('lgEmail').value, senha: $('lgSenha').value });
+    const manter = $('lgManter').checked;
+    const r = await api('login', { email: $('lgEmail').value, senha: $('lgSenha').value, manter });
     S.token = r.token; S.usuario = r.usuario;
-    sessionStorage.setItem('frota_token', r.token);
+    guardarSessao(r.token, r.usuario, r.expira, manter);
     await iniciar();
   } catch (err) { $('lgErro').textContent = err.message; }
   finally { btn.disabled = false; }
 }
 async function sair(semChamar) {
   if (!semChamar && S.token) { try { await api('logout'); } catch (e) {} }
-  S.token = null; S.usuario = null; sessionStorage.removeItem('frota_token');
+  S.token = null; S.usuario = null; limparSessao();
   $('app').classList.add('oculto'); $('telaLogin').classList.remove('oculto'); $('modais').innerHTML = '';
 }
 async function iniciar(pre) {
@@ -724,19 +800,7 @@ function reduzirImagem(file, maxW = 500, maxH = 250) {
   });
 }
 
-(async () => {   // retoma sessão ao recarregar a página
-  const t = sessionStorage.getItem('frota_token');
-  if (!t || API_URL.includes('COLE_AQUI')) {
-    if (API_URL.includes('COLE_AQUI')) $('lgErro').textContent = 'Configure a API_URL no início do arquivo.';
-    return;
-  }
-  S.token = t;
-  try {
-    const r = await lote([{ acao: 'sessao' }, { acao: 'listarCatalogos' }, { acao: 'obterLogo' }, { acao: 'resumo' }], ['obterLogo']);
-    S.usuario = r[0];
-    await iniciar({ cat: r[1], logo: r[2], resumo: r[3] });
-  } catch (e) { sair(true); }
-})();
+/* retomada da sessão: ver o fim do arquivo (precisa de todo o estado já declarado) */
 
 /* =========================================================
    NAVEGAÇÃO
@@ -822,10 +886,94 @@ function renderVeiculos() {
     [v.placa, v.renavam, v.chassi, nomeModelo(v.modelo_id)].join(' ').toLowerCase().includes(q));
   $('tbVeic').innerHTML = lista.length ? lista.map(v => `
     <tr onclick="formVeiculo('${v.id}')">
+      <td>${fotoMiniHtml(v)}</td>
       <td><span class="placa">${esc(v.placa.replace(/^([A-Z]{3})(\d{4})$/, '$1-$2'))}</span></td>
       <td>${esc(nomeModelo(v.modelo_id))}</td><td>${esc(v.ano_fabricacao || '')}/${esc(v.ano_modelo || '')}</td>
       <td>${num(v.km_atual)}</td><td>${badge(STATUS_VEIC, v.status)}</td><td>${badgeVenc(v.venc_licenciamento)}</td></tr>`).join('')
-    : `<tr><td colspan="6" class="vazio">Nenhum veículo encontrado.</td></tr>`;
+    : `<tr><td colspan="7" class="vazio">Nenhum veículo encontrado.</td></tr>`;
+  carregarMiniaturas();
+}
+
+/* ---------- FOTO DO VEÍCULO ---------- */
+const MINI = {}, MINI_PEDIDAS = new Set();
+function miniUrl(id) {
+  if (!id) return null;
+  if (MINI[id]) return MINI[id];
+  try { const u = localStorage.getItem('frota_mini_' + id); if (u) return (MINI[id] = u); } catch (e) {}
+  return null;
+}
+function fotoMiniHtml(v) {
+  const u = miniUrl(v.foto_mini_id);
+  return u ? `<img class="foto-mini" src="${u}" alt="" loading="lazy">` : `<div class="foto-mini vazia">${ico('veiculos', 18)}</div>`;
+}
+async function carregarMiniaturas() {
+  const faltam = [...new Set(S.veiculos.map(v => v.foto_mini_id).filter(id => id && !miniUrl(id) && !MINI_PEDIDAS.has(id)))];
+  if (!faltam.length) return;
+  faltam.forEach(id => MINI_PEDIDAS.add(id));
+  try {
+    const r = await api('miniaturasVeiculos', { ids: faltam });
+    Object.entries(r).forEach(([k, u]) => { MINI[k] = u; try { localStorage.setItem('frota_mini_' + k, u); } catch (e) {} });
+    if (Object.keys(r).length && S.tela === 'veiculos') renderVeiculos();
+  } catch (e) {}
+}
+/** Reduz a foto no navegador e devolve o JPG em base64 (sem o prefixo data:) */
+function fotoParaJpeg(file, max, qualidade) {
+  return new Promise((ok, erro) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+      g.drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(img.src);
+      ok(cv.toDataURL('image/jpeg', qualidade).split(',')[1]);
+    };
+    img.onerror = () => erro(new Error('Não consegui ler esta imagem. Use JPG ou PNG.'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function prepararFoto(file) {
+  if (!/^image\//.test(file.type || 'image/')) throw new Error('Escolha um arquivo de imagem.');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Imagem acima de 15 MB.');
+  return { foto: await fotoParaJpeg(file, 1280, 0.82), mini: await fotoParaJpeg(file, 320, 0.72) };
+}
+async function enviarFotoVeiculo(veiculoId, f) {
+  const r = await api('salvarFotoVeiculo', { veiculo_id: veiculoId, foto: f.foto, mini: f.mini });
+  MINI[r.foto_mini_id] = r.mini; try { localStorage.setItem('frota_mini_' + r.foto_mini_id, r.mini); } catch (e) {}
+  const v = S.veiculos.find(x => x.id === veiculoId);
+  if (v) { v.foto_mini_id = r.foto_mini_id; v.foto_file_id = r.foto_file_id; }
+  return r;
+}
+async function verFotoVeiculo(v) {
+  const md = abrirModal({ titulo: `Foto · <span class="placa">${esc(v.placa)}</span>`, corpo: '<div id="vFotoG" style="text-align:center;padding:10px">Carregando...</div>',
+    rodape: '<span></span><button class="btn btn-sec" type="button" data-fechar>Fechar</button>' });
+  md.querySelector('[data-fechar]').onclick = () => md.remove();
+  const alvo = md.querySelector('#vFotoG');
+  try { const r = await api('fotoVeiculo', { veiculo_id: v.id }); alvo.innerHTML = `<img src="${r.dataUrl}" alt="Foto do veículo" style="max-width:100%;max-height:70vh;border-radius:10px">`; }
+  catch (e) { alvo.textContent = e.message; }
+}
+function ligarFotoVeiculo(md, id, v, pendente) {
+  const q = md.querySelector('#vFotoQ'), arq = md.querySelector('#vFotoArq'), btn = md.querySelector('#vFotoBtn'), rem = md.querySelector('#vFotoRem');
+  const mostrar = url => { q.innerHTML = url ? `<img src="${url}" alt="Foto do veículo">` : `${ico('veiculos', 30)}<span>Adicionar foto</span>`; q.classList.toggle('com', !!url); };
+  btn.onclick = () => arq.click();
+  q.onclick = () => (id && v.foto_file_id && !pendente.f) ? verFotoVeiculo(v) : arq.click();
+  arq.onchange = async () => {
+    const file = arq.files[0]; arq.value = ''; if (!file) return;
+    try {
+      btn.disabled = true; btn.textContent = 'Preparando...';
+      const f = await prepararFoto(file);
+      mostrar('data:image/jpeg;base64,' + f.mini);
+      if (id) { btn.textContent = 'Enviando...'; await enviarFotoVeiculo(id, f); toast('Foto salva.'); if (S.tela === 'veiculos') renderVeiculos(); if (rem) rem.classList.remove('oculto'); }
+      else { pendente.f = f; toast('A foto será enviada ao salvar o veículo.'); }
+    } catch (e) { toast(e.message, 'erro'); mostrar(miniUrl(v.foto_mini_id)); }
+    finally { btn.disabled = false; btn.textContent = 'Escolher foto'; }
+  };
+  if (rem) rem.onclick = async () => {
+    if (!confirm('Remover a foto deste veículo?')) return;
+    try { await api('removerFotoVeiculo', { veiculo_id: id }); v.foto_mini_id = ''; v.foto_file_id = ''; mostrar(null); rem.classList.add('oculto'); toast('Foto removida.'); if (S.tela === 'veiculos') renderVeiculos(); }
+    catch (e) { toast(e.message, 'erro'); }
+  };
 }
 
 function formVeiculo(id) {
@@ -837,6 +985,14 @@ function formVeiculo(id) {
     titulo: id ? `Veículo <span class="placa" style="margin-left:6px">${esc(v.placa)}</span>` : 'Novo veículo',
     abas: id ? `<div class="abas"><button data-aba="dados" class="ativo">Dados</button><button data-aba="fipe">FIPE</button><button data-aba="hist">Histórico</button></div>` : '',
     corpo: `<form id="fVeic" data-painel="dados">
+      <div class="foto-veic">
+        <div class="quadro ${miniUrl(v.foto_mini_id) ? 'com' : ''}" id="vFotoQ" title="Foto do veículo">${miniUrl(v.foto_mini_id) ? `<img src="${miniUrl(v.foto_mini_id)}" alt="Foto do veículo">` : `${ico('veiculos', 30)}<span>Adicionar foto</span>`}</div>
+        <div><div style="font-weight:600">Foto do veículo</div>
+          <small style="color:var(--cinza)">Tire pelo celular ou escolha da galeria. O sistema reduz a imagem antes de enviar.${id && v.foto_file_id ? ' Clique na foto para ver em tamanho grande.' : ''}</small>
+          <div style="display:flex;gap:6px;margin-top:8px"><button type="button" class="btn btn-sec" id="vFotoBtn">Escolher foto</button>
+          ${id ? `<button type="button" class="btn btn-sec ${v.foto_mini_id ? '' : 'oculto'}" id="vFotoRem">Remover</button>` : ''}</div>
+          <input type="file" accept="image/*" id="vFotoArq" hidden></div>
+      </div>
       <div class="secao">Identificação</div>
       <div class="grade g3">
         <div class="campo"><label class="req">Placa</label><input name="placa" value="${val('placa')}" maxlength="8" style="text-transform:uppercase" required></div>
@@ -888,9 +1044,15 @@ function formVeiculo(id) {
     const dados = lerForm(f); if (id) dados.id = id;
     if (!pode('admin', 'gestor')) { delete dados.propriedade; delete dados.ativo; }
     ev.target.disabled = true;
-    try { await api('salvarVeiculo', dados); toast('Veículo salvo.'); md.remove(); irPara('veiculos'); }
+    try {
+      const novoId = await api('salvarVeiculo', dados);
+      if (pendenteFoto.f) { try { await enviarFotoVeiculo(id || novoId, pendenteFoto.f); } catch (e) { toast('Veículo salvo, mas a foto falhou: ' + e.message, 'erro'); } }
+      toast('Veículo salvo.'); md.remove(); irPara('veiculos');
+    }
     catch (e) { toast(e.message, 'erro'); } finally { ev.target.disabled = false; }
   };
+  const pendenteFoto = {};
+  ligarFotoVeiculo(md, id, v, pendenteFoto);
 }
 
 /* =========================================================
@@ -1013,15 +1175,154 @@ function abrirConfig() {
   if (pode('admin', 'gestor')) abas.push(['notif', 'Notificações']);
   abas.splice(abas.length, 0, ['planoManut', 'Plano de manutenção'], ['checklist', 'Checklist vistoria'], ['categorias', 'Categorias financeiras']);
   if (pode('admin')) abas.unshift(['empresa', 'Empresa'], ['usuarios', 'Usuários']);
-  abas.push(['senha', 'Minha senha']);
+  abas.push(['senha', 'Minha senha'], ['ajuda', 'Ajuda']);
   const md = abrirModal({
     titulo: ico('config') + ' Configurações', classe: 'cfg',
     abas: `<div class="abas">${abas.map((a, i) => `<button data-aba="${a[0]}" class="${i ? '' : 'ativo'}">${ico(ICONE_CFG[a[0]] || 'lista')}<span>${a[1]}</span></button>`).join('')}</div>`,
     corpo: abas.map((a, i) => `<div data-painel="${a[0]}" class="${i ? 'oculto' : ''}" id="cfg-${a[0]}"></div>`).join('')
   });
-  const carregar = nome => ({ notif: cfgNotificacoes, planoManut: cfgPlanoManut, categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha })[nome](md.querySelector('#cfg-' + nome));
+  const carregar = nome => ({ notif: cfgNotificacoes, planoManut: cfgPlanoManut, categorias: cfgCategorias, checklist: cfgChecklist, planos: cfgPlanos, contrato: cfgModeloContrato, empresa: cfgEmpresa, usuarios: cfgUsuarios, marcas: cfgMarcas, modelos: cfgModelos, cores: cfgCores, senha: cfgSenha, ajuda: cfgAjuda })[nome](md.querySelector('#cfg-' + nome));
   md.querySelectorAll('.abas button').forEach(b => b.onclick = () => { trocarAba(md, b.dataset.aba); carregar(b.dataset.aba); });
   carregar(abas[0][0]);
+}
+
+/* =========================================================
+   AJUDA / MATERIAL DE APOIO (engrenagem > Ajuda)
+   ========================================================= */
+const AJUDA = [
+  { t: 'Primeiros passos: em que ordem cadastrar', h: `
+    <ol>
+      <li><b>Empresa</b> (⚙ › Empresa): razão social, CNPJ, contato e logo. Esses dados saem nos contratos e recibos.</li>
+      <li><b>Usuários</b>: crie um acesso para cada pessoa. Não compartilhe senha.</li>
+      <li><b>Marcas, Modelos e Cores</b>: padronize a grafia (ex.: "Volkswagen", "Branco").</li>
+      <li><b>Veículos</b>: placa, RENAVAM, data e valor de aquisição, km e foto. Depois, na aba <b>FIPE</b>, clique em <b>Vincular à FIPE</b>.</li>
+      <li><b>Planos</b>: valor, periodicidade, caução, franquia de km, multa e juros. O contrato puxa tudo do plano.</li>
+      <li><b>Modelo de contrato</b> e <b>Notificações</b> (e-mail e chave PIX). Preencha também o foro do contrato.</li>
+      <li><b>Motoristas</b> e, por último, os <b>Contratos</b>.</li>
+    </ol>
+    <div class="aviso">Não troque o status do carro para "Locado" na mão. Quem faz isso é o contrato. Sem contrato, o sistema não cobra, não avisa atraso e não sabe quem dirigia numa multa.</div>` },
+  { t: 'Alugar um veículo (do contrato à entrega)', h: `
+    <ol>
+      <li><b>Contratos › + Novo contrato</b>: escolha o plano, o veículo e o motorista. As condições vêm do plano e podem ser ajustadas.</li>
+      <li><b>Salvar e emitir PDF</b>: os dados ficam congelados e o veículo fica reservado. Use <b>Pré-visualizar</b> antes, se quiser conferir.</li>
+      <li><b>Vistoria de retirada</b> (Vistorias › + Nova vistoria): fotos das 8 posições e dos 4 pneus, km, combustível, checklist e avarias. O motorista assina na tela.</li>
+      <li><b>Assinatura do contrato</b>: pelo gov.br, no sistema ou impressa. Depois, clique em <b>Anexar assinado</b> e envie o arquivo.</li>
+      <li>Ao anexar, o contrato fica <b>Ativo</b> e as parcelas e a caução são criadas sozinhas no Financeiro.</li>
+    </ol>` },
+  { t: 'Devolução do veículo', h: `
+    <p>Faça a <b>vistoria de devolução</b> (Vistorias › + Nova vistoria › Devolução). Ao concluir, o sistema:</p>
+    <ul><li>encerra o contrato;</li><li>deixa o veículo disponível (ou em manutenção, se indicado);</li><li>fecha o financeiro: as parcelas futuras são canceladas e a caução fica para acerto.</li></ul>
+    <p>Compare as fotos da retirada e da devolução para cobrar avarias.</p>` },
+  { t: 'Financeiro: receber, atrasos e comprovantes', h: `
+    <ul>
+      <li><b>Receber</b>: clique em <b>Registrar pagamento</b>. O recibo (RC-…) é gerado e pode ir por WhatsApp ou e-mail.</li>
+      <li><b>Atraso</b>: multa e juros entram só nas parcelas do aluguel, nunca na caução.</li>
+      <li><b>Comprovantes do portal</b>: o motorista envia pelo celular e você confere em <b>Aprovar e dar baixa</b> ou <b>Recusar</b>.</li>
+      <li><b>Estornar</b> desfaz um pagamento registrado errado. <b>Cancelar</b> é para uma cobrança que não deveria existir. Os dois ficam no histórico.</li>
+      <li><b>+ Receita / + Despesa</b>: use para lançamentos avulsos. O aluguel vem do contrato, então não lance a receita do aluguel à mão.</li>
+    </ul>` },
+  { t: 'Manutenção: preventiva x corretiva', h: `
+    <ul>
+      <li><b>Preventiva</b>: serviço do plano feito por km ou tempo (troca de óleo, filtros, correia, rodízio…). Marque o <b>item do plano</b> que foi feito: o contador desse item volta a zero e o próximo alerta é recalculado.</li>
+      <li><b>Corretiva</b>: algo quebrou ou gastou (lâmpada, pneu furado, batida). <b>Não marque item do plano</b>, senão o sistema entende que a preventiva foi feita.</li>
+    </ul>
+    <p><i>Exemplos:</i> troca de lâmpada = corretiva sem item. Troca de 2 pneus gastos = corretiva sem item. Rodízio dos 4 pneus = preventiva com o item "Rodízio de pneus".</p>
+    <p>Mantenha o <b>km atualizado</b> (Manutenção › Atualizar km, ou o próprio motorista pelo portal). Os alertas por km dependem disso.</p>
+    <p>Se o custo for do motorista, marque o responsável pelo custo: o sistema cria a cobrança para ele.</p>` },
+  { t: 'Multas e infrações', h: `
+    <ol>
+      <li>Quando chegar a notificação (pelo correio ou pelo app Carteira Digital de Trânsito/SNE), use <b>Infrações › + Registrar infração</b> com a data e a hora da infração.</li>
+      <li>O sistema mostra <b>quem estava com o carro</b> naquela data, conforme o contrato.</li>
+      <li>Siga as etapas: <b>indicar o condutor</b> dentro do prazo, <b>penalidade recebida</b>, <b>recurso</b>, <b>pagamento</b> e <b>arquivar</b>.</li>
+    </ol>
+    <div class="aviso">O prazo para indicar o condutor é curto. Se você não indicar, os pontos vão para o proprietário. Se o carro estiver em nome de empresa (CNPJ), ainda vem uma multa extra por não indicação. Registre a infração no mesmo dia em que ela chegar.</div>
+    <p><b>Dica:</b> cadastre os veículos da empresa no SNE (Sistema de Notificação Eletrônica) pelo app Carteira Digital de Trânsito. As notificações chegam no celular, sem depender do correio, e dá para pagar com até 40% de desconto quando você não vai recorrer. A indicação do condutor também pode ser feita pelo aplicativo.</p>` },
+  { t: 'FIPE e desvalorização', h: `
+    <ul>
+      <li>No cadastro do veículo, abra a aba <b>FIPE › Vincular à FIPE</b> e escolha o modelo e o ano. Não digite o código à mão.</li>
+      <li>O valor é atualizado sozinho uma vez por mês, e o Dashboard mostra a desvalorização da frota.</li>
+      <li>Para o cálculo ficar certo, preencha a <b>data de aquisição</b> e o <b>valor pago</b>. A <b>FIPE na compra</b> é o valor da tabela no <b>mês da compra</b>, não o de hoje. Use o botão <b>Buscar FIPE do mês da compra</b> e o sistema consulta a tabela histórica sozinho. Ao vincular um carro que tem data de aquisição, isso já é feito automaticamente.</li>
+      <li>Se o Dashboard mostrar "desatualizada", abra o veículo › FIPE › <b>Consultar agora</b>.</li>
+    </ul>` },
+  { t: 'Portal do motorista', h: `
+    <ul>
+      <li>No cadastro do motorista, abra a aba <b>Portal › Gerar link do portal</b> e envie o link para ele, por exemplo pelo WhatsApp.</li>
+      <li>Ele entra com o link e o CPF dele. Lá vê as parcelas e a chave PIX, envia comprovantes e informa o km.</li>
+      <li>O link é pessoal. Se vazar, clique em <b>Gerar novo link</b> (o antigo para de funcionar) ou em <b>Desativar acesso</b>.</li>
+    </ul>` },
+  { t: 'Avisos automáticos', h: `
+    <p>Todos os dias o sistema verifica vencimentos e atrasos, revisões perto de vencer, prazos de multa e documentos do veículo, e envia os e-mails configurados em ⚙ › Notificações. Os avisos de pagamento vão para o motorista quando ele tem e-mail cadastrado. Para mandar pelo WhatsApp, use os botões <b>WhatsApp</b> nas telas.</p>
+    <p>Use <b>Enviar e-mail de teste</b> para conferir se está chegando, inclusive na caixa de spam.</p>` },
+  { t: 'Perfis de acesso', h: `
+    <ul>
+      <li><b>Administrador</b>: tudo, inclusive empresa, usuários e correção de km para baixo.</li>
+      <li><b>Gestor</b>: operação completa, financeiro, planos, modelo de contrato e configurações.</li>
+      <li><b>Operador</b>: dia a dia (veículos, motoristas, contratos, vistorias, manutenções e infrações).</li>
+    </ul>
+    <p>Recomendado: só o dono como administrador. Os demais como gestor ou operador.</p>` },
+  { t: 'Instalar no celular', id: 'instalar', h: `<div id="ajInstalar"></div>` },
+  { t: 'Segurança e boas práticas', h: `
+    <ul>
+      <li><b>Não edite a planilha à mão.</b> Use sempre o sistema, que valida os dados e guarda o histórico. Se precisar editar, depois use, na planilha, <b>⚙ Sistema Frota › Limpar cache</b>.</li>
+      <li>Não compartilhe a planilha nem a pasta "Sistema Frota - Arquivos". Elas guardam CPF, CNH e documentos.</li>
+      <li>Marque <b>Manter conectado</b> só no seu aparelho. Em computador de outra pessoa, desmarque e clique em <b>Sair</b> no fim.</li>
+      <li>Perdeu o celular? Na planilha, use <b>⚙ Sistema Frota › Encerrar sessões de todos</b>.</li>
+    </ul>` },
+  { t: 'Problemas comuns', h: `
+    <ul>
+      <li><b>"Registro alterado por outra pessoa"</b>: alguém salvou o mesmo cadastro enquanto você editava. Feche, abra de novo e refaça a alteração. Isso evita apagar o que o outro gravou.</li>
+      <li><b>"Sessão expirada"</b>: entre de novo. Isso acontece após 30 dias, ao trocar a senha pelo administrador ou se o acesso foi desativado.</li>
+      <li><b>Um dado não apareceu</b>: atualize a página. O sistema abre com a cópia guardada e busca a versão nova logo em seguida.</li>
+      <li><b>"Ação desconhecida"</b> (administrador): o código novo foi colado, mas falta criar uma Nova versão em Implantar › Gerenciar implantações.</li>
+    </ul>` }
+];
+
+function cfgAjuda(alvo) {
+  alvo.innerHTML = `<div class="ajuda">
+    <input type="search" id="ajBusca" placeholder="Pesquisar na ajuda (ex.: multa, devolução, PIX)..." style="width:100%;margin-bottom:12px">
+    <div id="ajLista">${AJUDA.map((a, i) => `<details class="aj-item" data-i="${i}" ${a.id === 'instalar' && !appInstalado() && ehCelular() ? 'open' : ''}><summary>${esc(a.t)}</summary><div class="aj-corpo">${a.h}</div></details>`).join('')}</div>
+    <p id="ajNada" class="vazio oculto">Nada encontrado. Tente outra palavra.</p></div>`;
+  const tirarAcento = x => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  alvo.querySelector('#ajBusca').oninput = e => {
+    const q = tirarAcento(e.target.value.trim());
+    let n = 0;
+    alvo.querySelectorAll('.aj-item').forEach(d => {
+      const ok = !q || tirarAcento(d.textContent).includes(q);
+      d.classList.toggle('oculto', !ok); if (ok) n++;
+      d.open = !!q && ok;
+    });
+    alvo.querySelector('#ajNada').classList.toggle('oculto', n > 0);
+  };
+  desenharInstalar(alvo.querySelector('#ajInstalar'));
+}
+
+/* ---------- INSTALAR COMO APLICATIVO (PWA) ---------- */
+let _pedidoInstalar = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _pedidoInstalar = e; const a = document.getElementById('ajInstalar'); if (a) desenharInstalar(a); });
+window.addEventListener('appinstalled', () => { _pedidoInstalar = null; toast('Aplicativo instalado.'); });
+const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const ehCelular = () => /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+const appInstalado = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function desenharInstalar(alvo) {
+  if (!alvo) return;
+  if (appInstalado()) { alvo.innerHTML = '<div class="info">Você já está usando o aplicativo instalado. ✓</div>'; return; }
+  const ios = ehIOS();
+  alvo.innerHTML = `
+    ${_pedidoInstalar ? `<button class="btn btn-pri" type="button" id="ajBtnInst">${ico('celular')} Instalar agora</button>` : ''}
+    <p style="margin-top:10px"><b>${ios ? 'iPhone / iPad' : 'Android'}:</b></p>
+    ${ios ? `<ol><li>Abra o sistema no <b>Safari</b>. No Chrome do iPhone não aparece essa opção.</li>
+              <li>Toque no botão <b>Compartilhar</b> (quadrado com seta para cima).</li>
+              <li>Role e toque em <b>Adicionar à Tela de Início</b> › <b>Adicionar</b>.</li></ol>`
+          : `<ol><li>Abra o sistema no <b>Chrome</b>.</li>
+              <li>Toque em <b>Instalar agora</b> acima ou, no menu <b>⋮</b>, em <b>Instalar app</b> (ou <b>Adicionar à tela inicial › Instalar</b>).</li>
+              <li>O ícone "Frota" aparece junto com os outros aplicativos.</li></ol>`}
+    <p style="color:var(--cinza);font-size:12.5px">No computador (Chrome ou Edge), use o ícone de instalar na barra de endereço.</p>
+    <p style="color:var(--cinza);font-size:12.5px">O aplicativo abre em tela cheia, sem a barra do navegador, e as atualizações chegam sozinhas.</p>`;
+  const b = alvo.querySelector('#ajBtnInst');
+  if (b) b.onclick = async () => { _pedidoInstalar.prompt(); await _pedidoInstalar.userChoice.catch(() => {}); _pedidoInstalar = null; desenharInstalar(alvo); };
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 
 async function recarregarCatalogos() { S.cat = await api('listarCatalogos'); }
@@ -2525,9 +2826,20 @@ async function painelFipeVeiculo(veiculoId, alvo) {
           return [nomeMes(x.mes), esc(x.referencia), dinheiro(x.valor), dv == null ? '—' : sinal(dv)];
         })) : ''}
       ${ed ? `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" type="button" data-f="vincular">${v.fipe_codigo ? 'Alterar vínculo' : 'Vincular à FIPE'}</button>
-        ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}</div>` : ''}
+        ${v.fipe_codigo ? '<button class="btn btn-sec" type="button" data-f="atualizar">↻ Consultar agora</button>' : ''}
+        ${v.fipe_codigo && v.data_aquisicao ? '<button class="btn btn-sec" type="button" data-f="compra">Buscar FIPE do mês da compra</button>' : ''}</div>` : ''}
+      ${v.fipe_codigo ? `<p style="font-size:12.5px;margin-top:10px">FIPE na compra: <b>${Number(v.fipe_na_aquisicao) > 0 ? dinheiro(v.fipe_na_aquisicao) : 'não informada'}</b>${v.data_aquisicao ? ' · compra em ' + dataBR(v.data_aquisicao) : ' · <span style="color:var(--laranja)">informe a data de aquisição na aba Dados</span>'}.
+        <span style="color:var(--cinza)">Deve ser o valor da tabela do <b>mês da compra</b>, não o de hoje; senão a desvalorização aparece como 0%.</span></p>` : ''}
       <p style="font-size:12px;color:var(--cinza);margin-top:10px">FIPE é o preço médio de mercado (referência para venda e seguro), não a depreciação contábil.</p>`;
     const b1 = alvo.querySelector('[data-f=vincular]'); if (b1) b1.onclick = () => vincularFipe(veiculoId, v, () => painelFipeVeiculo(veiculoId, alvo));
+    const campoCompra = document.querySelector('#fVeic [name=fipe_na_aquisicao]');
+    if (campoCompra && Number(v.fipe_na_aquisicao) > 0 && Number(campoCompra.value || 0) !== Number(v.fipe_na_aquisicao)) campoCompra.value = v.fipe_na_aquisicao;
+    const b3 = alvo.querySelector('[data-f=compra]'); if (b3) b3.onclick = async () => {
+      if (Number(v.fipe_na_aquisicao) > 0 && !confirm('Substituir a FIPE na compra (' + dinheiro(v.fipe_na_aquisicao) + ') pelo valor da tabela do mês da compra?')) return;
+      b3.disabled = true;
+      try { const x = await api('fipeNaCompra', { veiculo_id: veiculoId }); toast('FIPE na compra: ' + dinheiro(x.valor) + ' (' + x.referencia + ').'); if (campoCompra) campoCompra.value = x.valor; painelFipeVeiculo(veiculoId, alvo); }
+      catch (e) { toast(e.message, 'erro'); b3.disabled = false; }
+    };
     const b2 = alvo.querySelector('[data-f=atualizar]'); if (b2) b2.onclick = async () => {
       b2.disabled = true;
       try { const x = await api('atualizarFipe', { veiculo_id: veiculoId }); if (x.erros.length) toast(x.erros[0], 'erro'); else toast('FIPE atualizada.'); painelFipeVeiculo(veiculoId, alvo); }
@@ -2611,7 +2923,13 @@ function renderDashboard(r) {
   const card = (rot, val, sub, cor) => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num" style="font-size:24px">${val}</div><small style="color:var(--cinza)">${sub || '&nbsp;'}</small></div>`;
   const patr = r.patrimonio_fipe ? `${dinheiro(r.patrimonio_fipe)}` : '—';
   const patrSub = r.patrimonio_fipe && r.investido_com_fipe ? `investido ${fmtK(r.investido_com_fipe)} (${pct((r.patrimonio_fipe - r.investido_com_fipe) / r.investido_com_fipe * 100)})` : (r.veiculos_sem_fipe ? r.veiculos_sem_fipe + ' carro(s) sem FIPE vinculada' : '');
+  const avisos = [];
+  if (r.veiculos_sem_fipe) avisos.push(`${r.veiculos_sem_fipe} veículo(s) sem FIPE vinculada: o patrimônio soma só os vinculados. Vincule em Veículos › aba FIPE.`);
+  if (r.fipe_desatualizados) avisos.push(`${r.fipe_desatualizados} veículo(s) com FIPE de mês anterior. Abra o veículo › FIPE › Consultar agora.`);
+  if (!r.rotina_fipe_ativa) avisos.push('A atualização automática mensal da FIPE não está ligada. Administrador: no Apps Script, execute a função instalarFase7 uma vez.');
+  if (r.receita_sem_veiculo || r.despesa_sem_veiculo) avisos.push(`Há ${dinheiro(r.receita_sem_veiculo) || 'R$ 0,00'} de receita e ${dinheiro(r.despesa_sem_veiculo) || 'R$ 0,00'} de despesa sem veículo no período: entram no total, mas não na tabela por veículo. Aluguel deve vir de contrato.`);
   $('dashConteudo').innerHTML = `
+    ${avisos.length ? `<div class="aviso" style="margin-bottom:14px"><ul style="margin:0;padding-left:18px">${avisos.map(a => `<li>${a}</li>`).join('')}</ul></div>` : ''}
     <div class="cards" style="grid-template-columns:repeat(3,1fr)">
       ${card('Receita recebida', dinheiro(r.receita) || 'R$ 0,00', dataBR(r.de) + ' a ' + dataBR(r.ate), 'var(--azul)')}
       ${card('Despesas pagas', dinheiro(r.despesa) || 'R$ 0,00', 'manutenção, multas, impostos…', 'var(--laranja)')}
@@ -2642,8 +2960,8 @@ function renderDashboard(r) {
         <td>${pct(v.ocupacao)}<div style="height:5px;background:var(--surface-3);border-radius:3px;margin-top:3px;width:70px"><div style="height:5px;width:${v.ocupacao || 0}%;background:var(--roxo);border-radius:3px"></div></div></td>
         <td>${dinheiro(v.receita) || 'R$ 0,00'}</td><td>${dinheiro(v.despesa) || 'R$ 0,00'}</td><td><b>${sinal(v.resultado)}</b></td>
         <td>${v.km != null ? num(v.km) + ' km' : '—'}</td><td>${v.custo_km != null ? dinheiro(v.custo_km) : '—'}</td>
-        <td>${v.fipe_atual ? dinheiro(v.fipe_atual) : '<small style="color:var(--cinza)">não vinculado</small>'}</td>
-        <td>${v.dep_pct != null ? pct(v.dep_pct) : '—'}</td>
+        <td>${v.fipe_atual ? dinheiro(v.fipe_atual) + (v.fipe_velha ? `<br><small style="color:var(--laranja)">desatualizada (${nomeMes(v.fipe_mes)})</small>` : `<br><small style="color:var(--cinza)">${esc(v.fipe_ref)}</small>`) : '<small style="color:var(--cinza)">não vinculado</small>'}</td>
+        <td>${v.dep_pct != null ? pct(v.dep_pct) + `<br><small style="color:var(--cinza)">vs ${esc(v.base_tipo)}</small>` : '—'}</td>
         <td>${v.retorno_pct != null ? pct(v.retorno_pct) + '<br><small style="color:var(--cinza)">' + fmtK(v.resultado_total) + ' de ' + fmtK(v.investido) + '</small>' : '—'}</td></tr>`).join('') || '<tr><td colspan="10" class="vazio">Nenhum veículo.</td></tr>'}
       </tbody></table></div>
       <p style="font-size:11.5px;color:var(--cinza);padding:8px 14px">* Estimado pelas leituras de km registradas (vistorias, manutenções, "Atualizar km"). ** (receitas − despesas desde o início) ÷ valor pago pelo carro. Caução não entra como receita.</p>
@@ -2779,6 +3097,42 @@ async function conferirComprovante(id) {
     catch (e) { toast(e.message, 'erro'); ev.target.disabled = false; }
   };
 }
+
+/* =========================================================
+   RETOMADA DA SESSÃO AO ABRIR/ATUALIZAR A PÁGINA
+   - abre na hora com os dados guardados no aparelho
+   - confere a sessão e atualiza em segundo plano
+   - só volta para o login se o servidor disser que a sessão acabou
+   ========================================================= */
+(async () => {
+  if (API_URL.includes('COLE_AQUI')) { $('lgErro').textContent = 'Configure a API_URL no início do arquivo.'; return; }
+  const ses = lerSessao();
+  if (!ses) return;
+  S.token = ses.token; S.usuario = ses.usuario;
+  const temCopia = S.usuario && restaurarDadosLocais();
+  if (temCopia) {
+    S.resumoEm = Date.now();                       // mostra o painel guardado sem esperar
+    iniciar({ cat: S.cat, logo: null, resumo: S.resumo });
+  }
+  try {
+    const r = await lote([{ acao: 'sessao' }, { acao: 'listarCatalogos' }, { acao: 'obterLogo' }, { acao: 'resumo' }], ['obterLogo']);
+    S.usuario = r[0];
+    try { armazem().setItem('frota_usuario', JSON.stringify(r[0])); } catch (e) {}
+    if (temCopia) {
+      S.cat = r[1]; S.resumo = r[3]; S.resumoEm = Date.now();
+      if (r[2]) aplicarLogo(r[2].dataUrl);
+      $('usNome').textContent = S.usuario.nome; $('usPerfil').textContent = PERFIS[S.usuario.perfil];
+      if (S.tela === 'painel') renderPainel(S.resumo);
+      else irPara(S.tela);
+    } else {
+      await iniciar({ cat: r[1], logo: r[2], resumo: r[3] });
+    }
+  } catch (e) {
+    if (!S.token) return;                          // sessão expirada: api() já levou ao login
+    if (!temCopia && S.usuario) { iniciar({ cat: S.cat, logo: null, resumo: { porStatus: {}, alertas: [] } }).catch(() => {}); }
+    toast('Não consegui falar com o servidor agora (' + e.message + '). Tente atualizar em instantes.', 'erro');
+  }
+})();
 </script>
 </body>
 </html>
