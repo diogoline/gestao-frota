@@ -273,6 +273,8 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
   #app{grid-template-columns:1fr;height:auto;min-height:100vh}
   aside{position:fixed;inset:0 auto 0 0;width:260px;z-index:60;transform:translateX(-105%);transition:transform .2s}
   #app.menu-aberto aside{transform:none;box-shadow:var(--sombra-modal)}
+  #app.menu-aberto::after{content:'';position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:55;animation:entrarCima .2s both}
+  #app.menu-aberto #btnNovo{display:none}
   #app.recolhido{--sb:260px}
   #app.recolhido .menu a span,#app.recolhido .usuario-info{display:inline}
   .coluna{height:auto;min-height:100vh}
@@ -292,6 +294,35 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
   .modal-rodape{position:sticky;bottom:0;background:var(--surface)}
   .conf-grid{grid-template-columns:1fr!important}
   td,th{padding:10px 10px}
+  /* topo: título com espaço; tema fica no botão de aparência; "+ Novo" vira botão flutuante */
+  .topo h1{font-size:17px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #btnTema{display:none}
+  #btnNovo{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;height:50px;padding:0 20px;border-radius:999px;box-shadow:0 8px 24px rgba(15,23,42,.28);font-size:15px}
+  main{padding:12px 12px 84px}
+  /* cartões e grades com estilo fixo no código: força 2 colunas / 1 coluna */
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .card .num{font-size:18px!important;overflow-wrap:anywhere}
+  .card small{font-size:11px}
+  .grade{grid-template-columns:1fr!important}
+  .nota-tit{flex-wrap:wrap}.nota-tit small{margin-left:0;width:100%}
+  .nota-dash{padding:12px 14px}
+  /* tabelas viram cartões: cada linha é um bloco com "rótulo: valor" */
+  table.resp thead{display:none}
+  table.resp,table.resp tbody,table.resp tr,table.resp td{display:block;width:100%}
+  table.resp{min-width:0!important}
+  table.resp tr{border:1px solid var(--borda);border-radius:12px;margin:0 0 10px;padding:6px 12px;background:var(--surface)}
+  table.resp tbody tr:hover{background:var(--surface)}
+  table.resp td{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:7px 0!important;border:none!important;border-bottom:1px dashed var(--borda)!important;text-align:right;overflow-wrap:anywhere;min-height:0}
+  table.resp td:last-child{border-bottom:none!important}
+  table.resp td::before{content:attr(data-label);flex:none;max-width:42%;text-align:left;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--cinza)}
+  table.resp td[data-label=""]::before{display:none}
+  table.resp td[data-label=""]{justify-content:flex-start;text-align:left}
+  table.resp td[colspan]{display:block;text-align:center;border:none!important}
+  table.resp td .cel{max-width:60%;text-align:right}
+  table.resp td[data-label=""] .cel{max-width:none;text-align:left}
+  table.resp td[colspan]::before{display:none}
+  .painel:has(> table.resp),.painel:has(> div > table.resp){background:transparent;border:none;box-shadow:none}
+  div:has(> table.resp){overflow-x:visible!important}
 }
 .nota-dash{padding:14px 18px;margin-bottom:14px;border-left:4px solid var(--c)}
 .nota-tit{display:flex;align-items:center;gap:8px;margin-bottom:6px}
@@ -889,6 +920,32 @@ async function carregarPainel() {
   S.resumo = await api('resumo'); S.resumoEm = Date.now();
   if (S.tela === 'painel') renderPainel(S.resumo);
 }
+/* Celular: cada célula recebe o nome da coluna (data-label) para virar "cartão". Vale para todas as tabelas. */
+function rotularTabelas(raiz = document) {
+  const celular = matchMedia('(max-width: 700px)').matches;
+  raiz.querySelectorAll('table').forEach(t => {
+    if (t.classList.contains('nao-resp')) return;
+    const ths = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    if (!ths.length) return;
+    t.classList.add('resp');
+    t.querySelectorAll('tbody tr').forEach(tr => {
+      let col = 0;
+      [...tr.children].forEach(td => {
+        if (!td.hasAttribute('data-label')) td.setAttribute('data-label', td.hasAttribute('colspan') ? '' : (ths[col] || ''));
+        col += Number(td.getAttribute('colspan') || 1);
+        // no celular, junta o conteúdo da célula num bloco só (senão "valor" e "detalhe" se separam)
+        if (celular && !td.dataset.w && td.childNodes.length > 1) {
+          td.dataset.w = 1; const d = document.createElement('div'); d.className = 'cel';
+          while (td.firstChild) d.appendChild(td.firstChild); td.appendChild(d);
+        }
+      });
+    });
+  });
+}
+let _rotPend = false;
+new MutationObserver(() => { if (_rotPend) return; _rotPend = true; requestAnimationFrame(() => { _rotPend = false; rotularTabelas(); }); })
+  .observe(document.body, { childList: true, subtree: true });
+
 /* Animação só na abertura da tela (ou troca de período); atualizações em segundo plano não animam */
 const ANIMAR = {};
 const semMovimento = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
