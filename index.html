@@ -296,7 +296,14 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
 .nota-dash{padding:14px 18px;margin-bottom:14px;border-left:4px solid var(--c)}
 .nota-tit{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .nota-tit b{font-size:15px}.nota-tit small{margin-left:auto;color:var(--cinza);font-size:11.5px}
-.nota-ico{color:var(--c);display:flex}
+.pulso{position:relative;width:11px;height:11px;margin:0 4px 0 2px;border-radius:50%;background:var(--c);flex:none}
+.pulso::before,.pulso::after{content:'';position:absolute;inset:0;border-radius:50%;background:var(--c);animation:pulsar 2.6s cubic-bezier(.2,.6,.3,1) infinite}
+.pulso::after{animation-delay:1.3s}
+.nota-dash[data-n=ruim] .pulso::before,.nota-dash[data-n=ruim] .pulso::after{animation-duration:1.8s}
+.nota-dash[data-n=ruim] .pulso::after{animation-delay:.9s}
+.nota-dash[data-n=neutro] .pulso::before,.nota-dash[data-n=neutro] .pulso::after{animation:none}
+@keyframes pulsar{0%{transform:scale(1);opacity:.45}100%{transform:scale(2.8);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pulso::before,.pulso::after{animation:none!important}}
 .nota-dash ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .nota-obs{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--surface-2);font-size:12.5px;color:var(--texto);line-height:1.5}
 .nota-rod{margin:8px 0 0;font-size:11px;color:var(--cinza)}
@@ -3034,9 +3041,9 @@ function interpretarDashboard(r) {
 }
 function htmlNota(n) {
   const cor = { bom: 'var(--verde)', regular: 'var(--laranja)', ruim: 'var(--vermelho)', neutro: 'var(--cinza)' }[n.nivel];
-  const icone = { bom: 'tendencia', regular: 'alerta', ruim: 'alerta', neutro: 'ajuda' }[n.nivel];
-  return `<div class="painel nota-dash" style="--c:${cor}">
-    <div class="nota-tit"><span class="nota-ico">${ico(icone, 18)}</span><b>${n.titulo}</b><small>Leitura automática</small></div>
+  const selo = { bom: ['Positivo', 'b-verde'], regular: ['Normal', 'b-laranja'], ruim: ['Atenção', 'b-vermelho'], neutro: ['Sem dados', 'b-cinza'] }[n.nivel];
+  return `<div class="painel nota-dash" data-n="${n.nivel}" style="--c:${cor}">
+    <div class="nota-tit"><span class="pulso" aria-hidden="true"></span><span class="badge ${selo[1]}">${selo[0]}</span><b>${n.titulo}</b><small>Leitura automática</small></div>
     <ul>${n.frases.map(f => `<li>${f}</li>`).join('')}</ul>
     ${n.obs.length ? `<div class="nota-obs">${n.obs.map(o => `<div>• ${o}</div>`).join('')}</div>` : ''}
     <p class="nota-rod">Baseada em regras fixas (margem, ocupação, inadimplência e ritmo de receita). Não considera depreciação nem parcelas de financiamento que não estejam lançadas como despesa.</p>
