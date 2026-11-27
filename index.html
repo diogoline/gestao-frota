@@ -293,6 +293,13 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
   .conf-grid{grid-template-columns:1fr!important}
   td,th{padding:10px 10px}
 }
+.nota-dash{padding:14px 18px;margin-bottom:14px;border-left:4px solid var(--c)}
+.nota-tit{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.nota-tit b{font-size:15px}.nota-tit small{margin-left:auto;color:var(--cinza);font-size:11.5px}
+.nota-ico{color:var(--c);display:flex}
+.nota-dash ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
+.nota-obs{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--surface-2);font-size:12.5px;color:var(--texto);line-height:1.5}
+.nota-rod{margin:8px 0 0;font-size:11px;color:var(--cinza)}
 /* ---------- Animação de entrada (painel e dashboard) ---------- */
 @keyframes entrarCima{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes crescerX{from{transform:scaleX(0)}to{transform:scaleX(1)}}
@@ -339,6 +346,7 @@ html[data-theme="dark"][data-accent="marinho"]{--sidebar:#0a1838;--sidebar-ativo
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
   <symbol id="i-paleta" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.56-2.5 5.56-5.55C21.97 6.01 17.46 2 12 2z"/></symbol>
   <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+  <symbol id="i-tendencia" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
   <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
 </svg>
 <div id="carregando"></div>
@@ -2968,6 +2976,73 @@ async function carregarDashboard() {
   catch (e) { $('dashConteudo').innerHTML = `<div class="painel vazio">${esc(e.message)}</div>`; }
 }
 
+/* ---------- Nota automática do Dashboard (regras fixas, sem IA) ----------
+   Limites iniciais para locadora pequena: ajuste aqui se a realidade for outra. */
+const LIMITES_NOTA = { margemBoa: 40, margemMin: 20, ocupBoa: 85, ocupMin: 70, inadBoa: 5, inadMax: 15 };
+function interpretarDashboard(r) {
+  const L = LIMITES_NOTA, pos = [], neg = [], obs = [];
+  let pontos = 0, avaliados = 0;
+  const periodo = ($('dashPer') || {}).value;
+  // 1) confiabilidade dos dados
+  const semContrato = r.receita > 0 && !r.ocupacao;
+  if (semContrato) obs.push('Há receita, mas nenhum dia de locação registrado: os aluguéis ainda não estão em contratos. Ocupação e resultado por carro ficam incompletos.');
+  if (r.receita_sem_veiculo > 0 && !semContrato) obs.push(`${dinheiro(r.receita_sem_veiculo)} de receita sem veículo vinculado.`);
+  if (r.veiculos_sem_fipe) obs.push(`${r.veiculos_sem_fipe} carro(s) sem FIPE: o patrimônio está subestimado.`);
+  if (!r.receita && !r.despesa) return { nivel: 'neutro', titulo: 'Sem movimento no período', frases: ['Nenhuma receita ou despesa paga neste período.'], obs };
+  // 2) resultado e margem
+  avaliados++;
+  if (r.resultado < 0) { pontos -= 2; neg.push(`Resultado negativo: as despesas (${dinheiro(r.despesa)}) superaram a receita (${dinheiro(r.receita)}).`); }
+  else if (r.margem >= L.margemBoa) { pontos += 2; pos.push(`Margem de ${pct(r.margem)}: de cada R$ 100 recebidos, sobraram cerca de R$ ${Math.round(r.margem)}.`); }
+  else if (r.margem >= L.margemMin) { pontos += 1; pos.push(`Resultado positivo, com margem de ${pct(r.margem)} (razoável).`); }
+  else neg.push(`Resultado positivo, mas com margem apertada: ${pct(r.margem)}.`);
+  // 3) ocupação (só se houver contratos)
+  if (!semContrato && r.ocupacao != null) {
+    avaliados++;
+    if (r.ocupacao >= L.ocupBoa) { pontos += 1; pos.push(`Frota bem aproveitada: ${pct(r.ocupacao)} de ocupação.`); }
+    else if (r.ocupacao >= L.ocupMin) pos.push(`Ocupação de ${pct(r.ocupacao)}: dá para melhorar.`);
+    else { pontos -= 1; neg.push(`Ocupação baixa (${pct(r.ocupacao)}): há carros parados sem gerar receita.`); }
+  }
+  // 4) inadimplência
+  if (r.inadimplencia != null && (r.atrasado_hoje > 0 || r.inadimplencia > 0)) {
+    avaliados++;
+    if (r.inadimplencia <= L.inadBoa) pos.push(`Inadimplência sob controle (${pct(r.inadimplencia)}).`);
+    else if (r.inadimplencia <= L.inadMax) { pontos -= 1; neg.push(`Inadimplência de ${pct(r.inadimplencia)}: acompanhe os atrasos (${dinheiro(r.atrasado_hoje)} hoje).`); }
+    else { pontos -= 2; neg.push(`Inadimplência alta (${pct(r.inadimplencia)}): ${dinheiro(r.atrasado_hoje)} em atraso hoje. Priorize a cobrança.`); }
+  }
+  // 5) comparação com o mês anterior (só em "Este mês", no ritmo atual)
+  if (periodo === 'mes' && r.meses && r.meses.length >= 2) {
+    const at = r.meses[r.meses.length - 1], ant = r.meses[r.meses.length - 2];
+    const hoje = new Date(), dia = hoje.getDate(), diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    if (ant.receita > 0 && dia >= 7) {
+      const proj = at.receita / dia * diasMes, v = (proj - ant.receita) / ant.receita * 100;
+      if (v >= 5) pos.push(`No ritmo atual, a receita do mês deve ficar ~${pct(v)} acima do mês passado.`);
+      else if (v <= -5) neg.push(`No ritmo atual, a receita do mês deve ficar ~${pct(Math.abs(v))} abaixo do mês passado.`);
+    } else if (dia < 7) obs.push(`Mês no início (dia ${dia}): a comparação com o mês passado fica disponível a partir do dia 7.`);
+  }
+  // 6) maior despesa e destaques por carro
+  const cat = (r.por_categoria || [])[0];
+  if (cat && r.despesa > 0) { const part = cat.valor / r.despesa * 100; if (part >= 50) obs.push(`${esc(cat.categoria)} concentra ${pct(part)} das despesas (${dinheiro(cat.valor)}).`); }
+  const comRec = (r.veiculos || []).filter(v => v.receita > 0 || v.despesa > 0);
+  if (comRec.length >= 2 && !semContrato) {
+    const ord = comRec.slice().sort((a, b) => b.resultado - a.resultado), melhor = ord[0], pior = ord[ord.length - 1];
+    pos.push(`Melhor resultado: ${esc(melhor.placa)} (${dinheiro(melhor.resultado)}).`);
+    if (pior.resultado < 0) neg.push(`${esc(pior.placa)} deu prejuízo no período (${dinheiro(pior.resultado)}). Veja as despesas desse carro.`);
+  }
+  const nivel = pontos >= 2 ? 'bom' : pontos >= 0 ? 'regular' : 'ruim';
+  const titulo = { bom: 'Período bom', regular: 'Período regular', ruim: 'Período de atenção' }[nivel] + (obs.length && semContrato ? ' (leitura parcial)' : '');
+  return { nivel, titulo, frases: nivel === 'bom' ? [...pos, ...neg] : [...neg, ...pos], obs };
+}
+function htmlNota(n) {
+  const cor = { bom: 'var(--verde)', regular: 'var(--laranja)', ruim: 'var(--vermelho)', neutro: 'var(--cinza)' }[n.nivel];
+  const icone = { bom: 'tendencia', regular: 'alerta', ruim: 'alerta', neutro: 'ajuda' }[n.nivel];
+  return `<div class="painel nota-dash" style="--c:${cor}">
+    <div class="nota-tit"><span class="nota-ico">${ico(icone, 18)}</span><b>${n.titulo}</b><small>Leitura automática</small></div>
+    <ul>${n.frases.map(f => `<li>${f}</li>`).join('')}</ul>
+    ${n.obs.length ? `<div class="nota-obs">${n.obs.map(o => `<div>• ${o}</div>`).join('')}</div>` : ''}
+    <p class="nota-rod">Baseada em regras fixas (margem, ocupação, inadimplência e ritmo de receita). Não considera depreciação nem parcelas de financiamento que não estejam lançadas como despesa.</p>
+  </div>`;
+}
+
 function renderDashboard(r) {
   const card = (rot, val, sub, cor) => `<div class="card" style="--c:${cor}"><div class="rot">${rot}</div><div class="num" style="font-size:24px">${val}</div><small style="color:var(--cinza)">${sub || '&nbsp;'}</small></div>`;
   const patr = r.patrimonio_fipe ? `${dinheiro(r.patrimonio_fipe)}` : '—';
@@ -2978,6 +3053,7 @@ function renderDashboard(r) {
   if (!r.rotina_fipe_ativa) avisos.push('A atualização automática mensal da FIPE não está ligada. Administrador: no Apps Script, execute a função instalarFase7 uma vez.');
   if (r.receita_sem_veiculo || r.despesa_sem_veiculo) avisos.push(`Há ${dinheiro(r.receita_sem_veiculo) || 'R$ 0,00'} de receita e ${dinheiro(r.despesa_sem_veiculo) || 'R$ 0,00'} de despesa sem veículo no período: entram no total, mas não na tabela por veículo. Aluguel deve vir de contrato.`);
   $('dashConteudo').innerHTML = `
+    ${htmlNota(interpretarDashboard(r))}
     ${avisos.length ? `<div class="aviso" style="margin-bottom:14px"><ul style="margin:0;padding-left:18px">${avisos.map(a => `<li>${a}</li>`).join('')}</ul></div>` : ''}
     <div class="cards" style="grid-template-columns:repeat(3,1fr)">
       ${card('Receita recebida', dinheiro(r.receita) || 'R$ 0,00', dataBR(r.de) + ' a ' + dataBR(r.ate), 'var(--azul)')}
